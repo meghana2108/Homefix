@@ -24,4 +24,15 @@ describe("CodeResultPanel", () => {
     render(<CodeResultPanel result={{ ...base, passed: false, tests_run: 0, failures: 0 }} />);
     expect(screen.getByText("✕ no examples ran")).toBeInTheDocument();
   });
+
+  it("scrolls long code inside the card", () => {
+    const { container } = render(<CodeResultPanel result={{ ...base, code: "x = " + "a".repeat(500) }} />);
+    expect(container.querySelector("pre")).toHaveStyle({ overflowX: "auto" });
+    expect(container.querySelectorAll("pre")[1]).toHaveStyle({ overflowX: "auto" });
+  });
+
+  it("says (no output) when output_tail is empty", () => {
+    render(<CodeResultPanel result={{ ...base, output_tail: "" }} />);
+    expect(screen.getByText("(no output)")).toBeInTheDocument();
+  });
 });

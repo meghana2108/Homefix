@@ -16,4 +16,9 @@ describe("CitationCard", () => {
     expect(screen.getByText("washer_manual.pdf")).toBeInTheDocument();
     expect(screen.queryByText(/p\./)).toBeNull();
   });
+
+  it("wraps long unbroken quotes", () => {
+    const { container } = render(<CitationCard citation={base} />);
+    expect(container.querySelector("blockquote")).toHaveStyle({ overflowWrap: "anywhere" });
+  });
 });

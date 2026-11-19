@@ -17,10 +17,10 @@ export function CodeResultPanel({ result }: { result: CodeResultEvent }) {
         </span>{" "}
         <span className="muted">Attempt {result.attempts} of 2</span>
       </p>
-      <pre><code>{result.code}</code></pre>
+      <pre style={{ overflowX: "auto", maxWidth: "100%" }}><code>{result.code}</code></pre>
       <details>
         <summary>Test output</summary>
-        <pre>{result.output_tail}</pre>
+        <pre style={{ overflowX: "auto", maxWidth: "100%" }}>{result.output_tail || "(no output)"}</pre>
       </details>
     </section>
   );
