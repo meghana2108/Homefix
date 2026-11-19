@@ -83,7 +83,7 @@ NEXT_STEPS: list[tuple[tuple[str, ...], str]] = [
      "If this could be a smoke or carbon monoxide alarm, don't wait: leave and call 911."),
     (("chirp",),
      "A single chirp every 30 to 60 seconds is usually a smoke alarm with a low battery. Tell maintenance."),
-    (("drip", "water", "pour", "splash", "trickle", "gurgl"),
+    (("drip", "water", "pour", "splash", "trickle", "gurgl", "rain", "drop"),
      ("If it's water you can't explain, look under the sinks and around the washer, and turn off the water "
      "valve if you find a leak. Then call maintenance.")),
     (("hiss",),
@@ -105,8 +105,8 @@ def describe_sounds(labels: list[SoundLabel]) -> str:
         lead = f"Most likely **{top.label}** ({top.score:.0%})."
         others = rest
     parts = [lead + (f" Also possible: {', '.join(r.label for r in others)}." if others else "")]
-    heard = " ".join(lb.label.lower() for lb in labels)
-    hint = next((text for words, text in NEXT_STEPS if any(w in heard for w in words)), None)
+    # the top label decides the hint; the others only when it has none
+    hint = next((text for lb in labels for words, text in NEXT_STEPS if any(w in lb.label.lower() for w in words)), None)
     if hint:
         parts.append(hint)
     return "\n\n".join(parts)

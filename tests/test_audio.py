@@ -257,3 +257,9 @@ def test_describe_water_and_chirp_hints():
 def test_describe_no_hint_for_ordinary_sounds():
     assert audio.describe_sounds(L(("dog barking", 0.7), ("bark", 0.1), ("growl", 0.05))) == \
         "Most likely **dog barking** (70%). Also possible: bark, growl."
+
+
+def test_describe_hint_follows_the_top_label():
+    """Dripping heard as 'raindrop' first and 'chirp tone' second gets the water hint, not the chirp one."""
+    text = audio.describe_sounds(L(("raindrop", 0.15), ("chirp tone", 0.149), ("drip", 0.07)))
+    assert "turn off the water" in text and "low battery" not in text

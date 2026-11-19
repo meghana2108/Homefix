@@ -78,19 +78,27 @@ def _convert(files: list[Path], names: list[str], ctx: Ctx, workdir: Path) -> It
 
 
 AUTO_MANUAL = "auto"
-# A photo goes to the manual only when the question is about an appliance, an error or what to do.
-_APPLIANCE_Q = re.compile(
-    r"\b(error|code|display|panel|screen|light|lights|blink\w*|flash\w*|beep\w*|alarm|washer|washing|dryer|"
-    r"dishwasher|fridge|refrigerator|freezer|oven|stove|microwave|heater|boiler|thermostat|machine|appliance|"
-    r"manual|fix|broken|won'?t|doesn'?t|not working|what (should|do|can) i do)\b", re.IGNORECASE)
+# A photo goes to the manual only when the question is about a problem: an error, a code, blinking, or
+# what to do. Naming an appliance is not enough ("What temperature is the thermostat set to?" is a photo question).
+_PROBLEM_Q = re.compile(
+    r"\b(error|code|codes|blink\w*|flash\w*|beep\w*|alarm|broken|won'?t|doesn'?t|not working|fix|problem|wrong|"
+    r"manual|what (should|do|can) i do|what does (this|that|it) mean|mean)\b", re.IGNORECASE)
+# Words that say nothing about which manual fits.
+_FILLER = frozenset(
+    ["a", "an", "the", "and", "or", "to", "of", "for", "on", "in", "at", "is", "it", "my", "me", "i", "you", "your", "this", "that", "what", "how", "do", "does", "did", "can", "should", "will", "with", "from", "who", "when", "where", "why", "which", "shows", "show", "set", "up", "off", "guide", "manual", "quick", "user", "unit", "apartment"])
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in _FILLER and len(w) > 1}
 
 
 def resolve_manual(manual_id: str | None, message: str, attachments: list[Attachment]) -> str | None:
     """manual_id as given, or for "auto": the manual that fits the question, or None.
 
-    auto uses a manual for a single photo whose question is about an appliance or an error, and for a
+    auto uses a manual for a single photo whose question is about a problem (an error, a code, what to do), and for a
     question with no attachment (which would otherwise be refused). Never for sound, video or an attached
-    document. With several manuals, the one whose name shares a word with the question, else the first.
+    document. With several manuals, the one whose name shares the most words with the question (filler
+    words don't count), else the first.
     """
     if manual_id != AUTO_MANUAL:
         return manual_id
@@ -100,13 +108,15 @@ def resolve_manual(manual_id: str | None, message: str, attachments: list[Attach
     if not manuals:
         return None
     if attachments and (len(attachments) != 1 or attachments[0].kind != "image"
-                        or not _APPLIANCE_Q.search(message)):
+                        or not _PROBLEM_Q.search(message)):
         return None
-    words = set(re.findall(r"[a-z0-9]+", message.lower()))
+    words = _words(message)
+    best, best_n = manuals[0]["id"], 0
     for m in manuals:
-        if words & set(re.findall(r"[a-z0-9]+", f"{m['id']} {m['title']}".lower())):
-            return m["id"]
-    return manuals[0]["id"]
+        n = len(words & _words(f"{m['id'].replace('_', ' ')} {m['title']}"))
+        if n > best_n:
+            best, best_n = m["id"], n
+    return best
 
 
 def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, names: list[str],
@@ -134,12 +144,12 @@ def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, name
     yield Status(stage="routing")
     asked_auto = manual_id == AUTO_MANUAL
     manual_id = resolve_manual(manual_id, text, attachments)
-    if asked_auto and manual_id:
+    r = route(text, attachments, manual_id)
+    if asked_auto and manual_id and r.modality in ("text", "homefix"):  # say so only when the answer uses it
         from app.pipelines.homefix import list_manuals
 
         title = next((m["title"] for m in list_manuals() if m["id"] == manual_id), manual_id)
         yield Status(stage="routing", detail=f"Using the manual: {title}")
-    r = route(text, attachments, manual_id)
     if r.refusal:
         raise _Stop(r.refusal, r.modality, r.question_type)
     if r.note:

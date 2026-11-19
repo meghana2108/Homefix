@@ -54,3 +54,6 @@ frontend/dist/
 .DS_Store
 .vscode/
 .idea/
+# example gallery: made by scripts/make_samples.py on each Mac. Not in git: the hard-rule test bans
+# tracked .wav/.mp4/.pdf, so the samples are generated like the manuals.
+frontend/public/samples/

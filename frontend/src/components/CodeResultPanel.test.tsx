@@ -9,7 +9,7 @@ describe("CodeResultPanel", () => {
   it("shows a passed badge, attempt and code", () => {
     const { container } = render(<CodeResultPanel result={base} />);
     expect(screen.getByText("Passed 2 of 2")).toBeInTheDocument();
-    expect(screen.getByText("Attempt 1 of 2")).toBeInTheDocument();
+    expect(screen.getByText(/^Attempt 1 of 2/)).toBeInTheDocument();
     expect(container.querySelector("pre code")).toHaveTextContent("return 1");
   });
 

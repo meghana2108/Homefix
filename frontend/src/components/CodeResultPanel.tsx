@@ -16,8 +16,7 @@ export function CodeResultPanel({ result }: { result: CodeResultEvent }) {
         <span className={`pill ${result.passed ? "pill--ok" : "pill--bad"}`} data-passed={result.passed}>
           <Icon as={result.passed ? CircleCheck : CircleX} size={14} />{badgeText(result)}
         </span>{" "}
-        <span className="faint">Attempt {result.attempts} of 2</span>
-        <span className="faint">, tested in a sandbox</span>
+        <span className="faint">Attempt {result.attempts} of 2, tested in a sandbox</span>
       </p>
       <pre className="code" style={{ overflowX: "auto", maxWidth: "100%" }}><code>{result.code}</code></pre>
       <details>

@@ -133,7 +133,10 @@ export function outcomeOf(turn: Turn): Outcome {
   if (error) return { kind: "danger", label: "Something went wrong", icon: "error" };
   if (refusal?.reason === "not_in_document") return { kind: "notfound", label: "Not in the document", icon: "notfound" };
   if (refusal) return { kind: "notfound", label: "Couldn't answer this one", icon: "notfound" };
-  if (citation) return { kind: "answered", label: citation.page != null ? `From the manual, page ${citation.page}` : "From the document", icon: "cited" };
+  if (citation) {
+    const where = turn.sentFiles.some((f) => f.kind === "file") ? "your document" : "the manual";
+    return { kind: "answered", label: citation.page != null ? `From ${where}, page ${citation.page}` : `From ${where}`, icon: "cited" };
+  }
   if (codeResult) return codeResult.passed
     ? { kind: "answered", label: `Code tested: passed ${codeResult.tests_run - codeResult.failures} of ${codeResult.tests_run}`, icon: "code" }
     : { kind: "notfound", label: "Code tested: it didn't pass", icon: "code" };

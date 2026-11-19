@@ -1,11 +1,13 @@
-import { Camera, ChevronRight, FileText, Lock, OctagonAlert, Plus, ShieldCheck, Volume2, Zap, type LucideIcon } from "lucide-react";
+import { Lock, Plus, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { API_LABEL, IS_MOCK, getHealth, getManuals, streamChat } from "../api/client";
 import type { Health, HomeFixEvent, Manual } from "../contract";
 import { kindOf, newTurn, reduce, type SentFile, type Turn } from "../state/reduce";
 import { stepsOf } from "../state/steps";
+import type { Example } from "../examples";
 import { BackendBanner } from "./BackendBanner";
-import { ACCEPT, Composer, MAX_FILES } from "./Composer";
+import { Composer, MAX_FILES } from "./Composer";
+import { ExampleGallery } from "./ExampleGallery";
 import { Icon } from "./Icons";
 import { AUTO } from "./ManualPicker";
 import { MessageList } from "./MessageList";
@@ -15,30 +17,6 @@ import { Wordmark } from "./Wordmark";
 const HEALTH_EVERY_MS = 5000;
 const TOO_MANY = `Attach up to ${MAX_FILES} files at a time.`;
 const MACHINE: Record<string, string> = { full: "M4", lite: "M2" };
-
-/** The quick starts on an empty workspace: a question, and the kind of file to pick for it. */
-export interface QuickStart {
-  icon: LucideIcon;
-  title: string;
-  text: string;
-  example: string;
-  attach?: "image" | "audio" | "video" | "document";
-}
-export const QUICK_STARTS: QuickStart[] = [
-  { icon: Camera, title: "A code on a display", text: "Take a photo of the panel. HomeFix reads the code and looks it up.",
-    example: "My washer shows this code. What should I do?", attach: "image" },
-  { icon: Volume2, title: "A beep or a strange noise", text: "Record it or drop the file. HomeFix names the closest sounds.",
-    example: "What is this sound?", attach: "audio" },
-  { icon: FileText, title: "A question for the manual", text: "Ask in plain words. You get the answer and the page it came from.",
-    example: "How do I clean the drain filter?" },
-  { icon: OctagonAlert, title: "Something smells, sparks or burns", text: "HomeFix tells you to stop and who to call.",
-    example: "I smell burning from the outlet behind the fridge" },
-  { icon: Zap, title: "A high power bill", text: "Drop a smart-plug CSV. HomeFix writes and tests a small program.",
-    example: "Write a function that finds the hour with the highest watts in my smart-plug CSV" },
-];
-const PICK_ACCEPT: Record<NonNullable<QuickStart["attach"]>, string> = {
-  image: "image/*,.heic,.heif", audio: "audio/*", video: "video/*", document: ".pdf,.docx,.txt,.md",
-};
 
 interface Sent { text: string; files: File[]; manualId: string | null }
 
@@ -65,27 +43,25 @@ function sentFiles(files: File[]): SentFile[] {
   });
 }
 
-export function StartScreen({ onPick }: { onPick: (example: string, attach?: QuickStart["attach"]) => void }) {
+/** A gallery sample as a real File, the same as one the user picked. */
+export async function sampleFile(name: string, mime: string): Promise<File> {
+  const res = await fetch(`/samples/${name}`);
+  if (!res.ok) throw new Error(`Couldn't load the example file ${name}.`);
+  return new File([await res.blob()], name, { type: mime });
+}
+
+export function StartScreen({ onTry, busy = false, manuals = [] }: {
+  onTry?: (ex: Example) => void; busy?: boolean; manuals?: Manual[];
+}) {
   return (
     <section className="start" aria-labelledby="start-h">
       <div className="start__inner">
         <h1 id="start-h">What's going on at home?</h1>
         <p className="start__lead">
-          Type a question below, or start from one of these. Attach a photo, a sound, a clip or a document, and
-          HomeFix answers from it. You'll see each step as it works.
+          Type a question below and attach a photo, a sound, a clip or a document. Or try one of the examples:
+          one click attaches the sample file and asks, and you'll see each step as HomeFix works.
         </p>
-        <ul className="quick" aria-label="Start from an example">
-          {QUICK_STARTS.map((q) => (
-            <li key={q.title}>
-              <button type="button" onClick={() => onPick(q.example, q.attach)}>
-                <Icon as={q.icon} size={20} />
-                <span className="quick__title">{q.title}</span>
-                <span className="quick__text">{q.text}</span>
-                <Icon as={ChevronRight} size={18} className="quick__go" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        {onTry && <ExampleGallery onTry={onTry} busy={busy} manuals={manuals} />}
       </div>
     </section>
   );
@@ -210,12 +186,14 @@ export function Workspace() {
     if (req && !busy) void run(req);
   };
 
-  const pick = (example: string, attach?: QuickStart["attach"]) => {
-    setText(example);
-    const el = fileInput.current;
-    if (!el) return;
-    el.accept = attach ? PICK_ACCEPT[attach] : ACCEPT;
-    if (attach) el.click();
+  const tryExample = async (ex: Example) => {
+    if (busy) return;
+    try {
+      const files = ex.file ? [await sampleFile(ex.file, ex.mime)] : [];
+      void run({ text: ex.question, files, manualId: manuals.length > 0 ? AUTO : null });
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Couldn't load that example.");
+    }
   };
 
   const onDragOver = (e: DragEvent) => {
@@ -252,7 +230,7 @@ export function Workspace() {
             {turns.length > 0 && (
               <button type="button" className="btn btn--small" disabled={busy}
                 onClick={() => { setTurns([]); setSelectedId(null); }}>
-                <Icon as={Plus} size={16} />New question
+                <Icon as={Plus} size={16} />New question<span className="sr-only"> (and the examples)</span>
               </button>
             )}
           </div>
@@ -262,7 +240,7 @@ export function Workspace() {
       <div className="ws__body">
         <Rail turn={selected} />
         <main className="main" id="content">
-          {turns.length === 0 ? <StartScreen onPick={pick} />
+          {turns.length === 0 ? <StartScreen onTry={(ex) => void tryExample(ex)} busy={busy} manuals={manuals} />
             : <MessageList turns={turns} onRetry={retry} selectedId={selected?.id ?? null} onSelect={setSelectedId} />}
           <Composer text={text} onText={setText} files={files} onFiles={setFiles} onSend={send} busy={busy} note={note}
             manuals={manuals} manualId={manualId} onManual={setManualId} inputRef={fileInput} />

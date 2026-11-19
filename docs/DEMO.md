@@ -22,6 +22,10 @@ With Wi-Fi off there is no network between the two laptops, so the M4 browser ca
 The backup is the M2 itself: keep it open on the table, app running, models warm.
 
 Before judges arrive (Wi-Fi still on is fine for steps 1–3):
+0. Once per Mac: `uv run python scripts/make_samples.py` (writes the gallery samples to `frontend/public/samples/` and the four sample guides to `data/manuals/`;
+   the gallery's sample files are already in git). The workspace's "Try an example" gallery then has
+   23 one-click examples across photo, sound, voice, document, manual, video, code and danger, each run on
+   the 8 GB Mac on 2026-11-19.
 1. Open Ollama (menu bar icon). Check: `ollama list` shows `qwen3-vl:2b-instruct` and `qwen2.5-coder:3b`.
 2. Terminal 1: `uv run uvicorn app.api.main:app --port 8000` (`PROFILE=lite` comes from `.env`).
 3. Terminal 2: `cd frontend && npm run dev`, then open http://localhost:5173. The header says `lite · M2`.

@@ -75,10 +75,15 @@ def _segment_polys(x: float, y: float, w: float, h: float, t: float, g: float = 
             "e": vert(left, mid, bot), "c": vert(right, mid, bot)}
 
 
-def display_photo(code: str, seed: int = 3) -> Image.Image:
+WASHER_BUTTONS = ("Temp", "Spin", "Delay", "Start/Pause")
+WASHER_KNOB = ("Cottons", "Synthetics", "Wool", "Quick 20'", "Spin")
+
+
+def display_photo(code: str, seed: int = 3, buttons=WASHER_BUTTONS, knob=WASHER_KNOB,
+                  units=("°C", "rpm"), body=(205, 207, 210)) -> Image.Image:
     rng = np.random.default_rng(seed)
     W, H = 1600, 1000
-    img = Image.new("RGB", (W, H), (205, 207, 210))  # white-grey washer front
+    img = Image.new("RGB", (W, H), body)  # white-grey appliance front
     d = ImageDraw.Draw(img)
     # control panel strip
     d.rounded_rectangle((90, 230, W - 90, 760), radius=36, fill=(52, 55, 60))
@@ -91,7 +96,7 @@ def display_photo(code: str, seed: int = 3) -> Image.Image:
     d.ellipse((180, 330, 500, 650), fill=(185, 188, 192), outline=(30, 30, 30), width=6)
     d.ellipse((230, 380, 450, 600), fill=(160, 163, 168))
     d.line((340, 395, 340, 470), fill=(40, 40, 40), width=10)
-    for i, label in enumerate(["Cottons", "Synthetics", "Wool", "Quick 20'", "Spin"]):
+    for i, label in enumerate(knob):
         a = np.deg2rad(205 + i * 32)
         tw = d.textlength(label, font=small)
         d.text((340 + 225 * np.cos(a) - tw / 2, 490 + 215 * np.sin(a) - 14), label, fill=(225, 225, 225), font=small)
@@ -110,12 +115,12 @@ def display_photo(code: str, seed: int = 3) -> Image.Image:
         for name, poly in polys.items():
             d.polygon(poly, fill=lit if name in SEGMENTS.get(ch_.upper(), "") else dim)
     # buttons and labels
-    for i, label in enumerate(["Temp", "Spin", "Delay", "Start/Pause"]):
+    for i, label in enumerate(buttons):
         bx = 780 + i * 160
         d.rounded_rectangle((bx, 610, bx + 130, 680), radius=12, fill=(80, 84, 90))
         d.text((bx + 12, 625), label, fill=(230, 230, 230), font=small)
-    d.text((1300, 360), "°C", fill=(200, 200, 200), font=font)
-    d.text((1300, 470), "rpm", fill=(200, 200, 200), font=font)
+    d.text((1300, 360), units[0], fill=(200, 200, 200), font=font)
+    d.text((1300, 470), units[1], fill=(200, 200, 200), font=font)
     # look like a phone photo: glow, slight tilt, crop, uneven light, blur, sensor noise
     glow = img.filter(ImageFilter.GaussianBlur(6))
     img = Image.blend(img, glow, 0.25)

@@ -91,3 +91,26 @@ def test_handle_says_which_manual_it_used(manuals, ctx_lite, monkeypatch):
 def test_manual_titles_are_readable(manuals, stem, title, shown):
     manuals(stem, title)
     assert [m["title"] for m in homefix.list_manuals()] == [shown]
+
+
+def test_auto_ignores_filler_words_and_picks_the_best_match(manuals, monkeypatch):
+    manuals("apartment_guide_unit_4b", "Unit 4B apartment guide: washer, heat and who to call")
+    manuals("dishwasher_dw50", "Dishwasher DW-50 quick guide")
+    manuals("thermostat_t100", "Thermostat T-100 guide")
+    assert orchestrate.resolve_manual("auto", "my dishwasher shows a code, what do I do?", []) == "dishwasher_dw50"
+    assert orchestrate.resolve_manual("auto", "how do I set the thermostat to a schedule?", []) == "thermostat_t100"
+    assert orchestrate.resolve_manual("auto", "my washer won't drain", []) == "apartment_guide_unit_4b"
+
+
+def test_auto_photo_goes_to_the_manual_only_for_a_problem(manuals, tmp_path):
+    manuals("thermostat_t100", "Thermostat T-100 guide")
+    assert orchestrate.resolve_manual("auto", "What temperature is the thermostat set to?", img(tmp_path)) is None
+    assert orchestrate.resolve_manual("auto", "The thermostat is blinking LO. What does that mean?", img(tmp_path)) \
+        == "thermostat_t100"
+
+
+def test_manual_is_only_announced_when_the_answer_uses_it(manuals, ctx_lite, monkeypatch):
+    manuals("washer_acme_w100")
+    monkeypatch.setattr("app.pipelines.code.run", lambda req, ctx: iter(()))
+    events = list(orchestrate.handle("Write a function that adds two numbers.", [], "auto", ctx_lite))
+    assert not any("Using the manual" in (getattr(e, "detail", None) or "") for e in events)

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { routeOf } from "../App";
 import type { HomeFixEvent } from "../contract";
 import { newTurn, reduce } from "../state/reduce";
@@ -10,7 +10,7 @@ import { Landing } from "./landing/Landing";
 import { formatSeconds } from "./LatencyBadge";
 import { RefusalCard, safetySteps } from "./RefusalCard";
 import { SentFiles } from "./SentFiles";
-import { QUICK_STARTS, StartScreen } from "./Workspace";
+import { StartScreen } from "./Workspace";
 
 const turnOf = (events: object[], files: string[] = []) =>
   (events as HomeFixEvent[]).reduce(reduce, newTurn("q", files));
@@ -89,12 +89,13 @@ describe("the front door", () => {
 });
 
 describe("the start screen", () => {
-  it("each quick start passes its question and the kind of file to pick", () => {
-    const onPick = vi.fn();
-    render(<StartScreen onPick={onPick} />);
-    fireEvent.click(screen.getByText("A beep or a strange noise"));
-    expect(onPick).toHaveBeenCalledWith("What is this sound?", "audio");
-    expect(QUICK_STARTS.some((q) => /function/i.test(q.example))).toBe(true);  // code is covered
+  it("leads with the example gallery", () => {
+    render(<StartScreen onTry={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Try an example" })).toBeInTheDocument();
+  });
+  it("a cited answer from an attached document says 'your document', not 'the manual'", () => {
+    const t = turnOf([{ type: "citation", quote: "One cat is allowed.", page: 2, source: "lease.pdf", score: 99 }, fin("text")], ["lease.pdf"]);
+    expect(outcomeOf(t).label).toBe("From your document, page 2");
   });
 });
 
