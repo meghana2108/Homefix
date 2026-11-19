@@ -1,3 +1,4 @@
+import os
 import socket
 import time
 from pathlib import Path
@@ -149,21 +150,13 @@ def test_curl_blocked(listener):
 def test_escaped_grandchild_returns():
     body = (
         "    >>> import subprocess, sys\n"
-        "    >>> p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'],"
+        "    >>> p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(5)'],"
         " start_new_session=True)\n"
         "    >>> while True: pass\n"
     )
     t = time.time()
     r = run_doctests(doc(body), {}, 2)
     assert r.timed_out and time.time() - t < 4
-
-
-@needs_sx
-def test_module_flood_bounded():
-    code = "import sys\nwhile True:\n    sys.stdout.write('x' * 1_000_000)\n"
-    t = time.time()
-    r = run_doctests(code, {}, 2)
-    assert time.time() - t < 4 and len(r.output) <= 1500
 
 
 @needs_sx
@@ -206,3 +199,106 @@ def test_conftest_names_rejected(tmp_path):
     t2.write_text("")
     with pytest.raises(ValueError):
         run_test_file("x = 1\n", t2, "conftest", 2)
+
+
+@needs_sx
+def test_nonce_not_readable_from_main():
+    body = (
+        "    >>> 1 + 1\n    3\n"
+    )
+    code = (
+        "import atexit, __main__, json\n"
+        "atexit.register(lambda: print('__HOMEFIX_' + __main__._nonce + '__' "
+        "+ json.dumps({'attempted': 3, 'failed': 0})))\n" + doc(body)
+    )
+    assert not run_doctests(code, {}, 3).passed
+
+
+@needs_sx
+def test_test_file_atexit_exit_zero(tmp_path):
+    t = tmp_path / "test_y.py"
+    t.write_text(
+        "import atexit, os\natexit.register(lambda: os._exit(0))\n\n"
+        "def test_a():\n    assert False\n"
+    )
+    r = run_test_file("x = 1\n", t, "y", 20)
+    assert not r.passed and r.failures >= 1
+
+
+@needs_sx
+def test_test_file_planted_summary(tmp_path):
+    t = tmp_path / "test_z.py"
+    t.write_text(
+        "import os\nopen('.homefix_out', 'w').write('\\n1 passed in 0.01s\\n')\nos._exit(0)\n"
+    )
+    assert not run_test_file("x = 1\n", t, "z", 10).passed
+
+
+@needs_sx
+def test_flood_file_capped():
+    from app.code import sandbox
+
+    code = "import sys\nwhile True:\n    sys.stdout.write('x' * 1_000_000)\n"
+    t = time.time()
+    r = run_doctests(code, {}, 3)
+    assert time.time() - t < 5 and not r.passed
+    assert sandbox.LAST_OUT_SIZE <= 50_000_000 and len(r.output) <= 1500
+
+
+@needs_sx
+@pytest.mark.parametrize("path", ["~/homefix_probe_m9.txt", "/tmp/homefix_probe_m9.txt"])
+def test_write_outside_tmp_denied(path):
+    body = (
+        "    >>> import os\n"
+        f"    >>> open(os.path.expanduser('{path}'), 'w').write('x')\n"
+        "    1\n"
+    )
+    full = os.path.expanduser(path)
+    try:
+        # HOME is the temp dir in the sandbox, so also probe the real home by absolute path
+        real = os.path.join(str(Path.home()), "homefix_probe_m9.txt")
+        body2 = body + f"    >>> open({real!r}, 'w').write('x')\n    1\n"
+        r = run_doctests(doc(body2), {}, 3)
+        assert not r.passed and "PermissionError" in r.output
+        assert not os.path.exists(real) and not os.path.exists("/tmp/homefix_probe_m9.txt")
+    finally:
+        for p in (real, "/tmp/homefix_probe_m9.txt", full):
+            if os.path.exists(p):
+                os.remove(p)
+
+
+@needs_sx
+def test_write_in_cwd_ok():
+    body = "    >>> open('a.txt', 'w').write('hi')\n    2\n"
+    assert run_doctests(doc(body), {}, 3).passed
+
+
+@needs_sx
+def test_background_child_killed_after_pass():
+    # Pass the pid out through the output: print it as the last doctest output.
+    body = (
+        "    >>> import subprocess, sys\n"
+        "    >>> p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(5)'])\n"
+        "    >>> print('PID', p.pid)\n"
+        "    PID 0\n"
+    )
+    r = run_doctests(doc(body), {}, 5)
+    import re
+
+    m = re.search(r"Got:\s+PID (\d+)", r.output)
+    assert m, r.output
+    pid = int(m.group(1))
+    time.sleep(1)
+    try:
+        os.kill(pid, 0)
+        alive = True
+    except ProcessLookupError:
+        alive = False
+    assert not alive
+
+
+def test_module_name_equals_test_stem(tmp_path):
+    t = tmp_path / "test_m.py"
+    t.write_text("")
+    with pytest.raises(ValueError):
+        run_test_file("x = 1\n", t, "test_m", 2)
