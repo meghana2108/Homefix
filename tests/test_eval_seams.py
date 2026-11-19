@@ -99,7 +99,9 @@ def test_refs_and_grade_run_with_stubs(tmp_path):
     items = {i.id: i for i in load_items(p)}
     out = grade_run([record("fake-img-1", "image"), record("fake-aud-1", "audio")], items, loaded)
     assert [g.item_id for g in out] == ["fake-img-1", "fake-aud-1"]
-    assert all(g.metric == "todo" and g.hit is False for g in out)
+    assert all(isinstance(g, GradeResult) for g in out)
+    assert not any(g.metric in ("grader_error", "missing_ref", "unknown_item") for g in out)
+    assert out[1].metric == "top1"  # fake-aud-1 is a sound item (A9's audio grader)
 
 
 def test_refs_dict_format(tmp_path):
@@ -129,7 +131,10 @@ def test_grade_run_never_crashes(tmp_path, monkeypatch):
 def test_grader_stubs(modality):
     import importlib
 
-    g = importlib.import_module(f"eval.graders.{modality}").grade(
+    mod = importlib.import_module(f"eval.graders.{modality}")
+    if "STUB" not in (mod.__doc__ or ""):
+        pytest.skip("grader replaced")
+    g = mod.grade(
         PackItem("fake-1", modality, "q", None, {}), record("fake-1", modality), {})
     assert g == GradeResult(item_id="fake-1", metric="todo", score=0.0, hit=False, note="not built")
 

@@ -32,6 +32,7 @@ class RunRecord:
     peak_mem_gb: float
     profile: str
     model: str | None
+    transcript: str | None = None   # Whisper's text when a transcript event was sent (speech WER)
 
 
 @dataclass
