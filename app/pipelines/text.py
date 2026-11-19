@@ -31,9 +31,8 @@ from app.settings import MANUALS_DIR
 from app.text.retrieve import chunk_pages, top_chunks
 from app.text.verify import Verdict, estimate_tokens, verify
 
-RETRY_PROMPT = ("Your quote was not found word for word. Copy a shorter quote exactly as it is "
-                "written in the document, at least 3 words, and answer again in the same JSON "
-                "format.")
+RETRY_PROMPT = ("Your quote was not found word for word. Copy a shorter exact sentence from the "
+                "text, or answer null.")
 
 _SYSTEM = (
     "You answer questions using only the document text below. Reply with JSON only: "
@@ -48,9 +47,19 @@ def _read_manual(path: Path, mtime_ns: int) -> tuple[str, list[str]]:
     return path.name, read_document(path)
 
 
+def _manual_path(manual_id: str) -> Path | None:
+    """data/manuals/<manual_id>.pdf, or None when the id could point anywhere else."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", manual_id) or ".." in manual_id:
+        return None
+    p = (MANUALS_DIR / f"{manual_id}.pdf").resolve()
+    return p if p.is_relative_to(MANUALS_DIR.resolve()) else None
+
+
 def load_manual(manual_id: str) -> tuple[str, list[str]]:
     """(file name, pages) of data/manuals/<manual_id>.pdf. Re-read when the file changes."""
-    path = MANUALS_DIR / f"{manual_id}.pdf"
+    path = _manual_path(manual_id)
+    if path is None:
+        raise FileNotFoundError(manual_id)
     return _read_manual(path, path.stat().st_mtime_ns)
 
 
@@ -82,7 +91,7 @@ def _document(req: PipelineRequest) -> tuple[str, list[str], bool] | None:
     if req.manual_id:
         try:
             name, pages = load_manual(req.manual_id)
-        except (OSError, UnsupportedFile):  # missing or unreadable file
+        except (OSError, ValueError, UnsupportedFile):  # missing or unreadable file
             return None
         return name, pages, True
     return None

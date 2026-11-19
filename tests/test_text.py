@@ -74,7 +74,9 @@ def test_retry_with_shorter_quote(fake_brain, ctx_full):
     ev = run(req(), ctx_full)
     assert of(ev, Citation)
     assert len(fake_brain.calls) == 2
-    assert "Your quote was not found word for word." in fake_brain.calls[1]["messages"][-1]["content"]
+    assert text.RETRY_PROMPT == ("Your quote was not found word for word. Copy a shorter exact "
+                                 "sentence from the text, or answer null.")
+    assert text.RETRY_PROMPT in fake_brain.calls[1]["messages"][-1]["content"]
 
 
 def test_null_answer_refuses(fake_brain, ctx_full):
@@ -201,3 +203,23 @@ def test_timeout_refuses(monkeypatch, ctx_full):
 def test_empty_document_refuses(pages, ctx_full):
     ev = run(req(pages=pages), ctx_full)
     assert of(ev, Refusal)[0].reason == "no_document"
+
+
+@pytest.mark.parametrize("bad", ["../x", "/etc/passwd", "a/b", "..", "x\x00y"])
+def test_manual_id_cannot_escape(bad, fake_brain, ctx_full, tmp_path, monkeypatch):
+    monkeypatch.setattr(text, "MANUALS_DIR", tmp_path / "manuals")
+    (tmp_path / "manuals").mkdir()
+    fake_brain()
+    ev = run(PipelineRequest("q", [], "manual_lookup", manual_id=bad), ctx_full)
+    assert ev[-2] == Refusal(reason="no_document", message=MESSAGES["no_document"])
+    assert isinstance(ev[-1], Final) and fake_brain.calls == []
+
+
+def test_valid_manual_id_loads(fake_brain, ctx_full, tmp_path, monkeypatch):
+    monkeypatch.setattr(text, "MANUALS_DIR", tmp_path)
+    d = pymupdf.open()
+    d.new_page().insert_text((72, 72), "Turn the front feet to level the washer.")
+    d.save(tmp_path / "washer_lg-2.1.pdf")
+    fake_brain(reply("Turn the front feet.", "Turn the front feet to level", 1))
+    ev = run(PipelineRequest("level?", [], "manual_lookup", manual_id="washer_lg-2.1"), ctx_full)
+    assert of(ev, Citation)
