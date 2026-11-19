@@ -1,6 +1,12 @@
-// STUB from A10. Meghana owns this file and replaces it in M12.
 import type { CitationEvent } from "../contract";
 
+/** The verbatim manual quote, then its page and source file. */
 export function CitationCard({ citation }: { citation: CitationEvent }) {
-  return <pre className="stub">{JSON.stringify(citation, null, 2)}</pre>;
+  const where = citation.page === null ? citation.source : `p. ${citation.page} · ${citation.source}`;
+  return (
+    <figure className="card" aria-label="Citation" style={{ margin: 0 }}>
+      <blockquote style={{ margin: 0 }}>{citation.quote}</blockquote>
+      <figcaption className="muted">{where}</figcaption>
+    </figure>
+  );
 }
