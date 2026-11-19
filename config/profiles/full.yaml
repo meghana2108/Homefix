@@ -26,3 +26,13 @@ brain_num_ctx: 16384
 code:
   selfcheck_timeout_s: 10
   max_retries: 1
+audio:
+  speech_max_no_speech_prob: 0.6
+  alarm_safety_min_score: 0.5
+  top_k: 3
+server:
+  max_files: 4
+  max_file_mb: 200
+  video_max_seconds: 120
+  model_call_timeout_s: 90
+cache_dir: .cache

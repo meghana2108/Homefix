@@ -1,0 +1,88 @@
+// Mirror of app/contracts.py. Same names, snake_case fields, null for Python None.
+// tests/test_contract_sync.py fails if the literal lists or event field names differ.
+export const STAGES = ["converting", "safety_check", "routing", "loading_model", "transcribing",
+  "labeling_sounds", "extracting_frames", "retrieving", "generating", "verifying", "running_code"] as const;
+export const REFUSAL_REASONS = ["safety", "unsupported_file", "empty_input", "too_large",
+  "no_document", "not_in_document", "model_unavailable", "timeout"] as const;
+export const EVENT_TYPES = ["status", "token", "transcript", "sound_labels", "frames", "citation",
+  "code_result", "refusal", "error", "final"] as const;
+export type Stage = typeof STAGES[number];
+export type RefusalReason = typeof REFUSAL_REASONS[number];
+export type Modality = "image" | "audio" | "text" | "code" | "video" | "homefix" | "none";
+export type QuestionType = "describe" | "count" | "read" | "qa" | "motion" | "speech" | "sound"
+  | "doc_qa" | "code_gen" | "manual_lookup" | "none";
+export type ProfileName = "full" | "lite";
+
+export interface SoundLabel { label: string; score: number }
+
+export interface StatusEvent {
+  type: "status";
+  stage: Stage;
+  detail: string | null;
+  ms: number | null;
+}
+export interface TokenEvent {
+  type: "token";
+  text: string;
+}
+export interface TranscriptEvent {
+  type: "transcript";
+  text: string;
+  seconds: number;
+}
+export interface SoundLabelsEvent {
+  type: "sound_labels";
+  labels: SoundLabel[];
+  is_speech: boolean;
+}
+export interface FramesEvent {
+  type: "frames";
+  timestamps: number[];
+}
+export interface CitationEvent {
+  type: "citation";
+  quote: string;
+  page: number | null;
+  source: string;
+  score: number;
+}
+export interface CodeResultEvent {
+  type: "code_result";
+  code: string;
+  passed: boolean;
+  tests_run: number;
+  failures: number;
+  output_tail: string;
+  attempts: number;
+}
+export interface RefusalEvent {
+  type: "refusal";
+  reason: RefusalReason;
+  message: string;
+  category: string | null;
+}
+export interface ErrorEvent {
+  type: "error";
+  stage: Stage;
+  message: string;
+  retryable: boolean;
+}
+export interface FinalEvent {
+  type: "final";
+  answer: string;
+  modality: Modality;
+  question_type: QuestionType;
+  latency_ms: number;
+  profile: ProfileName;
+  model: string | null;
+}
+export type HomeFixEvent = StatusEvent | TokenEvent | TranscriptEvent | SoundLabelsEvent |
+  FramesEvent | CitationEvent | CodeResultEvent | RefusalEvent | ErrorEvent | FinalEvent;
+
+export interface Manual { id: string; title: string; pages: number }
+export interface Health {
+  profile: ProfileName;
+  ollama: boolean;
+  models: Record<string, string>;
+  loaded: string[];
+}

@@ -7,22 +7,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_inference_path_never_reads_answers_json():
-    """HARD RULE 4: only eval/ may reference answers.json."""
+def test_only_grade_reads_answers_json():
+    """HARD RULE 2: only eval/grade.py may reference answers.json."""
+    allowed = ROOT / "eval" / "grade.py"
+    offenders = [
+        str(p.relative_to(ROOT))
+        for d in ("app", "eval", "mock_server")
+        if (ROOT / d).is_dir()
+        for p in (ROOT / d).rglob("*.py")
+        if p != allowed and "answers.json" in p.read_text(errors="ignore")
+    ]
+    assert offenders == [], f"answers.json referenced outside eval/grade.py: {offenders}"
+
+
+def test_no_remote_urls_in_app():
+    """HARD RULE 5: no network at runtime, so no remote URLs in app/."""
+    pattern = re.compile(r"https?://(?!127\.0\.0\.1|localhost)")
     offenders = [
         str(p.relative_to(ROOT))
         for p in (ROOT / "app").rglob("*")
-        if p.is_file() and p.suffix in {".py", ".yaml", ".yml", ".json", ".txt", ".md"}
-        and "answers.json" in p.read_text(errors="ignore")
+        if p.is_file() and "__pycache__" not in p.parts and pattern.search(p.read_text(errors="ignore"))
     ]
-    assert offenders == [], f"answers.json referenced in inference path: {offenders}"
+    assert offenders == [], f"remote URLs in app/: {offenders}"
 
 
 def test_no_practice_pack_or_manuals_tracked():
     """HARD RULES 1 and 6: no pack data or manuals in git."""
     tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.splitlines()
     bad = [f for f in tracked if re.search(r"(practice_pack/|data/manuals/|(^|/)answers\.json$|(^|/)items\.json$)", f)
-           or re.search(r"\.(wav|mp3|m4a|mp4|mov|webm|pdf)$", f, re.I)]
+           or re.search(r"\.(wav|mp3|m4a|mp4|mov|webm|pdf)$", f, re.IGNORECASE)]
     assert bad == [], f"forbidden files tracked: {bad}"
 
 
