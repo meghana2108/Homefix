@@ -28,8 +28,8 @@ message: >-
   Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.
 # Harmless phrases that look like danger words. Each match is blanked out before the patterns above run.
 benign:
-  - '\bsmoke (detector|alarm)s?\b(?:(?!gas|spark|smell|smok|burn|fire|flame|melt|shock|water|wet|leak|fray|expos|bare|hiss|odo)[^.,;:!?]){0,40}\b(chirp\w*|battery|batteries|beep\w* once)\b'
-  - '\bfire (alarm|detector)s?\b(?:(?!gas|spark|smell|smok|burn|fire|flame|melt|shock|water|wet|leak|fray|expos|bare|hiss|odo)[^.,;:!?]){0,40}\b(chirp\w*|battery|batteries)\b'
+  - '\bsmoke (detector|alarm)s?\b(?:(?!gas|spark|smell|smok|burn|fire|flame|melt|shock|water|wet|leak|fray|expos|bare|hiss|odo).){0,40}\b(chirp\w*|battery|batteries|beep\w* once)\b'
+  - '\bfire (alarm|detector)s?\b(?:(?!gas|spark|smell|smok|burn|fire|flame|melt|shock|water|wet|leak|fray|expos|bare|hiss|odo).){0,40}\b(chirp\w*|battery|batteries)\b'
   - '\bfire ?(tv|stick|tablet)\b'
   - '\bburn(t|ed|ing)? (toast|food|popcorn|rice)\b'
   - '\b(outlet|drain|inlet|fill) hose\b'

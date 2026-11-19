@@ -15,6 +15,8 @@ CASES = [
     ("water dripping from the outlet hose of the washer", None),
     ("gas stove recipe", None),
     ("Does this sofa spark joy", None),
+    ("smoke detector, the battery keeps dying", None),
+    ("my smoke detector. it chirps every minute", None),
     ("smoke alarm is going off and won't stop", "smoke_fire"),
     ("I smell burning plastic from the dryer", "smoke_fire"),
     ("the smoke detector chirps and I smell gas", "gas"),
