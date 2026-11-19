@@ -30,10 +30,15 @@ def codes_in(text: str) -> set[str]:
 _UNITS = ("v|w|mm|cm|m|km|kg|g|mg|lb|lbs|oz|ml|l|hz|khz|kw|kwh|psi|ft|hr|hrs|h|min|mins|sec|s|pm|am|"
           "f|c|gal|qt")
 _UNIT_GAP = re.compile(r"(?<=\d)\s+(?=(?:" + _UNITS + r")\b)")
+_AMP_GAP = re.compile(r"(?<=\d)\s+(?=A\b)")
 
 
 def glue_units(text: str) -> str:
-    """"230 V" -> "230v" so spaced and glued units compare equal."""
+    """"230 V" -> "230v" so spaced and glued units compare equal.
+
+    Amps are glued only as a capital "A" ("10 A" -> "10a"), so the article in "2 a week" stays.
+    """
+    text = _AMP_GAP.sub("", text)
     return _UNIT_GAP.sub("", text.lower().replace("°", ""))
 
 

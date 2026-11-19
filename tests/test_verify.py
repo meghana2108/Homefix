@@ -122,3 +122,18 @@ def test_degree_sign_ignored():
     pages = ["Set it to 40 °C for cotton."]
     assert verify("Set it to 40 C.", "Set it to 40 °C", pages, 1, 92).ok
     assert not verify("Set it to 60 C.", "Set it to 40 °C", pages, 1, 92).ok
+
+
+FUSE = ["Use a 10A fuse in the plug.", "Use a 10 A fuse in the plug."]
+
+
+def test_amps_spaced_answer_glued_quote():
+    assert verify("Fit a 10 A fuse.", "Use a 10A fuse", FUSE, 1, 92).ok
+
+
+def test_amps_glued_answer_spaced_quote():
+    assert verify("Fit a 10A fuse.", "Use a 10 A fuse", FUSE, 2, 92).ok
+
+
+def test_wrong_amps_refused():
+    assert not verify("Fit a 15 A fuse.", "Use a 10A fuse", FUSE, 1, 92).ok
