@@ -13,6 +13,7 @@ from app.pipelines import video
 from app.pipelines.video import MOTION_WORDS, frame_labels
 from app.video.grid import make_grids
 from app.video.motion import measure_motion
+from app.video.pick import busiest_frame
 from tests import media_fixtures as mf
 
 
@@ -273,3 +274,40 @@ def test_tokens_stream_live(ctx_lite, clip, monkeypatch):
             break
     else:
         pytest.fail("no token")
+
+
+# ---------------------------------------------------------------- which frame a count looks at
+def squares_frames(tmp_path, counts, size=(320, 180)):
+    """One frame per entry, with that many white squares on black."""
+    out = []
+    for i, n in enumerate(counts):
+        im = Image.new("RGB", size, "black")
+        for k in range(n):
+            x = 10 + k * 45
+            im.paste((255, 255, 255), (x, 70, x + 30, 100))
+        p = tmp_path / f"sq{i}.jpg"
+        im.save(p)
+        out.append(p)
+    return out
+
+
+def test_busiest_frame_when_things_appear_one_by_one(tmp_path):
+    assert busiest_frame(squares_frames(tmp_path, [1, 2, 3, 4, 5, 6])) == 5
+
+
+def test_busiest_frame_when_things_pass_through(tmp_path):
+    assert busiest_frame(squares_frames(tmp_path, [0, 0, 1, 4, 1, 0])) == 3
+
+
+def test_busiest_frame_keeps_the_middle_when_nothing_changes(tmp_path):
+    assert busiest_frame(squares_frames(tmp_path, [3, 3, 3, 3, 3])) == 2
+
+
+def test_count_uses_the_busiest_frame(ctx_lite, clip, fake_brain, monkeypatch):
+    monkeypatch.setattr(video, "busiest_frame", lambda paths: len(paths) - 1)
+    fake_brain("4")
+    ev = run(ctx_lite, clip, "How many squares appear?", "count")
+    ts = of(ev, Frames)[0].timestamps
+    assert len(fake_brain.calls[0]["images"]) == 1
+    assert f"t={ts[-1]:.1f}s" in fake_brain.calls[0]["messages"][-1]["content"]
+

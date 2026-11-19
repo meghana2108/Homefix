@@ -29,6 +29,9 @@ Before judges arrive (Wi-Fi still on is fine for steps 1–3):
 5. Warm the models: ask one photo question and play one sound. The first photo after a cold start
    takes about a minute (model load); after that a photo count takes about 15 s.
 6. Keep the M2 plugged in, with sleep off (`caffeinate -dis` in a spare terminal).
+7. Free the memory: quit Teams, WhatsApp, Safari and anything else big, and stop MySQL. 8 GB only fits
+   HomeFix alone. With those open (2026-11-19) the Mac swapped 9 GB and one 10 s voice note took 7.7 s
+   to transcribe one time and 24.6 s the next. Check `memory_pressure | tail -1` says 40% free or more.
 
 What `lite` does differently: a 2B vision model (a less detailed reading of photos), 8 video frames instead of 16,
 one model loaded at a time (so switching between a photo and a code question adds a model load).

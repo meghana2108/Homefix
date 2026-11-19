@@ -3,8 +3,9 @@
 Frames (16 on full, 8 on lite) are listed as "Frame k at t=...s" and sent in one brain call:
 - describe / qa / motion / read: tiled 2x2 into grids with gutters (app/video/grid.py), since
   each image costs ~1,050 tokens at any size. Read adds the 2 sharpest frames at native size.
-- count: one whole middle frame (in grids the model counted the tiles as objects). Limit: a
-  thing that is only on screen at other moments is missed.
+- count: one whole frame (in grids the model counted the tiles as objects), the one with the most
+  edges (app/video/pick.py), so things that appear one at a time are all on screen. Limit: counting
+  events over time ("how many bounces") can't be done from one frame.
 - When code measures a clear direction (app/video/motion.py), the prompt says so; the 2B model
   misreads motion from grids without it.
 The audio track is not transcribed or safety-checked (a named limit).
@@ -33,6 +34,7 @@ from app.settings import ROOT
 from app.video import motion
 from app.video.frames import extract_frames
 from app.video.grid import make_grids
+from app.video.pick import busiest_frame
 
 MOTION_WORDS = ("left", "right", "up", "down", "toward", "away", "clockwise", "counterclockwise")
 MOTION_PROMPT = ("Answer with one direction word from: left, right, up, down, toward, away, clockwise, "
@@ -110,9 +112,9 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
     yield Frames(timestamps=fs.timestamps)
 
     if req.question_type == "count":
-        mid = len(fs.paths) // 2
-        images = [fs.paths[mid]]
-        content = _count_prompt(req, fs.timestamps[mid])
+        pick = busiest_frame(fs.paths)
+        images = [fs.paths[pick]]
+        content = _count_prompt(req, fs.timestamps[pick])
     else:
         grids = make_grids(fs.paths, fs.paths[0].parent / f"grids_{len(fs.paths)}")
         images = grids + fs.sharp_paths
