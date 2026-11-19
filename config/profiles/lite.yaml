@@ -2,7 +2,9 @@
 # Only ONE Ollama LLM resident at a time (OLLAMA_MAX_LOADED_MODELS=1).
 name: lite
 models:
-  brain: qwen3-vl:2b          # 1.9 GB. gemma4:e2b is 4.6 GB on disk - likely too big next to Whisper+CLAP on 8 GB; bake off anyway
+  brain: qwen3-vl:2b-instruct # 1.9 GB. Not qwen3-vl:2b: that tag is the thinking build and thinks even with think=False
+                              # when images are attached (4,264 hidden tokens, 247 s for one video question on the M2).
+                              # gemma4:e2b is 7.5 GB on disk - too big next to Whisper+CLAP on 8 GB
   coder: qwen2.5-coder:3b     # swapped in on demand (brain unloaded with keep_alive 0)
   whisper_file: mlx-community/whisper-small.en-mlx
   whisper_live: mlx-community/whisper-small.en-mlx

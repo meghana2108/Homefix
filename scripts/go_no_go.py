@@ -177,7 +177,8 @@ def check_vision(prof, items):
     model = prof["models"]["brain"]
     it = items.get("image")
     path, q = (it["path"], it["question"]) if it else synth_image()
-    ans = chat(model, [{"role": "user", "content": q, "images": [path]}], keep_alive=prof["keep_alive"]["brain"])
+    ans = chat(model, [{"role": "user", "content": q, "images": [path]}], keep_alive=prof["keep_alive"]["brain"],
+               options={"num_ctx": prof["brain_num_ctx"]})
     ok = bool(ans.strip()) if it else ("3" in ans or "three" in ans.lower())
     return model, ok, f"Q: {q[:50]} -> {ans.strip()[:70]}"
 
@@ -190,7 +191,8 @@ def check_multi_image(prof, items):
     else:
         frames, q = synth_frames()
     content = "\n".join(f"Frame {i + 1} of {len(frames)}." for i in range(len(frames))) + "\n" + q
-    ans = chat(model, [{"role": "user", "content": content, "images": frames}], keep_alive=prof["keep_alive"]["brain"])
+    ans = chat(model, [{"role": "user", "content": content, "images": frames}], keep_alive=prof["keep_alive"]["brain"],
+               options={"num_ctx": prof["brain_num_ctx"]})  # each image is ~1,050 tokens on qwen3-vl
     ok = bool(ans.strip()) if it else "right" in ans.lower()
     return model, ok and len(frames) >= 2, f"{len(frames)} frames -> {ans.strip()[:70]}"
 
@@ -272,7 +274,7 @@ def check_json(prof, items):
                             f"Document:\n{DOC}\n\nQuestion: {q}\nAnswer only from the document. "
                             "Copy `quote` word for word from it. If the document does not contain the answer, "
                             "set answerable=false."}],
-                   format=schema, options={"temperature": 0}, keep_alive=prof["keep_alive"]["brain"])
+                   format=schema, options={"temperature": 0, "num_ctx": prof["brain_num_ctx"]}, keep_alive=prof["keep_alive"]["brain"])
         d = json.loads(raw)
         out[q] = d
         if set(d) < {"answerable", "answer", "quote"}:
