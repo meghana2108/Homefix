@@ -107,6 +107,14 @@ def test_think_false_and_options(fake_client, tmp_path):
     assert "images" not in call["messages"][0]
 
 
+def test_chat_passes_temperature_and_seed(fake_client):
+    client = fake_client(reply="ok")
+    chat("m", [], num_ctx=512, keep_alive=0, timeout_s=5, temperature=0.0, seed=7)
+    assert client.calls[0]["options"] == {"num_ctx": 512, "temperature": 0.0, "seed": 7}
+    chat("m", [], num_ctx=512, keep_alive=0, timeout_s=5)
+    assert client.calls[1]["options"] == {"num_ctx": 512}
+
+
 def test_images_go_on_last_user_message_without_mutating(fake_client, tmp_path):
     client = fake_client(chunks=["ok"])
     msgs = [{"role": "user", "content": "q"}, {"role": "assistant", "content": "a"}]

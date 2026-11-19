@@ -77,7 +77,7 @@ class FakeBrain:
 
     chat_stream yields the reply split into words (spaces kept). Every call's arguments are
     recorded in fake_brain.calls as a dict (model, messages, images, num_ctx, keep_alive, timeout_s,
-    json_format). Running out of replies fails the test.
+    json_format, temperature, seed). Running out of replies fails the test.
     """
 
     def __init__(self, monkeypatch):
@@ -101,9 +101,11 @@ class FakeBrain:
                                "keep_alive": keep_alive, "timeout_s": timeout_s})
             yield from re.findall(r"\S+\s*|\s+", self._next())
 
-        def chat(model, messages, *, num_ctx, keep_alive, timeout_s, json_format=False):
+        def chat(model, messages, *, num_ctx, keep_alive, timeout_s, json_format=False,
+                 temperature=None, seed=None):
             self.calls.append({"model": model, "messages": messages, "images": None, "num_ctx": num_ctx,
-                               "keep_alive": keep_alive, "timeout_s": timeout_s, "json_format": json_format})
+                               "keep_alive": keep_alive, "timeout_s": timeout_s, "json_format": json_format,
+                               "temperature": temperature, "seed": seed})
             return self._next()
 
         self._monkeypatch.setattr(ollama_client, "chat_stream", chat_stream)

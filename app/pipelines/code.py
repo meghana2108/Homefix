@@ -143,7 +143,7 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
                                              csv=is_csv)}]
             raw = ollama_client.chat(tag, messages, num_ctx=ctx.memory.num_ctx("coder"),
                                      keep_alive=ctx.memory.keep_alive("coder"),
-                                     timeout_s=ctx.deadline_s)
+                                     timeout_s=ctx.deadline_s, temperature=0.0, seed=7)
             code = extract_code(raw, target)
             if code is None:
                 if target and extract_code(raw) is not None:

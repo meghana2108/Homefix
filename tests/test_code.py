@@ -71,6 +71,13 @@ def test_pass_first_try(ctx_full, fake_brain):
     assert "def add" in r.code
 
 
+def test_coder_called_deterministically(ctx_full, fake_brain):
+    fake_brain(GOOD)
+    events(ctx_full, req())
+    assert fake_brain.calls[0]["temperature"] == 0.0
+    assert fake_brain.calls[0]["seed"] == 7
+
+
 def test_retry_after_fail(ctx_full, fake_brain):
     fake_brain(BAD, GOOD)
     r = result_of(events(ctx_full, req()))

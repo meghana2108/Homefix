@@ -85,10 +85,16 @@ def chat_stream(model: str, messages: list[dict], images: list[Path] | None = No
 
 
 def chat(model: str, messages: list[dict], *, num_ctx: int, keep_alive: int, timeout_s: float,
-         json_format: bool = False) -> str:
-    """One complete answer. json_format=True asks Ollama for JSON output."""
+         json_format: bool = False, temperature: float | None = None,
+         seed: int | None = None) -> str:
+    """One complete answer. json_format=True asks Ollama for JSON output.
+    temperature and seed (when set) make the answer repeatable."""
     kwargs: dict[str, Any] = {"model": model, "messages": _with_images(messages, None),
                               "keep_alive": keep_alive, "options": {"num_ctx": num_ctx}}
+    if temperature is not None:
+        kwargs["options"]["temperature"] = temperature
+    if seed is not None:
+        kwargs["options"]["seed"] = seed
     if json_format:
         kwargs["format"] = "json"
     r = _guarded(model, lambda: _call(_client(timeout_s), kwargs))
