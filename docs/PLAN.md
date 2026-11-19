@@ -1,51 +1,124 @@
-# HomeFix build plan
+# Plan
 
-**Now:** Wed Nov 18, ~21:00. **Code deadline:** Thu Nov 19, 23:59. Tag `v1.0-submission` by **Thu 22:00** at the latest (2 h buffer).
-**Feature freeze:** Thu Nov 19, **14:00**. After freeze, only fixes, eval runs, slides, and the backup video.
+Summarised from the hackathon brief (Multimodal LLM Challenge, "Build AI we own") and our
+docs: [TEAM.md](TEAM.md), [ARCHITECTURE.md](ARCHITECTURE.md), [RISKS.md](RISKS.md).
 
-## Reality check
-The task list in [TEAM.md](TEAM.md) is ~20 h per person, but the wall clock is ~27 h including sleep. So we build in **priority order** and cut from the bottom:
+## Why this approach
 
-| Priority | Scope | Why |
-|---|---|---|
-| **P0** | All 5 pipelines callable from the CLI + text verifier + code self-check + safety filter | 30% of the score is the random-item checklist, with Wi-Fi off |
-| **P0** | Eval harness with real numbers for both profiles | "Our own test results" is part of that 30% |
-| **P1** | Web UI over SSE: chat, attachments, all event types, latency badge | 25% usability: the live demo has to run start to finish |
-| **P1** | Offline check passing on the M4 | Disqualifying if it fails live |
-| **P2** | HomeFix manual layer (image → code → manual page) | Impact story (15%) |
-| **P2** | Live mic over WebSocket, PWA/mobile | Bonus points |
-| **P3** | Full model bake-offs (beyond the 2 top candidates), 7B coder swap | Architecture polish |
+The random-item checklist is 30% of the score and is run with Wi-Fi off, so everything has to
+run on our own laptops with open-weight models. One small vision model plus small specialist
+models (Whisper, CLAP, bge-small) fit in 16 GB and 8 GB, which one big multimodal model does not.
+Plain code, not the model, makes the calls that must be right every time: the safety filter,
+the quote check on text answers and the pass/fail on generated code. The renter story
+(beep, error code, manual) gives judges a demo they understand in seconds.
 
-If we're behind at a milestone, drop P3, then P2 mobile, then the live mic. **Never** drop P0.
+## Scope (cut to finish by Thu Nov 19, 22:00 tag; 23:59 hard deadline)
 
-## Milestones
-| ID | Milestone | Target | Owner |
-|---|---|---|---|
-| M0 | Environment + go/no-go passing on both Macs | Wed 22:30 | Both |
-| M1 | API contract + mock server streaming events | Wed 23:30 | Meghana (contract), Akshayaa (mock) |
-| M2 | All five pipelines working from `python -m app.cli` | Thu 10:00 | Each owner |
-| M3 | Eval harness producing numbers | Thu 12:00 | Akshayaa (framework), owners (graders) |
-| M4 | UI integrated end to end with the real backend | Thu 13:30 | Akshayaa (UI), Meghana (backend) |
-| — | **FEATURE FREEZE** | **Thu 14:00** | Both |
-| M5 | HomeFix layer (only if done by freeze; otherwise demo it from the CLI) | Thu 14:00 | Meghana |
-| M6 | Offline hardening, final eval runs, README, tag `v1.0-submission` | Thu 22:00 | Both |
+Keep (P0/P1, never cut):
+- 5 pipelines callable from `python -m app.cli`: image (describe, count, read text), audio
+  (transcribe + answer, or top-3 sound labels), text (answer with a verified quote and page, or
+  refuse), code (write a function, run its doctests in a sandbox, retry once), video (16 frames
+  on `full`, 8 on `lite`).
+- Safety pre-filter: gas, sparks, smoke/fire, exposed wires, water near electrics, shock. It
+  returns the fixed message from `config/safety_rules.yaml` before any model runs.
+- Eval harness with real numbers for both profiles (`results/summary_full.md`, `summary_lite.md`).
+- Web UI over SSE: chat, file attachments, every event type, latency badge.
+- `scripts/offline_check.sh` passing on the M4 with Wi-Fi off.
 
-## Hour by hour
-| When | Meghana (M4, full) | Akshayaa (M2, lite) |
-|---|---|---|
-| Wed 21:00–22:30 | Phase 0: setup, model pulls (~23 GB), go/no-go on M4 | Setup, model pulls (~10 GB), go/no-go on M2 |
-| Wed 22:30–23:00 | **Joint:** agree the API contract (30 min) | **Joint** |
-| Wed 23:00–01:00 | Backend skeleton: settings, Ollama client, memory manager, router, safety + tests | Mock server, `media/convert.py` + tests |
-| *Sleep* | | |
-| Thu 08:00 | **Sync (15 min)** | **Sync** |
-| Thu 08:00–10:00 | Image + text pipelines (verifier) | Audio pipeline (ASR + CLAP + speech/non-speech) |
-| Thu 09:00–10:00 | **Pairing on M4 (1 h):** Whisper model + video frame counts on full | **Pairing** |
-| Thu 10:00–12:00 | Code pipeline; FastAPI + SSE behind the contract | Video pipeline; eval harness framework |
-| Thu 12:00 | **Lunch sync (15 min)**: are both on track for freeze? | **Sync** |
-| Thu 12:00–13:30 | Graders (image/text/code), bake-off brain candidates | Graders (audio/video), frontend switched to the real backend |
-| Thu 13:30–14:00 | HomeFix manual flow (if P0/P1 green) | Live mic (if P0/P1 green) |
-| **Thu 14:00** | **FREEZE SYNC (15 min)**: decide what ships | **FREEZE** |
-| Thu 14:00–17:00 | Final eval run (full), fill MODELS.md/EVAL.md, architecture/results slides | Final eval run (lite), problem/impact slides, survey summary |
-| Thu 17:00–19:00 | Offline check (Wi-Fi off) on M4, bug fixes | Offline check on M2, record the backup demo video |
-| Thu 19:00–21:00 | **Joint:** demo rehearsal x3, README | **Joint** |
-| Thu 21:00–22:00 | Tag `v1.0-submission`, push, verify the tag on GitHub | **End-of-day sync** |
+Keep if green by the 14:00 freeze (P2):
+- HomeFix manual layer: photo of an error code + a selected manual → manual answer with page.
+  If it's not ready, demo it from the CLI.
+- Live mic over WebSocket, PWA on a phone.
+
+Cut: bake-offs beyond the top 2 candidates per role, the 7B coder swap, fine-tuning, any cloud
+fallback, user accounts, true temporal video models (we sample frames).
+
+## Expected results
+
+| Input | Expected output |
+|---|---|
+| Recording of a washer's end-of-cycle beep | Top-3 sound labels with scores, "washing machine beeping" (from `appliances.txt`) in the top 3 |
+| Photo of a display showing "E21", washer manual selected | Reads "E21"; answers from the manual with a word-for-word quote and its page number |
+| Question the selected manual doesn't cover | "The document doesn't contain the answer." No guess |
+| "I smell burning plastic from the dryer" | The fixed safety message, no repair steps, no model call |
+| "How many mugs are on the shelf?" + photo | A number first ("4"), then one line of explanation; "I can't tell" if too blurry |
+| "Write a function that averages the fridge's watts per hour" + `data/smartplug_fridge.csv` | Python function, its doctests run in a subprocess, pass/fail badge |
+| 30 s clip of the drum not turning | Description built from timestamped frames ("Frame k at t=…s") |
+| A `.heic` photo or `.m4a` voice note | Converted by ffmpeg and answered; an unsupported type gets `refusal: unsupported_file`, never a crash |
+
+Known traps:
+- **The safety regex over-matches today.** Checked on 2026-11-18: "smoke detector keeps
+  chirping", "fire alarm battery is low", "my Fire TV stick froze", "burnt toast smell" and
+  "water dripping from the outlet hose of the washer" all trigger the safety message. The
+  outlet-hose case is a normal washer question. Benign look-alike tests are needed before the
+  filter ships.
+- Count answers: the grader takes the first integer, and number words count ("four" = 4). Say
+  the number first.
+- Text: every number in the answer must appear in the quote. SQuAD 2.0-style items are
+  unanswerable on purpose, so refusing them is the correct answer.
+- Sounds: the vocabulary is the AudioSet-derived list (379 labels), never the ESC-50 classes
+  (hard rule 3). Rare appliance sounds may map to the nearest generic label.
+- Bake-off: practice items used as few-shot examples must not also be scored.
+- Machines: Docker owns port 11434 on the M4 (no GPU). Stop it and use native Ollama.
+
+## Build order
+
+### Tech stack
+
+- Frontend: React + Vite (Node 20) for chat, attachments, status chips, citation card, code
+  result panel and sound bars. Builds against `mock_server/` until the backend is ready
+  (`VITE_API_URL`).
+- API: FastAPI + Uvicorn, `sse-starlette` for streamed events, `python-multipart` for uploads,
+  `pydantic-settings` for profiles and env.
+- Media: ffmpeg, OpenCV, Pillow, PyMuPDF and python-docx normalise every upload (JPEG ≤ 1280,
+  16 kHz mono WAV, H.264 ≤ 720p, text with page markers).
+- Models: Ollama (vision brain `qwen3-vl:8b` / `:2b`, coder `qwen2.5-coder:3b`), mlx-whisper
+  (large-v3-turbo, small.en), CLAP via transformers, bge-small via sentence-transformers.
+- Text grounding: full document under 6,000 tokens, otherwise BM25 + bge-small top 5. The
+  rapidfuzz quote verifier (threshold 92) decides whether an answer is shown.
+- Code check: generated function's doctests in a subprocess, 10 s timeout, temp dir, no network.
+- Eval and tests: pytest (unit + hard rules), `eval/` with jiwer and rapidfuzz graders.
+- Storage: files on disk only. Manuals in `data/manuals/` and pack data outside the repo, both
+  gitignored. No database.
+
+Architecture: browser → FastAPI `/api/chat` → ffmpeg normalise → safety filter → rule-based
+router → modality pipeline → local models → quote verifier / code self-check → SSE events →
+browser. The CLI, the API and the eval harness call the same pipeline functions.
+
+Built so far (commits `beaefad`, `46f636d`): `.gitignore` with the hard rules, both profiles,
+safety rules, sound vocabulary, synthetic smart-plug CSV, setup / model-pull / go-no-go /
+offline scripts, docs and 3 passing hard-rule tests. Still to build: everything under `app/`
+(settings, Ollama client, memory manager, router, safety module, 5 pipelines, API, CLI),
+`mock_server/`, `eval/` and `frontend/`. Those folders hold only empty `__init__.py` files.
+
+| When | Goal |
+|---|---|
+| Wed Nov 18, 22:30 | M0: go/no-go prints GO on both Macs |
+| Wed Nov 18, 23:30 | M1: API contract agreed; mock server streams every event type |
+| Thu Nov 19, 10:00 | M2: all 5 pipelines work from `python -m app.cli` |
+| Thu Nov 19, 12:00 | M3: eval harness produces numbers |
+| Thu Nov 19, 13:30 | M4: UI runs end to end on the real backend |
+| Thu Nov 19, 14:00 | **Feature freeze.** M5: HomeFix manual layer ships only if done |
+| Thu Nov 19, 22:00 | M6: offline check passes, final eval numbers in README, tag `v1.0-submission` |
+
+The hour-by-hour schedule and owners are in [TEAM.md](TEAM.md#hour-by-hour). If we're behind,
+drop P3, then the PWA, then the live mic. Never drop P0.
+
+## Risks
+
+Full list with likelihood and impact: [RISKS.md](RISKS.md).
+
+- Network call at runtime (disqualifying): `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`,
+  Ollama on localhost; run `offline_check.sh` with Wi-Fi off on both Macs.
+- Hard-rule breach (pack data committed, `answers.json` read outside `eval/grade.py`):
+  `tests/test_hard_rules.py` runs before every merge.
+- Sound vocabulary called an ESC-50 lookup: it's generated from AudioSet by a script; confirm
+  with organizers (DECISIONS.md D3).
+- Brain too slow or out of memory: drop to `qwen3-vl:4b` on `full`; on `lite`, one LLM at a
+  time and `num_ctx` 4096.
+- Safety filter blocks normal questions: benign look-alike tests (see Known traps).
+- Verifier refuses correct answers: tune the threshold on the 20 practice text items; re-prompt
+  once for a shorter quote.
+- Model crashes mid-demo: error event, other modalities keep serving; switch to the M2 or the
+  backup video.
+- Running out of time (high likelihood): freeze at 14:00, cut in priority order, tag by 22:00.
