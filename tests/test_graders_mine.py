@@ -72,3 +72,36 @@ def test_code_missing_pieces(tmp_path):
     assert code.grade(_item("code", test_path=_test_file(tmp_path)), _ours("code"), {}).note == "no code"
     r = code.grade(_item("code", test_path=tmp_path / "nope.py"), _ours("code", code="x=1"), {})
     assert r.note == "no test file" and not r.hit
+
+
+def _write(tmp_path, name, body):
+    p = tmp_path / name
+    p.write_text(body)
+    return p
+
+
+def test_code_ignores_installed_packages(tmp_path):
+    p = _write(tmp_path, "test_a.py",
+               "import pytest\nimport numpy as np\nfrom solution import add\n\n"
+               "def test_add():\n    assert add(1, 2) == 3\n")
+    r = code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b):\n    return a + b\n"), {})
+    assert r.hit, r.note
+
+
+def test_code_uses_first_unknown_module(tmp_path):
+    p = _write(tmp_path, "test_b.py",
+               "from math import sqrt\nfrom mymod import add\n\n"
+               "def test_add():\n    assert add(1, 2) == 3\n")
+    r = code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b):\n    return a + b\n"), {})
+    assert r.hit, r.note
+
+
+def test_code_module_equal_to_test_stem(tmp_path):
+    p = _write(tmp_path, "test_c.py", "from test_c import add\n")
+    r = code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b): return a"), {})
+    assert not r.hit and r.note == "bad module name"
+
+
+def test_image_count_without_reference():
+    r = image.grade(_item("image"), _ours("image", "4", "count"), {})
+    assert not r.hit and r.note == "no reference answer"

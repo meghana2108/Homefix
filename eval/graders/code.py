@@ -6,6 +6,7 @@ The module name our code is imported as comes from the test file's first non-std
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import sys
 from pathlib import Path
@@ -16,11 +17,18 @@ from eval.types import GradeResult, PackItem, RunRecord
 _IMPORT = re.compile(r"^\s*(?:from\s+(\w+)\s+import|import\s+(\w+))", re.MULTILINE)
 
 
+def _installed(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ValueError, ImportError):
+        return True
+
+
 def _module_name(test_path: Path) -> str:
     text = test_path.read_text(encoding="utf-8", errors="replace")
     for m in _IMPORT.finditer(text):
         name = m.group(1) or m.group(2)
-        if name not in sys.stdlib_module_names and name not in ("pytest", "unittest"):
+        if name not in sys.stdlib_module_names and not _installed(name):
             return name
     return "solution"
 
