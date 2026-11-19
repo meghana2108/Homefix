@@ -1,5 +1,8 @@
 import type { Manual } from "../contract";
 
+/** "auto": the backend uses a manual when the question is about an appliance (app/orchestrate.py). */
+export const AUTO = "auto";
+
 export function ManualPicker({ manuals, value, onChange }: {
   manuals: Manual[];
   value: string | null;
@@ -7,20 +10,16 @@ export function ManualPicker({ manuals, value, onChange }: {
 }) {
   if (manuals.length === 0) return null;
   return (
-    <fieldset className="manuals">
-      <legend>Manuals</legend>
-      <label className="manual">
-        <input type="radio" name="manual" checked={value === null} onChange={() => onChange(null)} />
-        <span>none</span>
-      </label>
-      {manuals.map((m) => (
-        <label key={m.id} className="manual">
-          <input type="radio" name="manual" checked={value === m.id} onChange={() => onChange(m.id)} />
-          <span>
-            {m.title} <span className="muted">· {m.pages} pages</span>
-          </span>
-        </label>
-      ))}
-    </fieldset>
+    <label className="manualpick">
+      <span aria-hidden="true">📘</span>
+      <span className="visually-hidden">Manual</span>
+      <select value={value ?? ""} onChange={(e) => onChange(e.target.value || null)} aria-label="Manual">
+        <option value={AUTO}>Manual: automatic</option>
+        {manuals.map((m) => (
+          <option key={m.id} value={m.id}>{m.title} · {m.pages} pages</option>
+        ))}
+        <option value="">No manual</option>
+      </select>
+    </label>
   );
 }

@@ -9,18 +9,18 @@ function badgeText(r: CodeResultEvent): string {
 /** Generated code, a pass/fail badge (in text), the attempt count and the test output. */
 export function CodeResultPanel({ result }: { result: CodeResultEvent }) {
   return (
-    <section className="card" aria-label="Code result">
-      <p>
-        <span className={result.passed ? "badge badge--ok" : "badge"} data-passed={result.passed}
-          style={result.passed ? undefined : { color: "var(--error-line)", borderColor: "var(--error-line)" }}>
+    <section className="card card--code" aria-label="Code result">
+      <p className="code__head">
+        <span className={`pill ${result.passed ? "pill--ok" : "pill--bad"}`} data-passed={result.passed}>
           {badgeText(result)}
         </span>{" "}
         <span className="muted">Attempt {result.attempts} of 2</span>
+        <span className="muted"> · tested in a sandbox</span>
       </p>
-      <pre style={{ overflowX: "auto", maxWidth: "100%" }}><code>{result.code}</code></pre>
+      <pre className="code" style={{ overflowX: "auto", maxWidth: "100%" }}><code>{result.code}</code></pre>
       <details>
         <summary>Test output</summary>
-        <pre style={{ overflowX: "auto", maxWidth: "100%" }}>{result.output_tail || "(no output)"}</pre>
+        <pre className="code code--out" style={{ overflowX: "auto", maxWidth: "100%" }}>{result.output_tail || "(no output)"}</pre>
       </details>
     </section>
   );

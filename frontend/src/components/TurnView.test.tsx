@@ -61,10 +61,14 @@ describe("ManualPicker", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("selects a manual and back to none", () => {
+  it("offers automatic, each manual and none", () => {
     const onChange = vi.fn();
-    render(<ManualPicker manuals={[{ id: "washer_manual", title: "washer_manual.pdf", pages: 64 }]} value={null} onChange={onChange} />);
-    fireEvent.click(screen.getByLabelText(/washer_manual.pdf/));
+    render(<ManualPicker manuals={[{ id: "washer_manual", title: "Washer manual", pages: 64 }]} value="auto" onChange={onChange} />);
+    const select = screen.getByLabelText("Manual");
+    expect(select).toHaveValue("auto");
+    fireEvent.change(select, { target: { value: "washer_manual" } });
     expect(onChange).toHaveBeenLastCalledWith("washer_manual");
+    fireEvent.change(select, { target: { value: "" } });
+    expect(onChange).toHaveBeenLastCalledWith(null);
   });
 });

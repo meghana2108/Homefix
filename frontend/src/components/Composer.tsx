@@ -1,12 +1,29 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from "react";
+import type { Manual } from "../contract";
+import { kindOf } from "../state/reduce";
+import { ManualPicker } from "./ManualPicker";
 import { MicButton } from "./MicButton";
 
 export const MAX_FILES = 4;
-const ACCEPT = [
+export const ACCEPT = [
   "image/*", "audio/*", "video/*", ".heic", ".heif", ".pdf", ".docx", ".txt", ".md", ".csv", ".json", ".py",
 ].join(",");
+const ICON = { image: "🖼", audio: "🔊", video: "🎬", file: "📄" } as const;
 
-export function Composer({ text, onText, files, onFiles, onSend, busy, note }: {
+/** Object URLs for image previews, revoked when the files change. Empty where the browser has none (tests). */
+function usePreviews(files: File[]): (string | null)[] {
+  const [urls, setUrls] = useState<(string | null)[]>([]);
+  useEffect(() => {
+    const canPreview = typeof URL !== "undefined" && typeof URL.createObjectURL === "function";
+    const next = files.map((f) => (canPreview && kindOf(f.name, f.type) === "image" ? URL.createObjectURL(f) : null));
+    setUrls(next);
+    return () => next.forEach((u) => u && URL.revokeObjectURL(u));
+  }, [files]);
+  return urls;
+}
+
+export function Composer({ text, onText, files, onFiles, onSend, busy, note, manuals = [], manualId = null,
+  onManual, inputRef }: {
   text: string;
   onText: (t: string) => void;
   files: File[];
@@ -14,9 +31,15 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note }: {
   onSend: () => void;
   busy: boolean;
   note: string | null;
+  manuals?: Manual[];
+  manualId?: string | null;
+  onManual?: (id: string | null) => void;
+  inputRef?: MutableRefObject<HTMLInputElement | null>;
 }) {
-  const input = useRef<HTMLInputElement>(null);
+  const ownInput = useRef<HTMLInputElement | null>(null);
+  const input = inputRef ?? ownInput;
   const [partial, setPartial] = useState("");
+  const previews = usePreviews(files);
   const onMicFinal = (spoken: string) => {
     const said = spoken.trim();
     if (said) onText(text.trim() ? `${text.trim()} ${said}` : said);
@@ -29,34 +52,47 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note }: {
   };
   return (
     <form className="composer" onSubmit={(e) => { e.preventDefault(); if (!busy) onSend(); }}>
-      {partial && (
-        <div className="mic-partial" aria-live="polite">🎤 <span>{partial}</span></div>
-      )}
-      {(files.length > 0 || note) && (
-        <div className="composer__files">
-          {files.map((f, i) => (
-            <span key={`${f.name}-${i}`} className="file">
-              📎 {f.name}
-              <button type="button" className="file__remove" aria-label={`Remove ${f.name}`}
-                onClick={() => onFiles(files.filter((_, j) => j !== i))}>×</button>
-            </span>
-          ))}
-          {note && <span className="muted">{note}</span>}
+      <div className="composer__box">
+        {partial && (
+          <div className="mic-partial" aria-live="polite">🎤 <span>{partial}</span></div>
+        )}
+        {(files.length > 0 || note) && (
+          <div className="composer__files">
+            {files.map((f, i) => (
+              <span key={`${f.name}-${i}`} className="file file--pending">
+                {previews[i]
+                  ? <img className="file__thumb" src={previews[i]!} alt="" />
+                  : <span aria-hidden="true">{ICON[kindOf(f.name, f.type)]} </span>}
+                {f.name}
+                <button type="button" className="file__remove" aria-label={`Remove ${f.name}`}
+                  onClick={() => onFiles(files.filter((_, j) => j !== i))}>×</button>
+              </span>
+            ))}
+            {note && <span className="muted">{note}</span>}
+          </div>
+        )}
+        <textarea className="composer__text" rows={2} placeholder="Ask about something at home, or drop a photo, sound, video or file…"
+          value={text} aria-label="Question" onChange={(e) => onText(e.target.value)} onKeyDown={onKey} />
+        <div className="composer__row">
+          <button type="button" className="btn btn--ghost" aria-label="Attach files" title="Attach a photo, sound, video or file"
+            onClick={() => { if (input.current) { input.current.accept = ACCEPT; input.current.click(); } }}>
+            📎 <span className="btn__text">Attach</span>
+          </button>
+          <input ref={input} type="file" multiple accept={ACCEPT} hidden
+            onChange={(e) => {
+              onFiles([...files, ...Array.from(e.target.files ?? [])]);
+              e.target.value = "";
+              e.target.accept = ACCEPT;
+            }} />
+          <MicButton onPartial={setPartial} onFinal={onMicFinal} disabled={busy} />
+          {onManual && <ManualPicker manuals={manuals} value={manualId} onChange={onManual} />}
+          <span className="composer__spacer" />
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            {busy ? "Working…" : "Ask"}
+          </button>
         </div>
-      )}
-      <div className="composer__row">
-        <button type="button" className="btn btn--icon" aria-label="Attach files" title="Attach files"
-          onClick={() => input.current?.click()}>📎</button>
-        <input ref={input} type="file" multiple accept={ACCEPT} hidden
-          onChange={(e) => {
-            onFiles([...files, ...Array.from(e.target.files ?? [])]);
-            e.target.value = "";
-          }} />
-        <textarea className="composer__text" rows={1} placeholder="Type a question…" value={text}
-          aria-label="Question" onChange={(e) => onText(e.target.value)} onKeyDown={onKey} />
-        <MicButton onPartial={setPartial} onFinal={onMicFinal} disabled={busy} />
-        <button type="submit" className="btn btn--primary" disabled={busy}>Send</button>
       </div>
+      <p className="composer__hint muted">Enter to send · Shift+Enter for a new line · Everything stays on this laptop</p>
     </form>
   );
 }

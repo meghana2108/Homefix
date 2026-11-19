@@ -1,5 +1,5 @@
 export function formatSeconds(ms: number): string {
-  return `${(ms / 1000).toFixed(1)} s`;
+  return ms < 50 ? "under 0.1 s" : `${(ms / 1000).toFixed(1)} s`;
 }
 
 export function LatencyBadge({ latencyMs, model }: { latencyMs: number; model: string | null }) {

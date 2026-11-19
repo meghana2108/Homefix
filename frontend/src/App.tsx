@@ -1,16 +1,28 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { API_LABEL, IS_MOCK, getHealth, getManuals, streamChat } from "./api/client";
 import { BackendBanner } from "./components/BackendBanner";
-import { Composer, MAX_FILES } from "./components/Composer";
-import { ManualPicker } from "./components/ManualPicker";
+import { ACCEPT, Composer, MAX_FILES } from "./components/Composer";
+import { Logo } from "./components/Logo";
+import { AUTO } from "./components/ManualPicker";
 import { MessageList } from "./components/MessageList";
-import { WelcomeTiles } from "./components/WelcomeTiles";
+import { WelcomeTiles, type Scenario } from "./components/WelcomeTiles";
 import type { Health, HomeFixEvent, Manual } from "./contract";
-import { newTurn, reduce, type Turn } from "./state/reduce";
+import { kindOf, newTurn, reduce, type SentFile, type Turn } from "./state/reduce";
 
 const HEALTH_EVERY_MS = 5000;
 const TOO_MANY = `Attach up to ${MAX_FILES} files at a time.`;
 const MACHINE: Record<string, string> = { full: "M4", lite: "M2" };
+const PICK_ACCEPT: Record<NonNullable<Scenario["attach"]>, string> = {
+  image: "image/*,.heic,.heif", audio: "audio/*", video: "video/*", document: ".pdf,.docx,.txt,.md",
+};
+
+function sentFiles(files: File[]): SentFile[] {
+  const canPreview = typeof URL !== "undefined" && typeof URL.createObjectURL === "function";
+  return files.map((f) => {
+    const kind = kindOf(f.name, f.type);
+    return { name: f.name, kind, url: canPreview && kind !== "file" ? URL.createObjectURL(f) : null };
+  });
+}
 
 interface Sent { text: string; files: File[]; manualId: string | null }
 
@@ -37,9 +49,9 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [down, setDown] = useState(false);
   const [manuals, setManuals] = useState<Manual[]>([]);
-  const [manualId, setManualId] = useState<string | null>(null);
-  const [drawer, setDrawer] = useState(false);
+  const [manualId, setManualId] = useState<string | null>(AUTO);
   const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement | null>(null);
   const online = useOnline();
   const sent = useRef(new Map<string, Sent>());
 
@@ -72,7 +84,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (manualId && !manuals.some((m) => m.id === manualId)) setManualId(null);
+    if (manualId && manualId !== AUTO && !manuals.some((m) => m.id === manualId)) setManualId(AUTO);
   }, [manuals, manualId]);
 
   const setFiles = (next: File[]) => {
@@ -83,7 +95,7 @@ export default function App() {
   const busy = turns.length > 0 && turns[turns.length - 1].final === null;
 
   const run = useCallback(async (req: Sent) => {
-    const turn = newTurn(req.text, req.files.map((f) => f.name));
+    const turn = newTurn(req.text, req.files.map((f) => f.name), sentFiles(req.files));
     sent.current.set(turn.id, req);
     setTurns((ts) => [...ts, turn]);
     const apply = (ev: HomeFixEvent) =>
@@ -114,7 +126,7 @@ export default function App() {
 
   const send = () => {
     if (busy) return;
-    const req = { text: text.trim(), files, manualId };
+    const req = { text: text.trim(), files, manualId: manuals.length > 0 ? manualId : null };
     setText("");
     setFiles([]);
     void run(req);
@@ -123,6 +135,17 @@ export default function App() {
   const retry = (id: string) => {
     const req = sent.current.get(id);
     if (req && !busy) void run(req);
+  };
+
+  const pick = (example: string, attach?: Scenario["attach"]) => {
+    setText(example);
+    const el = fileInput.current;
+    if (attach && el) {
+      el.accept = PICK_ACCEPT[attach];
+      el.click();
+    } else if (el) {
+      el.accept = ACCEPT;
+    }
   };
 
   const onDragOver = (e: DragEvent) => {
@@ -142,30 +165,29 @@ export default function App() {
       if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
     }} onDrop={onDrop}>
       <header className="header">
-        <h1>HomeFix</h1>
+        <div className="brand">
+          <Logo size={30} />
+          <div>
+            <h1>HomeFix</h1>
+            <p className="brand__tag">Help for your first apartment</p>
+          </div>
+        </div>
         <div className="badges">
-          {health && <span className="badge">{health.profile} · {MACHINE[health.profile] ?? "?"}</span>}
-          <span className={`badge ${online ? "" : "badge--ok"}`}>{online ? "Online" : "Wi-Fi off ✓"}</span>
+          <span className={`privacy ${online ? "" : "privacy--offline"}`}
+            title="Every model runs on this laptop. Nothing you send leaves it.">
+            {online ? "🔒 Private · runs on this laptop" : "✈️ Wi-Fi off · still working"}
+          </span>
+          {health && <span className="badge" title="Profile and machine">{health.profile} · {MACHINE[health.profile] ?? "?"}</span>}
           {IS_MOCK && <span className="badge badge--mock">MOCK</span>}
-          {manuals.length > 0 && (
-            <button type="button" className="btn btn--small drawer-toggle" aria-expanded={drawer}
-              onClick={() => setDrawer((d) => !d)}>Manuals</button>
-          )}
         </div>
       </header>
       <BackendBanner apiUrl={API_LABEL} down={down} />
 
-      <div className="layout">
-        {manuals.length > 0 && (
-          <aside className={`sidebar ${drawer ? "sidebar--open" : ""}`}>
-            <ManualPicker manuals={manuals} value={manualId} onChange={(id) => { setManualId(id); setDrawer(false); }} />
-          </aside>
-        )}
-        <main className="main">
-          {turns.length === 0 ? <WelcomeTiles onPick={setText} /> : <MessageList turns={turns} onRetry={retry} />}
-          <Composer text={text} onText={setText} files={files} onFiles={setFiles} onSend={send} busy={busy} note={note} />
-        </main>
-      </div>
+      <main className="main">
+        {turns.length === 0 ? <WelcomeTiles onPick={pick} /> : <MessageList turns={turns} onRetry={retry} />}
+        <Composer text={text} onText={setText} files={files} onFiles={setFiles} onSend={send} busy={busy} note={note}
+          manuals={manuals} manualId={manualId} onManual={setManualId} inputRef={fileInput} />
+      </main>
       {dragging && <div className="dropzone" aria-hidden="true">Drop to attach</div>}
     </div>
   );

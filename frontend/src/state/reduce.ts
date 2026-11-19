@@ -18,11 +18,29 @@ export interface StatusChip {
   done: boolean;
 }
 
+export type AttachmentKind = "image" | "audio" | "video" | "file";
+
+/** What the user sent, kept so the conversation can show the photo, play the sound or the clip. */
+export interface SentFile {
+  name: string;
+  kind: AttachmentKind;
+  url: string | null;  // object URL for a preview; null in tests or for documents
+}
+
+export function kindOf(name: string, mime = ""): AttachmentKind {
+  const ext = name.toLowerCase().split(".").pop() ?? "";
+  if (mime.startsWith("image/") || ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"].includes(ext)) return "image";
+  if (mime.startsWith("audio/") || ["wav", "mp3", "m4a", "ogg", "flac", "aac"].includes(ext)) return "audio";
+  if (mime.startsWith("video/") || ["mp4", "mov", "webm", "m4v"].includes(ext)) return "video";
+  return "file";
+}
+
 /** One question and everything streamed back for it. */
 export interface Turn {
   id: string;
   userText: string;
   fileNames: string[];
+  sentFiles: SentFile[];
   statuses: StatusChip[];
   answer: string;
   transcript: TranscriptEvent | null;
@@ -37,12 +55,13 @@ export interface Turn {
 
 let counter = 0;
 
-export function newTurn(userText: string, fileNames: string[]): Turn {
+export function newTurn(userText: string, fileNames: string[], sentFiles?: SentFile[]): Turn {
   counter += 1;
   return {
     id: `t${Date.now().toString(36)}-${counter}`,
     userText,
     fileNames,
+    sentFiles: sentFiles ?? fileNames.map((name) => ({ name, kind: kindOf(name), url: null })),
     statuses: [],
     answer: "",
     transcript: null,
