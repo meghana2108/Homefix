@@ -86,6 +86,11 @@ CASES = [
     ("the wire is showing", "exposed_wires"),
     ("the extension cord is showing copper", "exposed_wires"),
     ("bare wire touching the copper pipe", "exposed_wires"),
+    ("the wire is showing through the paint", "exposed_wires"),
+    ("wires are showing through the paint", "exposed_wires"),
+    ("the cord is showing through the paint", "exposed_wires"),
+    ("exposed copper behind the outlet", "exposed_wires"),
+    ("rust is showing through the paint on the washer", None),
 ]
 
 
