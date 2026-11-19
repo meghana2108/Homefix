@@ -9,6 +9,7 @@ from app.api.main import app
 from app.contracts import Status, Token, final_for
 from app.models import ollama_client
 from app.pipelines import image
+from app.settings import load_profile
 from tests import media_fixtures as mf
 
 
@@ -84,7 +85,7 @@ def test_health_shape(client, monkeypatch):
     body = client.get("/api/health").json()
     assert set(body) == {"profile", "ollama", "models", "loaded"}
     assert body["profile"] == "full" and body["ollama"] is False and body["loaded"] == []
-    assert body["models"]["brain"] == "qwen3-vl:8b"
+    assert body["models"]["brain"] == load_profile("full").models.brain
 
 
 def test_health_fast_when_ollama_down(client, monkeypatch):
