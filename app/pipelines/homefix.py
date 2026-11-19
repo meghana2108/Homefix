@@ -9,13 +9,23 @@ import re
 from collections.abc import Iterator
 from pathlib import Path
 
-from app.contracts import MESSAGES, Ctx, Event, Final, PipelineRequest, Refusal, Status, final_for
+from app.contracts import (
+    MESSAGES,
+    Ctx,
+    Event,
+    Final,
+    PipelineRequest,
+    Refusal,
+    Status,
+    Token,
+    final_for,
+)
 from app.pipelines import text
 from app.pipelines.common import collect, stream_brain
 from app.prompts import READ_PROMPT
 
 MAX_IMAGES = 4
-_CODE = re.compile(r"\b[A-Z]{1,3}\s?-?\d{1,3}\b")
+_CODE = re.compile(r"\b[A-Z]{1,3}-?\d{1,3}\b")
 
 
 def read_display_code(answer: str) -> str | None:
@@ -37,7 +47,7 @@ def list_manuals() -> list[dict]:
             import pymupdf
 
             with pymupdf.open(p) as d:
-                title = (d.metadata or {}).get("title") or p.name
+                title = ((d.metadata or {}).get("title") or "").strip() or p.name
                 pages = d.page_count
         except (OSError, RuntimeError, ValueError):  # unreadable PDF: don't offer it
             title, pages = None, 0
@@ -51,7 +61,8 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
     images = [a.path for a in req.attachments if a.kind == "image" and a.path][:MAX_IMAGES]
     parts: list[str] = []
     for ev in collect(stream_brain(ctx, [{"role": "user", "content": READ_PROMPT}], images), parts):
-        yield ev
+        if not isinstance(ev, Token):
+            yield ev
         if isinstance(ev, Refusal):
             yield final_for(ctx, "homefix", "manual_lookup")
             return

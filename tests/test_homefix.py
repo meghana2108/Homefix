@@ -1,6 +1,15 @@
 import pymupdf
 
-from app.contracts import MESSAGES, Attachment, Citation, Final, PipelineRequest, Status
+from app.contracts import (
+    MESSAGES,
+    Attachment,
+    Citation,
+    Final,
+    PipelineRequest,
+    Refusal,
+    Status,
+    Token,
+)
 from app.pipelines import homefix, text
 
 PAGES = [
@@ -44,3 +53,24 @@ def test_cant_read_code(fake_brain, ctx_full, tmp_path, monkeypatch):
     fake_brain("I can't tell.")
     ev = list(homefix.run(req(tmp_path), ctx_full))
     assert ev[-1].answer == MESSAGES["no_display_code"] and ev[-1].modality == "homefix"
+
+
+def test_no_tokens_from_display_read(fake_brain, ctx_full, tmp_path, monkeypatch):
+    make(tmp_path, monkeypatch)
+    fake_brain("The display shows E21.", '{"answer":"Clean the drain pump filter.",'
+               '"quote":"Clean the drain pump filter every month","page":1}')
+    ev = list(homefix.run(req(tmp_path), ctx_full))
+    assert not any(isinstance(e, Token) for e in ev)
+
+
+def test_refused_lookup_has_no_tokens(fake_brain, ctx_full, tmp_path, monkeypatch):
+    make(tmp_path, monkeypatch)
+    fake_brain("The display shows E21.", '{"answer":null,"quote":null,"page":null}')
+    ev = list(homefix.run(req(tmp_path), ctx_full))
+    assert not any(isinstance(e, Token) for e in ev)
+    assert isinstance(ev[-2], Refusal) and ev[-2].reason == "not_in_document"
+    assert ev[-1].answer == ""
+
+
+def test_code_with_words_before():
+    assert homefix.read_display_code("In 2 lines the display shows E21") == "E21"
