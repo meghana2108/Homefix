@@ -100,3 +100,14 @@ def test_plain_number_still_checked():
 
 def test_ordinal_refused():
     assert not verify("The 2nd foot.", "turn the front feet", PAGES, 2, 92).ok
+
+
+def test_or_is_not_a_unit():
+    v = verify("Clean it 2 or 3 times a month.", "Clean it 2 to 3 times a month",
+               ["Clean it 2 to 3 times a month."], 1, 92)
+    assert v.ok
+
+
+def test_in_is_not_a_unit():
+    v = verify("Use 3 in the slot.", "put 3 in the slot", ["Then put 3 in the slot."], 1, 92)
+    assert v.ok

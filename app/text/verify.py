@@ -27,9 +27,14 @@ def codes_in(text: str) -> set[str]:
     return set(re.findall(r"\b(?=\w*\d)(?=\w*[a-z])\w+\b", text.lower()))
 
 
+_UNITS = ("v|w|a|mm|cm|m|km|kg|g|mg|lb|lbs|oz|ml|l|hz|khz|kw|kwh|psi|ft|hr|hrs|h|min|mins|sec|s|pm|am|"
+          "f|c|°f|°c|gal|qt")
+_UNIT_GAP = re.compile(r"(?<=\d)\s+(?=(?:" + _UNITS + r")\b)")
+
+
 def glue_units(text: str) -> str:
     """"230 V" -> "230v" so spaced and glued units compare equal."""
-    return re.sub(r"(?<=\d)\s+(?=[a-z]{1,3}\b)", "", text.lower())
+    return _UNIT_GAP.sub("", text.lower())
 
 
 def normalize(text: str) -> str:
