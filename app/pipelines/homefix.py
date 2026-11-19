@@ -34,6 +34,23 @@ def read_display_code(answer: str) -> str | None:
     return m.group(0) if m else None
 
 
+_JUNK_TITLES = {"title", "untitled", "document", "manual", "user manual", "pdf"}
+
+
+def pretty_stem(stem: str) -> str:
+    """washer_aeg_l6fbj741n -> "Washer AEG L6FBJ741N" (docs/ASSETS.md naming: <appliance>_<brand>_<model>)."""
+    parts = [p for p in re.split(r"[_\-\s]+", stem) if p]
+    return " ".join([parts[0].capitalize(), *(p.upper() for p in parts[1:])]) if parts else stem
+
+
+def manual_title(pdf_title: str | None, stem: str) -> str:
+    """The PDF's own title, unless it is empty or junk ("Title", "Microsoft Word - x.docx")."""
+    t = (pdf_title or "").strip()
+    if len(t) < 3 or t.lower() in _JUNK_TITLES or t.lower().startswith("microsoft word") or t.lower().endswith(".pdf"):
+        return pretty_stem(stem)
+    return t
+
+
 def list_manuals() -> list[dict]:
     """[{id, title, pages}] for each PDF in the manuals folder that can be loaded by id."""
     folder = Path(text.MANUALS_DIR)
@@ -47,7 +64,7 @@ def list_manuals() -> list[dict]:
             import pymupdf
 
             with pymupdf.open(p) as d:
-                title = ((d.metadata or {}).get("title") or "").strip() or p.name
+                title = manual_title((d.metadata or {}).get("title"), p.stem)
                 pages = d.page_count
         except (OSError, RuntimeError, ValueError):  # unreadable PDF: don't offer it
             title, pages = None, 0

@@ -19,7 +19,7 @@ def test_lists_manuals(tmp_path, monkeypatch):
     pdf(tmp_path / "has space.pdf", 1)
     r = TestClient(app).get("/api/manuals").json()
     assert [(m["id"], m["pages"]) for m in r] == [("a", 1), ("b", 2)]
-    assert r[0]["title"] == "a.pdf"
+    assert r[0]["title"] == "A"  # no PDF title: a readable name from the file stem (test_manual_auto.py)
 
 
 def test_missing_folder(tmp_path, monkeypatch):

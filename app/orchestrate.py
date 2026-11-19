@@ -9,6 +9,7 @@ Converted files live in a per-request temp folder that is deleted when the strea
 from __future__ import annotations
 
 import importlib
+import re
 import shutil
 import tempfile
 import time
@@ -76,6 +77,38 @@ def _convert(files: list[Path], names: list[str], ctx: Ctx, workdir: Path) -> It
         yield att
 
 
+AUTO_MANUAL = "auto"
+# A photo goes to the manual only when the question is about an appliance, an error or what to do.
+_APPLIANCE_Q = re.compile(
+    r"\b(error|code|display|panel|screen|light|lights|blink\w*|flash\w*|beep\w*|alarm|washer|washing|dryer|"
+    r"dishwasher|fridge|refrigerator|freezer|oven|stove|microwave|heater|boiler|thermostat|machine|appliance|"
+    r"manual|fix|broken|won'?t|doesn'?t|not working|what (should|do|can) i do)\b", re.IGNORECASE)
+
+
+def resolve_manual(manual_id: str | None, message: str, attachments: list[Attachment]) -> str | None:
+    """manual_id as given, or for "auto": the manual that fits the question, or None.
+
+    auto uses a manual for a single photo whose question is about an appliance or an error, and for a
+    question with no attachment (which would otherwise be refused). Never for sound, video or an attached
+    document. With several manuals, the one whose name shares a word with the question, else the first.
+    """
+    if manual_id != AUTO_MANUAL:
+        return manual_id
+    from app.pipelines.homefix import list_manuals
+
+    manuals = list_manuals()
+    if not manuals:
+        return None
+    if attachments and (len(attachments) != 1 or attachments[0].kind != "image"
+                        or not _APPLIANCE_Q.search(message)):
+        return None
+    words = set(re.findall(r"[a-z0-9]+", message.lower()))
+    for m in manuals:
+        if words & set(re.findall(r"[a-z0-9]+", f"{m['id']} {m['title']}".lower())):
+            return m["id"]
+    return manuals[0]["id"]
+
+
 def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, names: list[str],
           attachments: list[Attachment] | None, workdir: Path, state: dict) -> Iterator[Event]:
     yield Status(stage="converting")
@@ -99,6 +132,13 @@ def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, name
 
     state["stage"] = "routing"
     yield Status(stage="routing")
+    asked_auto = manual_id == AUTO_MANUAL
+    manual_id = resolve_manual(manual_id, text, attachments)
+    if asked_auto and manual_id:
+        from app.pipelines.homefix import list_manuals
+
+        title = next((m["title"] for m in list_manuals() if m["id"] == manual_id), manual_id)
+        yield Status(stage="routing", detail=f"Using the manual: {title}")
     r = route(text, attachments, manual_id)
     if r.refusal:
         raise _Stop(r.refusal, r.modality, r.question_type)
