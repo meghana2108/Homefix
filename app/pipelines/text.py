@@ -76,8 +76,21 @@ def _parse(raw: str) -> dict | None:
     return None
 
 
+# Answers that mean "no answer". The 2B model sometimes writes the string "null" next to a real but
+# unrelated quote (a page footer), which then passed the quote check and showed "null" as the answer.
+_NO_ANSWER = re.compile(
+    r"^(null|none|n/?a|unknown|not (mentioned|stated|specified|given|found)|no answer|"
+    r"(the )?(document|manual|text|guide) (does ?n[o']t|does not|doesn't) (say|mention|contain|state|specify).*)$",
+    re.IGNORECASE)
+
+
 def _str_or_none(v: object) -> str | None:
-    return v.strip() or None if isinstance(v, str) else None
+    if not isinstance(v, str):
+        return None
+    s = v.strip()
+    if not s or _NO_ANSWER.match(s.rstrip(".! ")):
+        return None
+    return s
 
 
 def _refuse(ctx: Ctx, req: PipelineRequest, reason: str, message: str) -> Iterator[Event]:

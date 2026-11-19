@@ -87,6 +87,16 @@ def test_null_answer_refuses(fake_brain, ctx_full):
     assert ev[-1].answer == ""
 
 
+@pytest.mark.parametrize("placeholder", ["null", "None", "N/A", "unknown", "Not mentioned.",
+                                         "The document doesn't say.", "The document does not mention this."])
+def test_placeholder_answer_refuses_even_with_a_real_quote(fake_brain, ctx_full, placeholder):
+    """The 2B model wrote the string "null" with a verbatim page footer as its quote; that showed as an answer."""
+    fake_brain(reply(placeholder, "To level the washer, turn the front feet.", 2))
+    ev = run(req("Is there a warranty?"), ctx_full)
+    assert of(ev, Refusal)[0].reason == "not_in_document"
+    assert of(ev, Citation) == [] and ev[-1].answer == ""
+
+
 def test_json_inside_prose(fake_brain, ctx_full):
     fake_brain('Here you go: {"answer":"Turn the front feet.","quote":"turn the front feet",'
                '"page":2} hope it helps')
