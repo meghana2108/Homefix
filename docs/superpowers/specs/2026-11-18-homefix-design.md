@@ -441,7 +441,7 @@ If none and not "I can't tell", leave as is. Tokens stream; `final.answer` is th
 3. Speech path: `transcript` event → safety on transcript → if the message has a question,
    brain answers from the transcript (tokens stream); else `final.answer` = transcript.
 4. Sound path: status `labeling_sounds`; CLAP zero-shot over `general.txt` ∪ `appliances.txt`
-   with template "the sound of {label}" → `sound_labels` (top 3) → alarm safety check →
+   with template "This is a sound of {}." (same as scripts/go_no_go.py) → `sound_labels` (top 3) → alarm safety check →
    `final.answer` = "Sounds like: {top1} ({score:.0%}), {top2}, {top3}."
 
 ### Video (`app/pipelines/video.py`, Akshayaa; helpers in `app/video/`)
