@@ -5,6 +5,7 @@ import yaml
 
 from app.contracts import SoundLabel
 from app.safety import check, check_sound, refusal_for
+from app.settings import ROOT
 
 CASES = [
     ("smoke detector keeps chirping", None),
@@ -34,9 +35,19 @@ def test_check(text, category):
         assert hit is not None and hit.category == category
 
 
+@pytest.mark.parametrize("text,category", [
+    ("smoke alarm sparked and the battery is hot", "sparks"),
+    ("smoke detector smells like gas, battery dead", "gas"),
+    ("fire alarm: i smell gas, battery low", "gas"),
+])
+def test_benign_cannot_hide_danger(text, category):
+    hit = check(text)
+    assert hit is not None and hit.category == category
+
+
 def test_refusal_message_verbatim():
     r = refusal_for(check("I smell gas"))
-    with open("config/safety_rules.yaml") as f:
+    with open(ROOT / "config/safety_rules.yaml", encoding="utf-8") as f:
         assert r.message == yaml.safe_load(f)["message"]
     assert r.reason == "safety"
     assert r.category == "gas"
