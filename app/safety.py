@@ -20,10 +20,15 @@ ALARM_LABELS: frozenset[str] = frozenset({
     "fire alarm",
 })
 
-_DANGER = [
-    (cat, [(p, re.compile(p, re.IGNORECASE)) for p in pats])
-    for cat, pats in _RULES["patterns"].items()
-]
+def _compile(section: dict) -> list[tuple[str, list[tuple[str, re.Pattern]]]]:
+    return [
+        (cat, [(p, re.compile(p, re.IGNORECASE)) for p in pats])
+        for cat, pats in section.items()
+    ]
+
+
+_ALARM_ACTIVE = _compile(_RULES.get("alarm_active", {}))
+_DANGER = _compile(_RULES["patterns"])
 _BENIGN = [re.compile(p, re.IGNORECASE) for p in _RULES.get("benign", [])]
 
 
@@ -35,6 +40,10 @@ class SafetyHit:
 
 def check(text: str) -> SafetyHit | None:
     text = text.lower()
+    for cat, pats in _ALARM_ACTIVE:
+        for raw, rx in pats:
+            if rx.search(text):
+                return SafetyHit(cat, raw)
     for rx in _BENIGN:
         text = rx.sub(" ", text)
     for cat, pats in _DANGER:

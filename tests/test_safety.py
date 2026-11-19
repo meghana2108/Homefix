@@ -25,6 +25,14 @@ CASES = [
     ("water on the floor near the outlet", "water_electric"),
     ("I got a shock from the fridge door", "shock"),
     ("the fire alarm is going off", "smoke_fire"),
+    ("smoke alarm is going off, check the battery", "smoke_fire"),
+    ("the fire alarm is going off. battery is low", "smoke_fire"),
+    ("smoke alarm is going off. it chirps", "smoke_fire"),
+    ("the fire alarm is going off, is it the battery?", "smoke_fire"),
+    ("is there smoke near my smoke detector", "smoke_fire"),
+    ("the co alarm went off", "gas"),
+    ("my carbon monoxide detector keeps beeping", "gas"),
+    ("smoke detector beeps once a minute", None),
 ]
 
 
