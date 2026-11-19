@@ -183,3 +183,27 @@ def test_long_quote_typo_still_fuzzy():
 
 def test_question_none_unchanged():
     assert verify("Clean it.", "Clean the drain pump filter", QPAGES, 1, 92, question=None).ok
+
+
+def test_hyphen_code_in_question_not_in_quote():
+    v = verify("The programme did not finish.", "The programme was not finished properly", QPAGES, 2, 92,
+               question="What does E-21 mean?")
+    assert not v.ok and v.reason == "question_code_not_in_quote"
+
+
+def test_hyphen_code_matches_plain_code():
+    v = verify("The water did not drain.", "Error E21 means the water did not drain", QPAGES, 1, 92,
+               question="What does E-21 mean?")
+    assert v.ok
+
+
+def test_plain_question_code_matches_hyphen_quote():
+    pages = ["Error F-05 shows a blocked pump. Clean it."]
+    v = verify("The pump is blocked.", "Error F-05 shows a blocked pump", pages, 1, 92,
+               question="What is F05?")
+    assert v.ok
+
+
+def test_nine_volt_is_not_a_code():
+    from app.text.verify import codes_in
+    assert codes_in("use a 9 volt battery") == set()

@@ -24,7 +24,8 @@ class Verdict:
 
 def codes_in(text: str) -> set[str]:
     """Alphanumeric codes such as e21 or 9v (letters and digits in one word)."""
-    return set(re.findall(r"\b(?=\w*\d)(?=\w*[a-z])\w+\b", text.lower()))
+    text = re.sub(r"\b([a-z]{1,3})-(\d{1,3})\b", r"\1\2", text.lower())  # "e-21" -> "e21"
+    return set(re.findall(r"\b(?=\w*\d)(?=\w*[a-z])\w+\b", text))
 
 
 _UNITS = ("v|w|mm|cm|m|km|kg|g|mg|lb|lbs|oz|ml|l|hz|khz|kw|kwh|psi|ft|hr|hrs|h|min|mins|sec|s|pm|am|"
