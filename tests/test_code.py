@@ -19,6 +19,17 @@ from app.pipelines import code
 CSV = Path(__file__).resolve().parent.parent / "data" / "smartplug_fridge.csv"
 
 
+ACF_SYSTEM = (
+    "You write one short Python function for a renter. Reply with one line saying what it does, "
+    "then one ```python code block holding only imports and the function. No print calls and no "
+    "code outside the function. Put at least two doctest examples (>>> lines with the exact "
+    "expected output) in the function's docstring. Use only the standard library. If a data file "
+    "is named below, the function takes its file name as a string, and its doctest may call it "
+    "with that exact name; compute expected values only from the lines shown. Otherwise use small "
+    "literal values. Never invent other file names. Do not use the network."
+)
+
+
 def add_block(op="+"):
     return ("```python\ndef add(a, b):\n    \"\"\"\n    >>> add(1, 2)\n    3\n    >>> add(0, 0)\n"
             f"    0\n    \"\"\"\n    return a {op} b\n```")
@@ -147,3 +158,36 @@ def test_real_golden_g6(ctx_full):
     r = result_of(evs)
     assert r.passed is True, r.output_tail
     assert r.tests_run >= 2
+
+
+def test_non_csv_requests_keep_the_original_prompt(ctx_full, fake_brain):
+    fake_brain(GOOD, GOOD)
+    events(ctx_full, req("write add(a, b)"))
+    msgs = fake_brain.calls[0]["messages"]
+    assert msgs == [{"role": "system", "content": ACF_SYSTEM},
+                    {"role": "user", "content": "write add(a, b)"}]
+    msg = "def add(x):\n    ..."
+    events(ctx_full, req(msg))
+    msgs = fake_brain.calls[1]["messages"]
+    assert msgs[0]["content"] == ACF_SYSTEM
+    assert msgs[1]["content"] == (
+        msg + "\n\nKeep this exact function name and signature: def add(x): (name: add).")
+
+
+def test_json_data_file_keeps_original_behaviour(ctx_full, fake_brain, monkeypatch, tmp_path):
+    f = tmp_path / "up.bin"
+    f.write_text('{"a": 1}\n')
+    seen = {}
+    real = code.run_doctests
+
+    def spy(src, files, timeout_s):
+        seen["files"] = files
+        return real(src, files, timeout_s)
+
+    monkeypatch.setattr(code, "run_doctests", spy)
+    fake_brain(GOOD)
+    events(ctx_full, req(attachments=[data(f, "plugs.json")]))
+    p = prompt_text(fake_brain.calls[0])
+    assert "lines: list[str]" not in p
+    assert "Open it by the exact name given" in p and "File name: plugs.json" in p
+    assert seen["files"] == {"plugs.json": f}

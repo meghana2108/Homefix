@@ -29,6 +29,15 @@ _SYSTEM = (
     "You write one short Python function for a renter. Reply with one line saying what it does, "
     "then one ```python code block holding only imports and the function. No print calls and no "
     "code outside the function. Put at least two doctest examples (>>> lines with the exact "
+    "expected output) in the function's docstring. Use only the standard library. If a data file "
+    "is named below, the function takes its file name as a string, and its doctest may call it "
+    "with that exact name; compute expected values only from the lines shown. Otherwise use small "
+    "literal values. Never invent other file names. Do not use the network."
+)
+_SYSTEM_CSV = (
+    "You write one short Python function for a renter. Reply with one line saying what it does, "
+    "then one ```python code block holding only imports and the function. No print calls and no "
+    "code outside the function. Put at least two doctest examples (>>> lines with the exact "
     "expected output) in the function's docstring. Use only the standard library. Do not use "
     "the network."
 )
@@ -48,10 +57,15 @@ _DEF_LINE = re.compile(r"\b(def\s+[A-Za-z_]\w*\s*\(.*)$", re.MULTILINE)
 
 
 def build_prompt(message: str, csv_preview: str | None, target: str | None,
-                 last_output: str | None) -> str:
+                 last_output: str | None, *, csv: bool = False) -> str:
+    """csv=True: csv_preview is the header + 5 rows of a .csv file and the function takes
+    its lines. Otherwise csv_preview is the preview of another data file, opened by name."""
     parts = [message]
-    if csv_preview:
+    if csv_preview and csv:
         parts.append(f"{_CSV_RULES}\n{csv_preview}")
+    elif csv_preview:
+        parts.append("The data file is in the current folder. Open it by the exact name given. "
+                     f"It looks like this (first lines):\n{csv_preview}")
     if target:
         m = _DEF_LINE.search(message)
         sig = f": {m.group(1).strip()}" if m else ""
@@ -71,11 +85,12 @@ def _preview(path: Path) -> str | None:
     return "\n".join(lines) or None
 
 
-def _csv_preview(req: PipelineRequest) -> str | None:
-    """Header + 5 rows of the first usable data attachment. The file itself is not copied
-    into the sandbox: the function gets the lines, not a path."""
+def _data_files(req: PipelineRequest) -> tuple[dict[str, Path], str | None, bool]:
+    """(files for the sandbox, preview, preview_is_csv). A .csv is shown to the model as lines
+    and not copied into the sandbox; any other data file is copied under its own name."""
+    files: dict[str, Path] = {}
+    csv_preview = other_preview = None
     seen: set[str] = set()
-    preview = None
     for a in req.attachments:
         if a.kind != "data" or a.path is None:
             continue
@@ -84,9 +99,16 @@ def _csv_preview(req: PipelineRequest) -> str | None:
                 or name in seen):
             continue
         seen.add(name)
-        if preview is None:
-            preview = _preview(a.path)
-    return preview
+        if name.lower().endswith(".csv"):
+            if csv_preview is None:
+                csv_preview = _preview(a.path)
+        else:
+            files[name] = a.path
+            if other_preview is None and (body := _preview(a.path)):
+                other_preview = f"File name: {name}\n{body}"
+    if csv_preview:
+        return files, csv_preview, True
+    return files, other_preview, False
 
 
 def _prose(raw: str) -> str:
@@ -104,7 +126,7 @@ def _refuse(ctx: Ctx, reason: str, message: str) -> Iterator[Event]:
 def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
     cfg = ctx.profile.code
     target = find_target(req.message)
-    preview = _csv_preview(req)
+    files, preview, is_csv = _data_files(req)
     imports = stub_imports(req.message)
     max_attempts = 1 + cfg.max_retries
     last_output: str | None = None
@@ -115,9 +137,10 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
         tag = ctx.memory.tag("coder")
         for attempt in range(1, max_attempts + 1):
             yield Status(stage="generating", detail=tag)
-            messages = [{"role": "system", "content": _SYSTEM},
+            messages = [{"role": "system", "content": _SYSTEM_CSV if is_csv else _SYSTEM},
                         {"role": "user",
-                         "content": build_prompt(req.message, preview, target, last_output)}]
+                         "content": build_prompt(req.message, preview, target, last_output,
+                                             csv=is_csv)}]
             raw = ollama_client.chat(tag, messages, num_ctx=ctx.memory.num_ctx("coder"),
                                      keep_alive=ctx.memory.keep_alive("coder"),
                                      timeout_s=ctx.deadline_s)
@@ -132,7 +155,7 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
             else:
                 yield Status(stage="running_code")
                 full = "\n".join([*imports, code]) if imports else code
-                res: SandboxResult = run_doctests(full, {}, cfg.selfcheck_timeout_s)
+                res: SandboxResult = run_doctests(full, files, cfg.selfcheck_timeout_s)
                 result = CodeResult(code=code, passed=res.passed, tests_run=res.tests_run,
                                     failures=res.failures, output_tail=res.output,
                                     attempts=attempt)
