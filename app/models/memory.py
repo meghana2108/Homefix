@@ -1,7 +1,7 @@
 """Which LLM is loaded in Ollama.
 
-full: brain and coder both stay loaded; ensure() only loads what is missing.
-lite: one LLM at a time. ensure() unloads everything else first, loads the target and reports
+A profile with an empty `swap` list keeps brain and coder both loaded; ensure() only loads what is missing.
+A profile with a `swap` list (full and lite) runs one LLM at a time. ensure() unloads everything else first, loads the target and reports
       the swap as Status(stage="loading_model", detail="loading <tag>", ms=<elapsed>).
 Models are loaded with the same num_ctx the pipelines call them with (num_ctx()), because
 Ollama reloads a model whose num_ctx changes.
@@ -45,7 +45,7 @@ class MemoryManager:
         return self.profile.brain_num_ctx
 
     def _one_at_a_time(self) -> bool:
-        return self.profile.name == "lite"
+        return bool(self.profile.swap)
 
     def ensure(self, role: Role) -> Iterator[Status]:
         """Make `role` loaded. Yields one loading_model status when a load happened.

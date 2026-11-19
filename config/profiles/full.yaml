@@ -3,15 +3,16 @@
 name: full
 models:
   brain: qwen3-vl:8b-instruct # 6.2 GB. Not qwen3-vl:8b: that tag is the thinking build (ollama show lists "thinking", default on). Bake-off: gemma4:e4b (9.5 GB on disk), qwen3-vl:4b (3.3 GB)
-  coder: qwen2.5-coder:3b     # alt: qwen2.5-coder:7b (4.7 GB, swapped in), or the brain itself
+  coder: qwen2.5-coder:7b     # 4.7 GB, swapped in for code requests with the brain unloaded (brain + 3b already used 16 GB of 17.2). 3b passed the G6 demo ~half the time, 7b 3/3
   whisper_file: mlx-community/whisper-large-v3-turbo
   whisper_live: mlx-community/whisper-small.en-mlx
   clap: laion/clap-htsat-unfused
   embeddings: BAAI/bge-small-en-v1.5
-resident: [brain, coder, whisper_file, whisper_live, clap, embeddings]
+resident: [brain, whisper_file, whisper_live, clap, embeddings]
+swap: [coder]
 keep_alive:                   # Ollama keep_alive; -1 = forever, 0 = unload now
   brain: -1
-  coder: -1
+  coder: 120                  # seconds; unloaded after a short idle so the brain can come back
 image:
   max_side: 1280
 video:

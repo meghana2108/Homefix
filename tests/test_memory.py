@@ -39,13 +39,50 @@ def test_lite_already_loaded_is_silent(profile_lite, fake_backend):
     assert fake_backend.load_calls == []
 
 
+def _no_swap(profile):
+    return profile.model_copy(update={"swap": []})
+
+
+def test_full_swaps_coder_in(profile_full, fake_backend):
+    fake_backend.loaded_tags = [profile_full.models.brain]
+    events = list(MemoryManager(profile_full, fake_backend).ensure("coder"))
+    assert [(e.stage, e.detail) for e in events] == [("loading_model", "loading qwen2.5-coder:7b")]
+    assert fake_backend.loaded_tags == ["qwen2.5-coder:7b"]
+
+
+def test_full_back_to_brain(profile_full, fake_backend):
+    fake_backend.loaded_tags = [profile_full.models.brain]
+    mm = MemoryManager(profile_full, fake_backend)
+    list(mm.ensure("coder"))
+    events = list(mm.ensure("brain"))
+    assert [e.stage for e in events] == ["loading_model"]
+    assert fake_backend.loaded_tags == [profile_full.models.brain]
+
+
+def test_profile_without_swap_keeps_both(profile_full, fake_backend):
+    p = _no_swap(profile_full)
+    fake_backend.loaded_tags = [p.models.brain, p.models.coder]
+    assert list(MemoryManager(p, fake_backend).ensure("coder")) == []
+
+
+def test_full_profile_values():
+    from app.settings import load_profile
+    p = load_profile("full")
+    assert p.models.coder == "qwen2.5-coder:7b"
+    assert "coder" not in p.resident
+    assert p.swap == ["coder"]
+    assert p.keep_alive.coder == 120
+
+
 def test_full_keeps_both(profile_full, fake_backend):
+    profile_full = _no_swap(profile_full)
     fake_backend.loaded_tags = [profile_full.models.brain, profile_full.models.coder]
     assert list(MemoryManager(profile_full, fake_backend).ensure("coder")) == []
     assert fake_backend.unload_calls == []
 
 
 def test_full_loads_missing_without_unloading(profile_full, fake_backend):
+    profile_full = _no_swap(profile_full)
     fake_backend.loaded_tags = [profile_full.models.brain]
     events = list(MemoryManager(profile_full, fake_backend).ensure("coder"))
     assert [e.stage for e in events] == ["loading_model"]
@@ -72,6 +109,7 @@ def test_prefetch_noop_on_lite(profile_lite, fake_backend):
 
 
 def test_prefetch_loads_on_full_in_background(profile_full, fake_backend):
+    profile_full = _no_swap(profile_full)
     fake_backend.loaded_tags = [profile_full.models.brain]
     MemoryManager(profile_full, fake_backend).prefetch("coder")
     for _ in range(100):
