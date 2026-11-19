@@ -12,6 +12,7 @@ Nothing copyrighted is committed. Gitignored folders: `practice_pack/`, `data/ma
 | Appliance beeps / noises | `data/assets/private/` | Recorded by us, or CC0 clips from Freesound (record URL + license) | Ours / CC0 | No (media) |
 | `washer_end_of_cycle_beep_synthetic.wav` | `data/assets/private/` | Made by us: `scripts/make_demo_assets.py` (five 2.4 kHz beeps over a drum hum, 16 kHz mono, 4.8 s) | MIT | No (media); the script is committed |
 | `washer_display_e21_synthetic.jpg`, `washer_display_e21_closeup_synthetic.jpg` | `data/assets/private/` | Made by us: `scripts/make_demo_assets.py` (washer panel with a 7-segment "E21", phone-photo blur and noise; `--code` for others) | MIT | No (media); the script is committed |
+| `apartment_guide_unit_4b.pdf` (title "Unit 4B apartment guide: washer, heat and who to call") | `data/manuals/` | Written by us: `scripts/make_demo_assets.py`. A sample landlord's guide, 4 pages: who to call, washer BW-200 beeps and error codes (E10, E21, E40, E52, E90) as text, cleaning the drain filter, heat, breakers, smoke alarm. Fictional appliance and building, no real brand | MIT | No (gitignored folder); the script is committed |
 | Error-display photos (real) | `data/assets/private/` | Photographed by us | Ours | No (media) |
 | PWA icons | `frontend/public/icons/` | Made by us | MIT | Yes |
 
@@ -47,3 +48,11 @@ e.g. `washer_lg_wm3400.pdf`. The file stem is the `manual_id` the UI sends, and
 
 ## Models
 Downloaded by `scripts/pull_models.sh` into the Ollama and Hugging Face caches (never into the repo). Licenses: Qwen3-VL and Qwen2.5-Coder (Apache 2.0 for the sizes used; check the model card), Gemma 4 (Gemma terms), Whisper (MIT), CLAP (CC0/Apache per model card), bge-small (MIT).
+
+**Why a sample guide (2026-11-19):** the AEG L6FBJ741N, five Electrolux manuals and the LG WM3400CW
+manual all draw their error codes as display graphics, so no text search can find "E21" or "OE" in
+them. A landlord's guide types the codes out. With it, the E21 photo plus `Manual: automatic` reads
+E21, picks the guide and quotes page 2 (15.8 s on lite). Say on stage that the guide is a sample we
+wrote; the AEG manual is kept to show a real manufacturer manual (for example "How do I clean the
+drain filter?", p. 29).
+

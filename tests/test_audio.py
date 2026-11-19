@@ -88,7 +88,7 @@ def test_router_sound_forces_sound_path(ctx_lite, heard, fake_brain):
     assert of(ev, Transcript) == []
     assert of(ev, SoundLabels) == [SoundLabels(labels=BEEPS, is_speech=False)]
     assert calls["classify"] == 1 and calls["top_k"] == 3 and calls["n_labels"] >= 400
-    assert ev[-1].answer == "Sounds like: washing machine beeping (71%), beep, alarm."
+    assert ev[-1].answer.startswith("Most likely **washing machine beeping** (71%). Also possible: beep, alarm.")
     assert ev[-1].model == ctx_lite.profile.models.clap and ev[-1].question_type == "sound"
 
 
@@ -114,7 +114,8 @@ def test_quiet_smoke_alarm_is_just_labels(ctx_lite, heard):
     heard("", no_speech=0.9, labels=[SoundLabel(label="smoke alarm beeping loudly", score=0.32), *BEEPS[1:]])
     ev = run(ctx_lite, "", "none")
     assert of(ev, Refusal) == []
-    assert ev[-1].answer == "Sounds like: smoke alarm beeping loudly (32%), beep, alarm."
+    assert ev[-1].answer.startswith("Most likely **smoke alarm beeping loudly** (32%).")
+    assert "leave and call 911" in ev[-1].answer  # a quiet alarm still gets the don't-wait line
 
 
 def test_two_words_is_sound(ctx_lite, heard):
@@ -192,7 +193,7 @@ def test_real_beep_on_lite(ctx_lite, tmp_path):
     wav = mf.make_sine_wav(tmp_path / "beep.wav", hz=2800, sr=16000)
     ev = run(ctx_lite, "what is this sound?", "sound", [Attachment(wav, "audio", "beep.wav")])
     labels = of(ev, SoundLabels)[0].labels
-    assert len(labels) == 3 and ev[-1].answer.startswith("Sounds like: ")
+    assert len(labels) == 3 and ev[-1].answer.startswith("Most likely ")
 
 
 @pytest.mark.model
@@ -229,3 +230,30 @@ def test_tokens_stream_live(ctx_lite, heard, monkeypatch):
             break
     else:
         pytest.fail("no token")
+
+
+# ---------------------------------------------------------------- the sound answer in words
+def L(*pairs):
+    return [SoundLabel(label=a, score=b) for a, b in pairs]
+
+
+def test_describe_clear_winner_and_next_step():
+    text = audio.describe_sounds(L(("washing machine beeping", 0.62), ("beep", 0.2), ("alarm", 0.05)))
+    assert text.startswith("Most likely **washing machine beeping** (62%). Also possible: beep, alarm.")
+    assert "send me a photo of the display" in text
+
+
+def test_describe_close_call_says_so():
+    text = audio.describe_sounds(L(("microwave beeping", 0.19), ("washing machine beeping", 0.18), ("busy signal", 0.11)))
+    assert text.startswith("Most likely **microwave beeping** or **washing machine beeping**: they sound alike to me "
+                           "(19% and 18%). Also possible: busy signal.")
+
+
+def test_describe_water_and_chirp_hints():
+    assert "turn off the water" in audio.describe_sounds(L(("drip", 0.5), ("water", 0.2), ("rain", 0.1)))
+    assert "low battery" in audio.describe_sounds(L(("chirp", 0.4), ("bird", 0.2), ("beep", 0.1)))
+
+
+def test_describe_no_hint_for_ordinary_sounds():
+    assert audio.describe_sounds(L(("dog barking", 0.7), ("bark", 0.1), ("growl", 0.05))) == \
+        "Most likely **dog barking** (70%). Also possible: bark, growl."

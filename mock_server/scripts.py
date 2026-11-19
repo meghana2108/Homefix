@@ -186,7 +186,7 @@ def sound(message: str, files: list[str], manual_id: str | None) -> list[Step]:
     steps = [*_front("routing", "transcribing"),
              (0.6, Status(stage="labeling_sounds")),
              (0.8, SoundLabels(labels=labels, is_speech=False))]
-    return _final(steps, "audio", "sound", "Sounds like: washing machine beeping (71%), beep, alarm.", CLAP)
+    return _final(steps, "audio", "sound", "Most likely **washing machine beeping** (71%). Also possible: beep, alarm.\n\nLook for the appliance with a light or a code on its display. A few short beeps at the end of a cycle are usually normal. If a code is showing, send me a photo of the display.", CLAP)
 
 
 def video(message: str, files: list[str], manual_id: str | None) -> list[Step]:

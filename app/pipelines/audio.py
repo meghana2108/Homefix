@@ -20,6 +20,7 @@ from app.contracts import (
     PipelineRequest,
     QuestionType,
     Refusal,
+    SoundLabel,
     SoundLabels,
     Status,
     Transcript,
@@ -75,6 +76,42 @@ def _speech(req: PipelineRequest, ctx: Ctx, tr: TranscriptResult) -> Iterator[Ev
         yield final_for(ctx, "audio", "speech", answer="".join(answer).strip(), model=ctx.memory.tag("brain"))
 
 
+CLOSE_CALL = 0.05  # top two this close: say they sound alike instead of picking one
+# (words in any of the top labels, what to tell a renter next). First match only; plain code, no model.
+NEXT_STEPS: list[tuple[tuple[str, ...], str]] = [
+    (("smoke", "carbon monoxide", "fire alarm", "co alarm"),
+     "If this could be a smoke or carbon monoxide alarm, don't wait: leave and call 911."),
+    (("chirp",),
+     "A single chirp every 30 to 60 seconds is usually a smoke alarm with a low battery. Tell maintenance."),
+    (("drip", "water", "pour", "splash", "trickle", "gurgl"),
+     ("If it's water you can't explain, look under the sinks and around the washer, and turn off the water "
+     "valve if you find a leak. Then call maintenance.")),
+    (("hiss",),
+     "A hiss near a gas stove or heater can be a gas leak: leave and call the gas emergency line from outside."),
+    (("beep", "microwave", "washing machine", "dishwasher", "dryer", "oven", "timer", "alarm clock"),
+     ("Look for the appliance with a light or a code on its display. A few short beeps at the end of a cycle "
+     "are usually normal. If a code is showing, send me a photo of the display.")),
+]
+
+
+def describe_sounds(labels: list[SoundLabel]) -> str:
+    """The top labels in words: the most likely one (or a close call), the others, and a next step."""
+    top, *rest = labels
+    if rest and top.score - rest[0].score < CLOSE_CALL:
+        lead = (f"Most likely **{top.label}** or **{rest[0].label}**: they sound alike to me "
+                f"({top.score:.0%} and {rest[0].score:.0%}).")
+        others = rest[1:]
+    else:
+        lead = f"Most likely **{top.label}** ({top.score:.0%})."
+        others = rest
+    parts = [lead + (f" Also possible: {', '.join(r.label for r in others)}." if others else "")]
+    heard = " ".join(lb.label.lower() for lb in labels)
+    hint = next((text for words, text in NEXT_STEPS if any(w in heard for w in words)), None)
+    if hint:
+        parts.append(hint)
+    return "\n\n".join(parts)
+
+
 def _sound(ctx: Ctx, att: Attachment) -> Iterator[Event]:
     yield Status(stage="labeling_sounds")
     repo = ctx.profile.models.clap
@@ -90,9 +127,7 @@ def _sound(ctx: Ctx, att: Attachment) -> Iterator[Event]:
         yield refusal_for(hit)
         yield final_for(ctx, "audio", "sound")
         return
-    top, *rest = labels
-    answer = f"Sounds like: {', '.join([f'{top.label} ({top.score:.0%})', *(r.label for r in rest)])}."
-    yield final_for(ctx, "audio", "sound", answer=answer, model=repo)
+    yield final_for(ctx, "audio", "sound", answer=describe_sounds(labels), model=repo)
 
 
 def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:

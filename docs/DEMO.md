@@ -5,7 +5,7 @@
 |---|---|---|
 | 0:00–0:40 | Akshayaa | **The moment.** "It's 11 PM, your first apartment, and the washer is beeping and showing E21. Do you call the landlord, pay $120 for a visit, or is it a 2-minute fix?" Survey stat: _N of M renting students said …_ |
 | 0:40–1:00 | Akshayaa | **The user:** students renting their first place. **Why local:** photos of your home stay on your laptop; no per-question cost; works when the broken thing is the Wi-Fi. |
-| 1:00–3:00 | Meghana | **Live demo, Wi-Fi off** (turn Wi-Fi off on stage): (1) play the beep → "washing machine beeping"; (2) photo of "E21" with the washer manual selected → reads E21, cites the manual page: "clean the drain pump filter"; (3) ask something the manual doesn't say → "The document doesn't contain the answer"; (4) "I smell burning" → fixed safety message. |
+| 1:00–3:00 | Meghana | **Live demo, Wi-Fi off** (turn Wi-Fi off on stage): (1) play the beep → "washing machine beeping"; (2) photo of "E21" (manual left on "automatic") → "Using the manual: Unit 4B apartment guide", reads E21, quotes p. 2: "clean the drain pump filter"; say the guide is a sample landlord's guide we wrote, because real manuals print codes as pictures; (3) ask something the guide doesn't say ("Is there a warranty on the washer?") → "Not in the document"; (4) "I smell burning" → fixed safety message. |
 | 3:00–4:00 | Meghana | **Architecture:** one diagram. Rule-based router (0 ms), verifier that refuses unsupported answers, code self-check in a sandbox, models chosen by bake-off. Results table (both laptops). |
 | 4:00–4:40 | Akshayaa | **It runs on 8 GB.** Same app on the M2 Air (lite profile). Impact: timed test (with vs. without HomeFix). |
 | 4:40–5:00 | Both | Ask + close. |

@@ -129,6 +129,84 @@ def display_photo(code: str, seed: int = 3) -> Image.Image:
     return img
 
 
+GUIDE_TITLE = "Unit 4B apartment guide: washer, heat and who to call"
+# A sample landlord's guide, written by the HomeFix team (no real brand or building). Real manuals draw
+# their error codes as display graphics (AEG, Electrolux and LG checked, 2026-11-19), so a text search
+# can't find "E21" in them; a landlord's guide types them out. Everything here is our own text.
+GUIDE_PAGES = [
+    """Welcome to Unit 4B
+
+Who to call
+- Fire, smoke, or someone is hurt: leave the apartment and call 911.
+- You smell gas: do not use switches or flames. Leave the building, then call the gas company
+  emergency line at 1-800-555-0142 from outside.
+- Water leak or no heat: call the maintenance line at (207) 555-0199, any time, day or night.
+- Anything else (a broken blind, a slow drain, a noisy fan): email maintenance@unit4b.example.
+  Repairs that are not urgent are booked within 3 working days.
+
+Your appliances
+- Washer: model BW-200, in the hall closet. Error codes and beeps are on page 2.
+- Electric panel (breakers): in the kitchen, behind the door. See page 4.
+- Smoke alarm: hallway ceiling. See page 4.
+
+Rent is due on the 1st of each month. The lease, not this guide, decides who pays for a repair.""",
+    """Washer BW-200: beeps and error codes
+
+Five short beeps at the end of a cycle mean the cycle has finished. This is normal.
+A long beep with a code on the display means the washer has stopped. Find the code below.
+
+Error codes on the display
+E10 - The washer is not filling with water. Make sure both faucets behind the washer are fully open,
+      then press Start/Pause.
+E21 - The washer cannot drain the water. Turn the washer off and unplug it. Clean the drain pump
+      filter behind the small door at the bottom right (see page 3). Then check that the drain hose
+      is not kinked. If E21 comes back after cleaning the filter, call the maintenance line.
+E40 - The door is not closed. Close the door firmly until it clicks, then press Start/Pause.
+E52 - Too much detergent: too many suds. Run a Rinse cycle with no detergent, and use less next time.
+E90 - Electronic fault. Unplug the washer for 1 minute, then plug it back in. If E90 stays,
+      call the maintenance line.
+
+Do not open the washer's back panel. Only maintenance staff may repair the washer.""",
+    """Washer BW-200: cleaning the drain pump filter
+
+Do this when the display shows E21, or once a month.
+1. Turn the washer off and unplug it. Let the water cool down if you used a hot cycle.
+2. Put a towel and a shallow tray under the small door at the bottom right of the washer.
+3. Open the small door. Pull out the short black hose and remove its cap. Let the water run into the tray.
+4. Turn the filter counterclockwise and pull it out. Expect more water.
+5. Rinse the filter under the tap and remove lint, coins and hair.
+6. Put the filter back, turn it clockwise until it is tight, cap the hose and close the door.
+7. Plug the washer in and run a Rinse and Spin cycle to check that it drains.""",
+    """Heat, breakers and the smoke alarm
+
+No heat: check that the thermostat is set to Heat and above room temperature. If the radiators stay
+cold for more than one hour, call the maintenance line.
+
+A breaker trips (part of the apartment loses power): unplug what you were using. In the electric
+panel, push the switch that is in the middle position fully to OFF, then back to ON. If it trips again,
+leave it off and call the maintenance line. Never tape a breaker on.
+
+The smoke alarm chirps once every 30 to 60 seconds: its battery is low. Tell maintenance; do not
+remove the alarm. A loud, continuous alarm means smoke: leave and call 911.""",
+]
+
+
+def apartment_guide(path: Path) -> Path:
+    import pymupdf
+
+    doc = pymupdf.open()
+    for n, text in enumerate(GUIDE_PAGES, start=1):
+        page = doc.new_page(width=612, height=792)
+        title, _, body = text.partition("\n\n")
+        page.insert_text((54, 72), title, fontsize=17, fontname="helv")
+        page.insert_textbox(pymupdf.Rect(54, 92, 558, 740), body, fontsize=10.5, fontname="helv", lineheight=1.35)
+        page.insert_text((54, 760), f"Unit 4B apartment guide - sample written by the HomeFix team - page {n}",
+                          fontsize=8, fontname="helv")
+    doc.set_metadata({"title": GUIDE_TITLE, "author": "HomeFix team (sample)"})
+    doc.save(path)
+    return path
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="E21", help="error code on the display (digits, E F C H U L P -)")
@@ -142,7 +220,10 @@ def main() -> None:
     # close-up: what a renter actually photographs (display and the buttons under it)
     close = OUT / f"washer_display_{a.code.lower()}_closeup_synthetic.jpg"
     img.crop((640, 230, 1420, 700)).resize((1170, 705), Image.Resampling.LANCZOS).save(close, quality=88)
-    print(f"wrote {beep}\nwrote {photo}\nwrote {close}")
+    manuals = OUT.parent.parent / "manuals"
+    manuals.mkdir(parents=True, exist_ok=True)
+    guide = apartment_guide(manuals / "apartment_guide_unit_4b.pdf")
+    print(f"wrote {beep}\nwrote {photo}\nwrote {close}\nwrote {guide}")
 
 
 if __name__ == "__main__":
