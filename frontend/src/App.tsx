@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
-import { API_URL, IS_MOCK, getHealth, getManuals, streamChat } from "./api/client";
+import { API_LABEL, IS_MOCK, getHealth, getManuals, streamChat } from "./api/client";
 import { BackendBanner } from "./components/BackendBanner";
 import { Composer, MAX_FILES } from "./components/Composer";
 import { ManualPicker } from "./components/ManualPicker";
@@ -106,7 +106,7 @@ export default function App() {
     if (!gotFinal) {
       // The stream broke or the server is down: end the turn so Send works again.
       apply({ type: "error", stage: "converting", retryable: true,
-        message: `Can't reach HomeFix at ${API_URL}. Is the server running?` });
+        message: `Can't reach HomeFix at ${API_LABEL}. Is the server running?` });
       apply({ type: "final", answer: "", modality: "none", question_type: "none", latency_ms: 0,
         profile: health?.profile ?? "full", model: null });
     }
@@ -153,7 +153,7 @@ export default function App() {
           )}
         </div>
       </header>
-      <BackendBanner apiUrl={API_URL} down={down} />
+      <BackendBanner apiUrl={API_LABEL} down={down} />
 
       <div className="layout">
         {manuals.length > 0 && (

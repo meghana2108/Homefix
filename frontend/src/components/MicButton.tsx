@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { API_URL } from "../api/client";
+import { wsUrl } from "../api/client";
 
 /** WS /api/mic messages (app/api/mic.py). Not part of the shared SSE contract. */
 type MicMessage = { type: "partial"; text: string } | { type: "final"; text: string } | { type: "error"; message: string };
 
-export const MIC_URL = `${API_URL.replace(/^http/, "ws")}/api/mic`;
+export const MIC_URL = wsUrl("/api/mic");
 const CHUNK_MS = 3000;
 const FINAL_TIMEOUT_MS = 60000;
 

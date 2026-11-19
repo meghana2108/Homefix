@@ -1,7 +1,17 @@
 import type { Health, HomeFixEvent, Manual } from "../contract";
 import { parseSSE } from "./sse";
 
+/** "" means the API is on the same address as the page (the phone setup: Vite forwards /api). */
 export const API_URL: string = (import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000").replace(/\/+$/, "");
+
+/** What to show people: the address the API is actually reached at. */
+export const API_LABEL: string = API_URL || window.location.origin;
+
+/** The websocket address for a path, for an absolute API URL or the same-address setup. */
+export function wsUrl(path: string, api: string = API_URL, page: Location = window.location): string {
+  const base = api || page.origin;
+  return `${base.replace(/^http/, "ws")}${path}`;
+}
 
 /** True when the UI is pointed at the mock server (port 8001). */
 export const IS_MOCK: boolean = /:8001$/.test(API_URL);
