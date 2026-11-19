@@ -24,7 +24,7 @@ patterns:
   exposed_wires:
     - '\b(exposed|bare|frayed|stripped)\s+(wire|wires|wiring|cable|cord)\b'
     - '\b(wire|wires|wiring|cable|cord)\b.{0,20}\b(exposed|bare|frayed|stripped)\b'
-    - '\b(wire|wires|copper|metal)\b.{0,10}\b(showing|visible|sticking out)\b'
+    - '\b(wire|wires|copper|metal)\b.{0,10}\b(showing|visible|sticking out|poking out|poking through|protruding)\b'
     - '\bshowing (copper|metal|wires?)\b'
     - '\bexposed (copper|metal)\b'
     - '\b(cord|cords|cable|cables)\b.{0,10}\bshowing through\b'
