@@ -57,3 +57,5 @@ benign:
   - '\bsparks? joy\b'
   - '\bburning (blue|evenly|normally|fine)\b'
   - '\bburn(s|ing)? through\b'
+  - '\bcopper pipes?\b'
+  - '\bshowing through (the )?paint\b'

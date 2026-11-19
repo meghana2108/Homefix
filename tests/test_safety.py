@@ -78,6 +78,14 @@ CASES = [
     ('short on time, how do I reset the washer', None),
     ('shortest wash cycle', None),
     ('I burned dinner in the oven', None),
+    ("there's a blackened spot near the plug", "smoke_fire"),
+    ("copper pipes showing under the sink", None),
+    ("the metal is showing through the paint on the fridge", None),
+    ("there's a copper pipe visible behind the washer", None),
+    ("exposed wires near the copper pipe", "exposed_wires"),
+    ("the wire is showing", "exposed_wires"),
+    ("the extension cord is showing copper", "exposed_wires"),
+    ("bare wire touching the copper pipe", "exposed_wires"),
 ]
 
 
