@@ -100,7 +100,9 @@ def test_health_lists_loaded(client, monkeypatch, ctx_full):
     assert client.get("/api/health").json()["loaded"] == ctx_full.memory.backend.loaded()
 
 
-def test_manuals_empty(client):
+def test_manuals_empty(client, tmp_path, monkeypatch):
+    from app.pipelines import text
+    monkeypatch.setattr(text, "MANUALS_DIR", tmp_path)
     assert client.get("/api/manuals").json() == []
 
 

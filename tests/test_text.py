@@ -223,3 +223,18 @@ def test_valid_manual_id_loads(fake_brain, ctx_full, tmp_path, monkeypatch):
     fake_brain(reply("Turn the front feet.", "Turn the front feet to level", 1))
     ev = run(PipelineRequest("level?", [], "manual_lookup", manual_id="washer_lg-2.1"), ctx_full)
     assert of(ev, Citation)
+
+
+def test_question_code_missing_refuses_without_retry(fake_brain, ctx_full):
+    pages = ["Error E21 means the water did not drain.", "The programme was not finished properly."]
+    fake_brain(reply("The programme did not finish.", "The programme was not finished properly", 2))
+    ev = run(req("What does error code E21 mean?", pages), ctx_full)
+    assert of(ev, Refusal)[0].reason == "not_in_document"
+    assert ev[-1].answer == "" and isinstance(ev[-1], Final)
+    assert len(fake_brain.calls) == 1
+
+
+def test_system_prompt_asks_for_short_answer(fake_brain, ctx_full):
+    fake_brain(reply("Clean it.", "Clean the drain pump filter every month", 1))
+    run(req(), ctx_full)
+    assert "at most 2 sentences" in fake_brain.calls[0]["messages"][0]["content"]

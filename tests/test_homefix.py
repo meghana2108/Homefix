@@ -39,8 +39,8 @@ def test_read_display_code():
 
 def test_code_then_manual_citation(fake_brain, ctx_full, tmp_path, monkeypatch):
     make(tmp_path, monkeypatch)
-    fake_brain("E21", '{"answer":"Clean the drain pump filter.",'
-               '"quote":"Clean the drain pump filter every month","page":1}')
+    fake_brain("E21", '{"answer":"The water did not drain.",'
+               '"quote":"Error E21 means the water did not drain","page":1}')
     ev = list(homefix.run(req(tmp_path), ctx_full))
     assert any(isinstance(e, Status) and e.detail == "found E21" for e in ev)
     assert next(e for e in ev if isinstance(e, Citation)).page == 1

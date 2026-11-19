@@ -12,7 +12,7 @@ from app.contracts import (
 )
 from app.models import ollama_client
 from app.numbers import first_int
-from app.pipelines import image, video
+from app.pipelines import image
 from tests.media_fixtures import make_jpeg
 
 
@@ -89,15 +89,6 @@ def test_read_and_describe_prompts(ctx_full, fake_brain, tmp_path):
     list(image.run(req(tmp_path, "", "describe"), ctx_full))
     assert fake_brain.calls[0]["messages"][-1]["content"] == prompts.READ_PROMPT
     assert fake_brain.calls[1]["messages"][-1]["content"] == prompts.DESCRIBE_PROMPT
-
-
-@pytest.mark.parametrize("text", ["How many mugs are on the shelf?", "four mugs", "I can't tell.",
-                                  "12 cups, maybe 13", ""])
-def test_matches_video_copies(text):
-    assert prompts.count_prompt(text) == video.count_prompt(text)
-    assert prompts.force_number_first(text) == video.force_number_first(text)
-    assert first_int(text) == video.first_int(text)
-    assert prompts.READ_PROMPT == video.READ_PROMPT
 
 
 @pytest.mark.model

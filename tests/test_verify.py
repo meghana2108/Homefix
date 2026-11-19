@@ -137,3 +137,49 @@ def test_amps_glued_answer_spaced_quote():
 
 def test_wrong_amps_refused():
     assert not verify("Fit a 15 A fuse.", "Use a 10A fuse", FUSE, 1, 92).ok
+
+
+QPAGES = [
+    "Error E21 means the water did not drain. Clean the drain pump filter.",
+    "The programme was not finished properly. Restart the programme.",
+]
+
+
+def test_question_code_not_in_quote():
+    v = verify("The programme did not finish.", "The programme was not finished properly", QPAGES, 2, 92,
+               question="What does error code E21 mean?")
+    assert not v.ok and v.reason == "question_code_not_in_quote"
+
+
+def test_question_code_in_quote_ok():
+    v = verify("The water did not drain.", "Error E21 means the water did not drain", QPAGES, 1, 92,
+               question="What does error code E21 mean?")
+    assert v.ok
+
+
+def test_quote_not_in_pages_with_question():
+    v = verify("Check it.", "my washer won't drain", QPAGES, 1, 92, question="Why won't my washer drain?")
+    assert not v.ok
+
+
+def test_quote_echoes_question():
+    pages = ["The washer won't drain. Clean the filter."]
+    v = verify("Clean it.", "The washer won't drain.", pages, 1, 92,
+               question="The washer won't drain. What do I do?")
+    assert not v.ok and v.reason == "quote_from_question"
+
+
+def test_short_quote_no_fuzzy():
+    v = verify("Clean it.", "Clean the drain pump hose", QPAGES, 1, 92)
+    assert not v.ok and v.reason == "quote_not_found"
+
+
+def test_long_quote_typo_still_fuzzy():
+    pages = ["Remove the detergent drawer and rinse it under running water every month to stop build up."]
+    v = verify("Rinse it.", "Remove the detergent drawer and rinse it under runing water every month",
+               pages, 1, 92)
+    assert v.ok
+
+
+def test_question_none_unchanged():
+    assert verify("Clean it.", "Clean the drain pump filter", QPAGES, 1, 92, question=None).ok

@@ -37,7 +37,9 @@ RETRY_PROMPT = ("Your quote was not found word for word. Copy a shorter exact se
 _SYSTEM = (
     "You answer questions using only the document text below. Reply with JSON only: "
     '{"answer": "<short answer>", "quote": "<words copied exactly from the document>", '
-    '"page": <page number>}. The quote must be copied word for word. If the document does not '
+    '"page": <page number>}. The quote must be copied word for word. The answer is at most 2 sentences '
+    "and covers only the part of the quote that answers the question (for example one table row, "
+    'not the whole table). If the document does not '
     'contain the answer, reply {"answer": null, "quote": null, "page": null}.'
 )
 
@@ -131,8 +133,9 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
                     verdict = Verdict(False, None, 0.0, "no_answer")
                     break
                 yield Status(stage="verifying")
-                verdict = verify(answer, quote, pages, cited, cfg.quote_fuzz_threshold)
-                if verdict.ok:
+                verdict = verify(answer, quote, pages, cited, cfg.quote_fuzz_threshold,
+                                question=req.message)
+                if verdict.ok or verdict.reason == "question_code_not_in_quote":
                     break
             if attempt == 0:
                 messages = [*messages, {"role": "assistant", "content": raw},

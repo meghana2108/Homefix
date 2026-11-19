@@ -19,7 +19,7 @@ class Verdict:
     page: int | None
     score: float
     reason: Literal["ok", "quote_not_found", "number_not_in_quote", "quote_too_short", "no_answer",
-                    "code_not_in_quote"]
+                    "code_not_in_quote", "question_code_not_in_quote", "quote_from_question"]
 
 
 def codes_in(text: str) -> set[str]:
@@ -51,18 +51,23 @@ def estimate_tokens(text: str) -> int:
 
 
 def verify(answer: str | None, quote: str | None, pages: list[str], cited_page: int | None,
-           threshold: float) -> Verdict:
+           threshold: float, *, question: str | None = None) -> Verdict:
     if answer is None:
         return Verdict(False, None, 0.0, "no_answer")
     q = normalize(quote or "")
     if len(q.split()) < 3:
         return Verdict(False, None, 0.0, "quote_too_short")
+    nq = normalize(question or "")
+    if nq and q in nq:
+        return Verdict(False, None, 0.0, "quote_from_question")
     norm = [normalize(p) for p in pages]
     page, score = None, 0.0
     for i, p in enumerate(norm):
         if q in p:
             page, score = i + 1, 100.0
             break
+    if page is None and len(q.split()) < 8:  # short quotes must be exact
+        return Verdict(False, None, 0.0, "quote_not_found")
     if page is None:
         order = list(range(len(norm)))
         if cited_page is not None and 1 <= cited_page <= len(norm):
@@ -79,6 +84,8 @@ def verify(answer: str | None, quote: str | None, pages: list[str], cited_page: 
         if best_i is None or score < threshold:
             return Verdict(False, None, float(score), "quote_not_found")
         page = best_i + 1
+    if question and not codes_in(glue_units(question)) <= codes_in(glue_units(quote or "")):
+        return Verdict(False, page, score, "question_code_not_in_quote")
     a, qq = glue_units(answer), glue_units(quote or "")
     if not numbers_in(a) <= numbers_in(qq):
         return Verdict(False, page, score, "number_not_in_quote")
