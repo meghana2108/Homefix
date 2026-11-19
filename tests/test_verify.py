@@ -111,3 +111,14 @@ def test_or_is_not_a_unit():
 def test_in_is_not_a_unit():
     v = verify("Use 3 in the slot.", "put 3 in the slot", ["Then put 3 in the slot."], 1, 92)
     assert v.ok
+
+
+def test_article_a_is_not_amps():
+    v = verify("Buy 2 a week.", "Buy 2 every week", ["Buy 2 every week or so."], 1, 92)
+    assert v.ok
+
+
+def test_degree_sign_ignored():
+    pages = ["Set it to 40 °C for cotton."]
+    assert verify("Set it to 40 C.", "Set it to 40 °C", pages, 1, 92).ok
+    assert not verify("Set it to 60 C.", "Set it to 40 °C", pages, 1, 92).ok
