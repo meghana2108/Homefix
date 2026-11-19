@@ -7,6 +7,7 @@ from app.contracts import (
     Attachment,
     CodeResult,
     Final,
+    ModelTimeout,
     ModelUnavailable,
     PipelineRequest,
     Refusal,
@@ -78,6 +79,31 @@ def test_csv_preview_in_prompt(ctx_full, fake_brain):
     p = prompt_text(fake_brain.calls[0])
     assert "timestamp,watts" in p
     assert sum(1 for ln in p.splitlines() if ln.startswith("2026-")) == 5
+    assert "inline list" in p and "Never open, read or name any file" in p
+
+
+def test_csv_not_copied_into_sandbox(ctx_full, fake_brain, monkeypatch):
+    seen = {}
+    real = code.run_doctests
+
+    def spy(src, files, timeout_s):
+        seen["files"] = files
+        return real(src, files, timeout_s)
+
+    monkeypatch.setattr(code, "run_doctests", spy)
+    fake_brain(GOOD)
+    events(ctx_full, req(attachments=[data()]))
+    assert seen["files"] == {}
+
+
+def test_timeout(ctx_full, monkeypatch):
+    def boom(*a, **k):
+        raise ModelTimeout(MESSAGES["timeout"])
+
+    monkeypatch.setattr(ollama_client, "chat", boom)
+    evs = events(ctx_full, req())
+    assert isinstance(evs[-2], Refusal) and evs[-2].reason == "timeout"
+    assert isinstance(evs[-1], Final) and evs[-1].answer == ""
 
 
 def test_target_name_kept(ctx_full, fake_brain):
