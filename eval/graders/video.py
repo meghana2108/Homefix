@@ -3,8 +3,8 @@
 Reference is a number -> "count_exact" (first integer in our answer, digits or number words).
 Reference is a direction -> "direction" (first direction word in our answer; synonyms such as
 "anticlockwise" and "towards" accepted). Anything else -> "fuzzy", hit at token_set_ratio >= 80.
-The practice pack writes references as sentences ("<count> things ..."), so on a count question a
-reference that starts with a number is a count, and on a direction question the first direction word
+The practice pack writes references as sentences ("<count> things ...", "it bounces <count> times"),
+so on a count question the first number in the reference is the count, and on a direction question the first direction word
 in the reference is the direction. The kind comes from the item, never from our router.
 """
 
@@ -35,7 +35,6 @@ def first_direction(text: str) -> str | None:
 
 _COUNT_Q = re.compile(r"\bhow many\b|\bcount\b|\bnumber of\b", re.IGNORECASE)
 _DIRECTION_Q = re.compile(r"\bdirection\b|\bwhich way\b", re.IGNORECASE)
-_LEADING_NUMBER = re.compile(r"^\s*(\d+|" + "|".join(map(re.escape, NUMBER_WORDS)) + r")\b", re.IGNORECASE)
 
 
 def _as_count(value) -> int | None:
@@ -57,8 +56,7 @@ def grade(item: PackItem, ours: RunRecord, ref: dict) -> GradeResult:
 
     count = _as_count(raw) if not isinstance(raw, (list, tuple)) else None
     if count is None and isinstance(raw, str) and _COUNT_Q.search(item.question or ""):
-        m = _LEADING_NUMBER.match(raw)
-        count = _as_count(m.group(1)) if m else None
+        count = first_int(raw)
     if count is not None:
         got = first_int(ours.answer)
         return GradeResult(item.id, "count_exact", float(got == count), got == count,

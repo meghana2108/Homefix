@@ -183,3 +183,30 @@ def test_video_sentence_reference_on_other_questions_stays_fuzzy():
                     ours("A ball rolls left and stops.", "describe", modality="video"),
                     {"answer": "2 balls roll left and stop."})
     assert g.metric == "fuzzy"
+
+
+# The pack's sound references are short phrases ("<thing> <verb>ing"); CLAP labels are AudioSet names.
+@pytest.mark.parametrize(("labels", "ref", "top1"), [
+    (["meow", "purr", "hiss"], "Cat meowing.", True),
+    (["knock", "door", "tap"], "Someone knocking on a door.", True),
+    (["glass, shatter", "breaking", "clink"], "Glass shattering.", True),
+    (["car alarm", "siren", "horn"], "Car horn.", False),          # shares "car" only: still a miss
+    (["aircraft", "engine", "wind"], "Helicopter.", False),
+])
+def test_sound_label_matches_by_word_stem(labels, ref, top1):
+    g = audio.grade(item("audio", "sounds"), ours(sound_labels=labels), {"answer": ref})
+    assert g.hit is top1, g
+
+
+def test_sound_top3_by_word_stem():
+    g = audio.grade(item("audio", "sounds"), ours(sound_labels=["rain", "splashing", "drip"]),
+                    {"answer": "Water splash."})
+    assert not g.hit and "top3_hit=true" in g.note
+
+
+def test_video_count_number_inside_the_reference():
+    q = "How many times does the light flash?"
+    ref = {"answer": "The light flashes 4 times."}
+    assert video.grade(item("video", question=q), ours("4", "count", modality="video"), ref).metric == "count_exact"
+    assert video.grade(item("video", question=q), ours("4", "count", modality="video"), ref).hit
+    assert not video.grade(item("video", question=q), ours("2", "count", modality="video"), ref).hit

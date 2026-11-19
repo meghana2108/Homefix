@@ -3,7 +3,9 @@
 Speech: with a reference answer -> "fuzzy" on our answer (WER in the note when a reference
 transcript exists); with only a reference transcript -> "wer", hit when <= 0.15.
 Sounds: "top1" (hit when our first label matches), note "top3_hit=true|false". A label matches
-when token_set_ratio(norm(label), norm(ref)) >= 80.
+when token_set_ratio(norm(label), norm(ref)) >= 80, or when every word of the label (or of one of its
+comma-separated synonyms) is in the reference by word stem: "bark" matches "Dog barking", "sneeze"
+matches "Sneezing". A label that shares only some of its words ("car alarm" vs "Car horn") is a miss.
 Speech vs sound comes from the pack item (its subtype or reference), not from our router.
 """
 
@@ -33,9 +35,37 @@ def _wer(reference: str, hypothesis: str) -> float:
     return float(jiwer.wer(r, h))
 
 
+_STOP = {"a", "an", "the", "of", "on", "in", "at", "to", "and", "some", "someone", "something"}
+
+
+def _stem(word: str) -> str:
+    for suffix in ("ing", "es", "s", "e"):
+        if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+            word = word[: -len(suffix)]
+            break
+    if len(word) > 3 and word[-1] == word[-2] and word[-1] not in "aeiou":
+        word = word[:-1]  # "running" -> "runn" -> "run"
+    return word
+
+
+def _stems(text: str) -> set[str]:
+    return {_stem(w) for w in norm(text).split() if w not in _STOP}
+
+
+def _label_matches(label: str, refs: list[str]) -> bool:
+    if fuzzy(label, refs) >= FUZZY_HIT:
+        return True
+    ref_stems = [_stems(r) for r in refs]
+    for part in label.split(","):
+        words = _stems(part)
+        if words and any(words <= rs for rs in ref_stems):
+            return True
+    return False
+
+
 def _sound(item: PackItem, ours: RunRecord, refs: list[str]) -> GradeResult:
     labels = ours.sound_labels[:3]
-    hits = [fuzzy(label, refs) >= FUZZY_HIT for label in labels]
+    hits = [_label_matches(label, refs) for label in labels]
     top1 = bool(hits and hits[0])
     score = fuzzy(labels[0], refs) if labels else 0.0
     return GradeResult(item.id, "top1", score, top1, f"top3_hit={'true' if any(hits) else 'false'}")

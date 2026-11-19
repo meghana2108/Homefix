@@ -27,8 +27,10 @@ pass) → `eval/report.py` writes the summary.
 - Pack format (checked against the downloaded pack, 2026-11-19): items have `id`, `modality`,
   `file`, `question` only, with no subtype. The answer key is `reference_answer`; `eval/grade.py` maps
   it to `REF_KEYS["answer"]`. Speech items carry `transcript`, which is how the audio grader tells
-  speech from sounds. References are sentences, so the video grader takes a count from the start of
-  the reference on a count question, and the first direction word on a direction question.
+  speech from sounds. References are sentences, so the video grader takes the first number in the
+  reference on a count question, and the first direction word on a direction question. Sound
+  references are phrases ("dog barking"), so a CLAP label also matches when all its words are in the
+  reference by word stem ("bark"); sharing only some words ("car alarm" vs "car horn") is a miss.
 - `--regrade <run_id>` re-grades `results/raw/<run_id>.jsonl` after a grader fix, without the models.
 
 **Only `eval/grade.py` reads `answers.json`** (HARD RULE 4, enforced by `tests/test_hard_rules.py`).
