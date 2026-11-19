@@ -1,0 +1,62 @@
+import time
+
+import pytest
+import yaml
+
+from app.contracts import SoundLabel
+from app.safety import check, check_sound, refusal_for
+
+CASES = [
+    ("smoke detector keeps chirping", None),
+    ("fire alarm battery is low", None),
+    ("my Fire TV stick froze", None),
+    ("burnt toast smell", None),
+    ("water dripping from the outlet hose of the washer", None),
+    ("gas stove recipe", None),
+    ("Does this sofa spark joy", None),
+    ("smoke alarm is going off and won't stop", "smoke_fire"),
+    ("I smell burning plastic from the dryer", "smoke_fire"),
+    ("the smoke detector chirps and I smell gas", "gas"),
+    ("sparks came out of the outlet", "sparks"),
+    ("frayed wire behind the fridge", "exposed_wires"),
+    ("water on the floor near the outlet", "water_electric"),
+    ("I got a shock from the fridge door", "shock"),
+    ("the fire alarm is going off", "smoke_fire"),
+]
+
+
+@pytest.mark.parametrize("text,category", CASES)
+def test_check(text, category):
+    hit = check(text)
+    if category is None:
+        assert hit is None
+    else:
+        assert hit is not None and hit.category == category
+
+
+def test_refusal_message_verbatim():
+    r = refusal_for(check("I smell gas"))
+    with open("config/safety_rules.yaml") as f:
+        assert r.message == yaml.safe_load(f)["message"]
+    assert r.reason == "safety"
+    assert r.category == "gas"
+
+
+def _labels(top, score):
+    return [SoundLabel(label=top, score=score), SoundLabel(label="beep", score=0.1),
+            SoundLabel(label="alarm", score=0.05)]
+
+
+def test_check_sound():
+    hit = check_sound(_labels("smoke alarm beeping loudly", 0.71), 0.5)
+    assert hit is not None and hit.category == "smoke_fire"
+    assert check_sound(_labels("smoke alarm beeping loudly", 0.32), 0.5) is None
+    assert check_sound(_labels("washing machine beeping", 0.9), 0.5) is None
+    assert check_sound([], 0.5) is None
+
+
+def test_check_is_fast():
+    t = time.perf_counter()
+    for _ in range(1000):
+        check("how many mugs are on the shelf")
+    assert time.perf_counter() - t < 0.5

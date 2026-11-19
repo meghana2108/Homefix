@@ -1,0 +1,57 @@
+"""Deterministic safety pre-filter. Runs on every message before any model."""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+import yaml
+
+from app.contracts import Refusal, SoundLabel
+from app.settings import ROOT
+
+with open(ROOT / "config/safety_rules.yaml", encoding="utf-8") as _f:
+    _RULES = yaml.safe_load(_f)
+
+SAFETY_MESSAGE: str = _RULES["message"]
+ALARM_LABELS: frozenset[str] = frozenset({
+    "smoke alarm beeping loudly",
+    "carbon monoxide alarm",
+    "smoke detector, smoke alarm",
+    "fire alarm",
+})
+
+_DANGER = [
+    (cat, [(p, re.compile(p, re.IGNORECASE)) for p in pats])
+    for cat, pats in _RULES["patterns"].items()
+]
+_BENIGN = [re.compile(p, re.IGNORECASE) for p in _RULES.get("benign", [])]
+
+
+@dataclass
+class SafetyHit:
+    category: str
+    pattern: str
+
+
+def check(text: str) -> SafetyHit | None:
+    text = text.lower()
+    for rx in _BENIGN:
+        text = rx.sub(" ", text)
+    for cat, pats in _DANGER:
+        for raw, rx in pats:
+            if rx.search(text):
+                return SafetyHit(cat, raw)
+    return None
+
+
+def refusal_for(hit: SafetyHit) -> Refusal:
+    return Refusal(reason="safety", message=SAFETY_MESSAGE, category=hit.category)
+
+
+def check_sound(labels: list[SoundLabel], min_score: float) -> SafetyHit | None:
+    if not labels:
+        return None
+    top = labels[0]
+    if top.label in ALARM_LABELS and top.score >= min_score:
+        return SafetyHit("smoke_fire", top.label)
+    return None
