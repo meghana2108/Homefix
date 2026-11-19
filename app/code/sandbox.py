@@ -4,11 +4,15 @@ no stdin, hard timeout, process group killed after every run.
 What it does and does not do:
 - Network is denied by the sandbox. Writes are confined to the run's temp dir. Reads are not
   confined: code can read any file the user can.
-- Size caps: 50 MB per file (RLIMIT_FSIZE) and 200 MB per run (a watchdog on the temp dir).
+- Size caps: 50 MB per file (RLIMIT_FSIZE) and 200 MB per run. The run cap watches the free
+  space of the disk holding the temp dir, so deleted-but-open files count. Other processes
+  writing to the same disk during a run can trip it.
 - A grandchild that calls setsid survives until it exits. It can't block the parent, because
   output goes to a file and we never wait on a pipe.
-- Results come back as a nonce marker the code can't see by name. A function that inspects
-  the interpreter's frames or prints the marker itself can still lie.
+- Pass/fail comes from code running in the same process as the generated code. Code written
+  to cheat (patching pytest or doctest, inspecting frames, reading its own process arguments
+  to find the nonce) can fake a pass. The checks stop honest mistakes and casual fakes, not a
+  deliberate adversary.
 """
 
 from __future__ import annotations
@@ -86,25 +90,6 @@ class SandboxResult:
     timed_out: bool
 
 
-def _dir_bytes(path: str) -> int:
-    total = 0
-    stack = [path]
-    while stack:
-        try:
-            with os.scandir(stack.pop()) as it:
-                for e in it:
-                    try:
-                        if e.is_dir(follow_symlinks=False):
-                            stack.append(e.path)
-                        else:
-                            total += e.stat(follow_symlinks=False).st_size
-                    except OSError:
-                        pass
-        except OSError:
-            pass
-    return total
-
-
 def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[int | None, str, bool, bool]:
     """Run cmd in the sandbox. Output goes to a file outside tmp, which the child can't open for writing."""
     global LAST_OUT_SIZE
@@ -112,6 +97,7 @@ def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[i
     if nonce:
         env["HOMEFIX_NONCE"] = nonce
     timed_out = disk_full = False
+    base_free = shutil.disk_usage(tmp).free
     with tempfile.TemporaryDirectory() as outdir:
         out_path = Path(outdir, "out")
         with open(out_path, "wb") as f:
@@ -127,7 +113,7 @@ def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[i
                     break
                 except subprocess.TimeoutExpired:
                     pass
-                if _dir_bytes(tmp) > MAX_RUN_BYTES:
+                if base_free - shutil.disk_usage(tmp).free > MAX_RUN_BYTES:
                     disk_full = True
                     break
                 if time.monotonic() >= deadline:

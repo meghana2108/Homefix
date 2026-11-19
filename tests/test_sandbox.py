@@ -356,3 +356,16 @@ def test_disk_watchdog():
     assert time.time() - t < 3
     assert not r.passed and r.output == "Stopped: wrote more than 200 MB."
     assert not [d for d in set(os.listdir(tempfile.gettempdir())) - before if d.startswith("tmp")]
+
+
+@needs_sx
+def test_disk_watchdog_deleted_open_files():
+    code = (
+        "import os\nkeep = []\ni = 0\nwhile True:\n"
+        "    f = open(f'g{i}.bin', 'wb')\n    os.unlink(f'g{i}.bin')\n"
+        "    f.write(b'0' * 45_000_000)\n    f.flush()\n    keep.append(f)\n    i += 1\n"
+    )
+    t = time.time()
+    r = run_doctests(code, {}, 5)
+    assert time.time() - t < 3
+    assert not r.passed and r.output == "Stopped: wrote more than 200 MB."
