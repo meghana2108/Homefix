@@ -2,9 +2,12 @@ import type { Turn } from "../state/reduce";
 import { CitationCard } from "./CitationCard";
 import { CodeResultPanel } from "./CodeResultPanel";
 import { ErrorCard } from "./ErrorCard";
+import { FrameStrip } from "./FrameStrip";
 import { LatencyBadge } from "./LatencyBadge";
 import { RefusalCard } from "./RefusalCard";
+import { SoundBars } from "./SoundBars";
 import { StatusChips } from "./StatusChips";
+import { TranscriptBlock } from "./TranscriptBlock";
 
 export function TurnView({ turn, onRetry }: { turn: Turn; onRetry?: () => void }) {
   const { final, refusal } = turn;
@@ -30,30 +33,15 @@ export function TurnView({ turn, onRetry }: { turn: Turn; onRetry?: () => void }
           <RefusalCard refusal={refusal} />
         ) : (
           <>
-            {turn.transcript && (
-              <blockquote className="transcript">
-                “{turn.transcript.text}” <span className="muted">({turn.transcript.seconds.toFixed(1)} s)</span>
-              </blockquote>
-            )}
+            {turn.transcript && <TranscriptBlock transcript={turn.transcript} />}
+            {turn.frames && <FrameStrip timestamps={turn.frames.timestamps} />}
             {turn.answer && (
               <p className="answer">
                 {turn.answer}
                 {streaming && <span className="cursor" aria-hidden="true">▍</span>}
               </p>
             )}
-            {turn.soundLabels && (
-              <ul className="sounds">
-                {turn.soundLabels.labels.map((l) => (
-                  <li key={l.label}>{l.label} {Math.round(l.score * 100)}%</li>
-                ))}
-              </ul>
-            )}
-            {turn.frames && turn.frames.timestamps.length > 0 && (
-              <p className="muted">
-                {turn.frames.timestamps.length} frames, t={turn.frames.timestamps[0].toFixed(1)}s to
-                t={turn.frames.timestamps[turn.frames.timestamps.length - 1].toFixed(1)}s
-              </p>
-            )}
+            {turn.soundLabels && <SoundBars labels={turn.soundLabels.labels} />}
             {turn.citation && <CitationCard citation={turn.citation} />}
             {turn.codeResult && <CodeResultPanel result={turn.codeResult} />}
             {refusal && <RefusalCard refusal={refusal} />}
