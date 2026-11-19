@@ -27,6 +27,11 @@ def codes_in(text: str) -> set[str]:
     return set(re.findall(r"\b(?=\w*\d)(?=\w*[a-z])\w+\b", text.lower()))
 
 
+def glue_units(text: str) -> str:
+    """"230 V" -> "230v" so spaced and glued units compare equal."""
+    return re.sub(r"(?<=\d)\s+(?=[a-z]{1,3}\b)", "", text.lower())
+
+
 def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower().translate(_TABLE)).strip()
 
@@ -64,8 +69,9 @@ def verify(answer: str | None, quote: str | None, pages: list[str], cited_page: 
         if best_i is None or score < threshold:
             return Verdict(False, None, float(score), "quote_not_found")
         page = best_i + 1
-    if not numbers_in(answer) <= numbers_in(quote or ""):
+    a, qq = glue_units(answer), glue_units(quote or "")
+    if not numbers_in(a) <= numbers_in(qq):
         return Verdict(False, page, score, "number_not_in_quote")
-    if not codes_in(answer) <= codes_in(quote or ""):
+    if not codes_in(a) <= codes_in(qq):
         return Verdict(False, page, score, "code_not_in_quote")
     return Verdict(True, page, score, "ok")
