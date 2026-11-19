@@ -159,3 +159,9 @@ button { font: inherit; color: inherit; }
   .sidebar--open { display: block; }
   .you { max-width: 100%; }
 }
+
+.mic { display: inline-flex; align-items: center; gap: 6px; position: relative; }
+.mic--on { color: #fff; background: var(--safety-line); border-color: var(--safety-line); font-variant-numeric: tabular-nums; }
+.mic__error { position: absolute; bottom: calc(100% + 6px); right: 0; width: max-content; max-width: min(320px, 80vw);
+  font-size: 0.8rem; padding: 4px 8px; border-radius: var(--radius); background: var(--error-bg); border: 1px solid var(--error-line); }
+.mic-partial { max-width: 860px; margin: 0 auto 8px; color: var(--muted); font-style: italic; overflow-wrap: anywhere; }

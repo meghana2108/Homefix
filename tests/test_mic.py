@@ -1,0 +1,146 @@
+"""Live mic over WebSocket: a partial transcript after each chunk, then one final on stop."""
+
+import subprocess
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.api import mic
+from app.api.main import app
+from app.contracts import MESSAGES, ModelUnavailable
+from app.models.whisper import TranscriptResult
+from tests import media_fixtures as mf
+
+
+@pytest.fixture
+def client(ctx_lite):
+    app.state.ctx = ctx_lite
+    yield TestClient(app)
+    del app.state.ctx
+
+
+@pytest.fixture
+def fake_asr(monkeypatch):
+    """Conversion always works; transcribe returns the next text and records which model ran."""
+    calls = []
+    texts = ["testing", "testing one two"]  # the last one repeats
+
+    def to_wav(src, dst):
+        dst.write_bytes(b"RIFF")
+        calls.append(("convert", src.stat().st_size))
+        return True
+
+    def transcribe(path, repo):
+        calls.append(("transcribe", repo))
+        return TranscriptResult(text=texts.pop(0) if len(texts) > 1 else texts[0], seconds=1.0,
+                                mean_no_speech_prob=0.1)
+    monkeypatch.setattr(mic, "_to_wav", to_wav)
+    monkeypatch.setattr(mic, "transcribe", transcribe)
+    return calls
+
+
+def test_partials_then_final(client, fake_asr, ctx_lite):
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"chunk1")
+        assert ws.receive_json() == {"type": "partial", "text": "testing"}
+        ws.send_bytes(b"chunk2")
+        # one partial per chunk; the stub returns the 2nd text here, so the final re-runs on the whole file
+        ws.receive_json()
+        ws.send_json({"type": "stop"})
+        final = ws.receive_json()
+    assert final["type"] == "final"
+    # chunks are appended to one file: the 2nd conversion sees both chunks
+    assert [c[1] for c in fake_asr if c[0] == "convert"][:2] == [6, 12]
+    repos = [c[1] for c in fake_asr if c[0] == "transcribe"]
+    assert repos[:2] == [ctx_lite.profile.models.whisper_live] * 2
+    assert repos[-1] == ctx_lite.profile.models.whisper_file
+
+
+def test_plan_protocol(client, monkeypatch):
+    """The plan's test: 2 chunks, stop -> 2 partials, then final 'testing one two'."""
+    texts = iter(["testing", "testing", "testing one two"])
+    monkeypatch.setattr(mic, "_to_wav", lambda src, dst: dst.write_bytes(b"x") or True)
+    monkeypatch.setattr(mic, "transcribe",
+                        lambda p, r: TranscriptResult(text=next(texts), seconds=1.0, mean_no_speech_prob=0.1))
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"a")
+        p1 = ws.receive_json()
+        ws.send_bytes(b"b")
+        p2 = ws.receive_json()
+        ws.send_json({"type": "stop"})
+        final = ws.receive_json()
+    assert [p1["type"], p2["type"]] == ["partial", "partial"]
+    assert final == {"type": "final", "text": "testing one two"}
+
+
+def test_unreadable_chunk_keeps_last_partial(client, monkeypatch):
+    """The first chunk of a recording can be too short to decode; send what we have, don't fail."""
+    monkeypatch.setattr(mic, "_to_wav", lambda src, dst: False)
+    monkeypatch.setattr(mic, "transcribe", lambda p, r: pytest.fail("no audio to transcribe"))
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"x")
+        assert ws.receive_json() == {"type": "partial", "text": ""}
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json() == {"type": "final", "text": ""}
+
+
+def test_stop_without_audio(client, fake_asr):
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json() == {"type": "final", "text": ""}
+    assert fake_asr == []
+
+
+def test_whisper_missing_is_an_error_message(client, monkeypatch):
+    monkeypatch.setattr(mic, "_to_wav", lambda src, dst: dst.write_bytes(b"x") or True)
+
+    def boom(p, r):
+        raise ModelUnavailable(MESSAGES["model_missing"].format(role="whisper"))
+    monkeypatch.setattr(mic, "transcribe", boom)
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"x")
+        assert ws.receive_json() == {"type": "error",
+                                     "message": "The whisper model isn't installed. Run scripts/pull_models.sh."}
+
+
+def test_too_long_recording_stops(client, fake_asr, monkeypatch):
+    monkeypatch.setattr(mic, "MAX_BYTES", 10)
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"0123456789AB")
+        msg = ws.receive_json()
+    assert msg["type"] == "final"
+
+
+def test_bad_text_message_is_ignored(client, fake_asr):
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_text("not json")
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json()["type"] == "final"
+
+
+def test_temp_folder_removed(client, fake_asr, monkeypatch):
+    seen = []
+    real = mic.tempfile.mkdtemp
+    monkeypatch.setattr(mic.tempfile, "mkdtemp", lambda **kw: seen.append(real(**kw)) or seen[-1])
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"x")
+        ws.receive_json()
+        ws.send_json({"type": "stop"})
+        ws.receive_json()
+    from pathlib import Path
+    assert seen and not Path(seen[0]).exists()
+
+
+def test_real_conversion_of_webm_chunks(tmp_path):
+    """Chunks of a webm/opus stream, joined, convert to 16 kHz mono WAV (what MediaRecorder sends)."""
+    mf.need_ffmpeg()
+    webm = mf.make_webm_audio_only(tmp_path / "rec.webm")
+    data = webm.read_bytes()
+    joined = tmp_path / "joined.webm"
+    joined.write_bytes(data[: len(data) // 2] + data[len(data) // 2:])
+    out = tmp_path / "out.wav"
+    assert mic._to_wav(joined, out) is True
+    info = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=sample_rate,channels", "-of",
+                           "csv=p=0", str(out)], capture_output=True, text=True, check=True).stdout.strip()
+    assert info == "16000,1"
+    assert mic._to_wav(tmp_path / "missing.webm", out) is False

@@ -1,4 +1,5 @@
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
+import { MicButton } from "./MicButton";
 
 export const MAX_FILES = 4;
 const ACCEPT = [
@@ -15,6 +16,11 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note }: {
   note: string | null;
 }) {
   const input = useRef<HTMLInputElement>(null);
+  const [partial, setPartial] = useState("");
+  const onMicFinal = (spoken: string) => {
+    const said = spoken.trim();
+    if (said) onText(text.trim() ? `${text.trim()} ${said}` : said);
+  };
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -23,6 +29,9 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note }: {
   };
   return (
     <form className="composer" onSubmit={(e) => { e.preventDefault(); if (!busy) onSend(); }}>
+      {partial && (
+        <div className="mic-partial" aria-live="polite">🎤 <span>{partial}</span></div>
+      )}
       {(files.length > 0 || note) && (
         <div className="composer__files">
           {files.map((f, i) => (
@@ -45,6 +54,7 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note }: {
           }} />
         <textarea className="composer__text" rows={1} placeholder="Type a question…" value={text}
           aria-label="Question" onChange={(e) => onText(e.target.value)} onKeyDown={onKey} />
+        <MicButton onPartial={setPartial} onFinal={onMicFinal} disabled={busy} />
         <button type="submit" className="btn btn--primary" disabled={busy}>Send</button>
       </div>
     </form>
