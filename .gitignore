@@ -1,0 +1,56 @@
+# ---- HARD RULE 1: practice pack data never enters the repo ----
+practice_pack/
+**/practice_pack/
+items.json
+answers.json
+# ---- HARD RULE 6: copyrighted manuals ----
+data/manuals/
+data/assets/private/
+# ---- eval raw output (may echo pack content) ----
+results/raw/
+# ---- media (allow-listed exceptions below) ----
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.webm
+*.mp4
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.pdf
+!frontend/public/icons/*.png
+!docs/img/*.png
+!docs/img/*.jpg
+# ---- secrets / env ----
+.env
+.env.*
+!.env.example
+# ---- model + tool caches ----
+.cache/
+models/
+*.safetensors
+*.npz
+*.bin
+*.gguf
+huggingface/
+.hf_cache/
+cache/
+# ---- python ----
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+# ---- node ----
+node_modules/
+frontend/dist/
+# ---- os / editors ----
+.DS_Store
+.vscode/
+.idea/
