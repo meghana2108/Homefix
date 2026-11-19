@@ -33,6 +33,21 @@ CASES = [
     ("the co alarm went off", "gas"),
     ("my carbon monoxide detector keeps beeping", "gas"),
     ("smoke detector beeps once a minute", None),
+    ("the wires are exposed behind the stove", "exposed_wires"),
+    ("the cord is frayed", "exposed_wires"),
+    ("my dryer smells burnt", "smoke_fire"),
+    ("it smells like something is burning", "smoke_fire"),
+    ("the smoke detector is burning", "smoke_fire"),
+    ("the outlet is burnt and black", "smoke_fire"),
+    ("the microwave keeps shorting", "sparks"),
+    ("the outlet shorted out", "sparks"),
+    ("I think there's a short circuit in the plug", "sparks"),
+    ("the heater short-circuited", "sparks"),
+    ("the power cord is too short", None),
+    ("my dryer has a short cycle setting", None),
+    ("can I bake shortbread in this oven", None),
+    ("I burnt rice in the pot", None),
+    ("how long is the washer drain hose", None),
 ]
 
 

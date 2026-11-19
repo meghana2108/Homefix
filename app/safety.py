@@ -29,6 +29,7 @@ def _compile(section: dict) -> list[tuple[str, list[tuple[str, re.Pattern]]]]:
 
 _ALARM_ACTIVE = _compile(_RULES.get("alarm_active", {}))
 _DANGER = _compile(_RULES["patterns"])
+_DEVICE_NAMES = [re.compile(p, re.IGNORECASE) for p in _RULES.get("device_names", [])]
 _BENIGN = [re.compile(p, re.IGNORECASE) for p in _RULES.get("benign", [])]
 
 
@@ -44,6 +45,8 @@ def check(text: str) -> SafetyHit | None:
         for raw, rx in pats:
             if rx.search(text):
                 return SafetyHit(cat, raw)
+    for rx in _DEVICE_NAMES:
+        text = rx.sub(" device ", text)
     for rx in _BENIGN:
         text = rx.sub(" ", text)
     for cat, pats in _DANGER:
