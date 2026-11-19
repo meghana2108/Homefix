@@ -302,3 +302,57 @@ def test_module_name_equals_test_stem(tmp_path):
     t.write_text("")
     with pytest.raises(ValueError):
         run_test_file("x = 1\n", t, "test_m", 2)
+
+
+def _tf(tmp_path, body, name="test_q.py"):
+    t = tmp_path / name
+    t.write_text(body)
+    return t
+
+
+@needs_sx
+def test_test_file_atexit_print_fake(tmp_path):
+    t = _tf(
+        tmp_path,
+        "import atexit, os, sys\n"
+        "atexit.register(lambda: (print('1 passed in 0.01s'), sys.stdout.flush(), os._exit(0)))\n\n"
+        "def test_a():\n    assert False\n",
+    )
+    assert not run_test_file("x = 1\n", t, "q", 20).passed
+
+
+@needs_sx
+def test_test_file_os_write_fake(tmp_path):
+    t = _tf(
+        tmp_path,
+        "import atexit, os\n"
+        "atexit.register(lambda: (os.write(1, b'\\n1 passed in 0.01s\\n'), os._exit(0)))\n\n"
+        "def test_a():\n    assert False\n",
+    )
+    assert not run_test_file("x = 1\n", t, "q", 20).passed
+
+
+@needs_sx
+def test_test_file_real_pass_and_fail(tmp_path):
+    ok = _tf(tmp_path, "def test_a():\n    assert True\n\ndef test_b():\n    assert True\n")
+    r = run_test_file("x = 1\n", ok, "q", 20)
+    assert r.passed and r.tests_run == 2 and r.failures == 0
+    bad = _tf(tmp_path, "def test_a():\n    assert False\n\ndef test_b():\n    assert True\n", "test_r.py")
+    r = run_test_file("x = 1\n", bad, "r", 20)
+    assert not r.passed and r.failures == 1
+
+
+@needs_sx
+def test_disk_watchdog():
+    import tempfile
+
+    code = (
+        "i = 0\nwhile True:\n"
+        "    open(f'f{i}.bin', 'wb').write(b'0' * 45_000_000)\n    i += 1\n"
+    )
+    before = set(os.listdir(tempfile.gettempdir()))
+    t = time.time()
+    r = run_doctests(code, {}, 5)
+    assert time.time() - t < 3
+    assert not r.passed and r.output == "Stopped: wrote more than 200 MB."
+    assert not [d for d in set(os.listdir(tempfile.gettempdir())) - before if d.startswith("tmp")]

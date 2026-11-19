@@ -1,19 +1,20 @@
-"""Run generated code in a locked-down subprocess: macOS sandbox-exec with all network
-denied, temp cwd, minimal env, no stdin, hard timeout, process group killed on timeout.
+"""Run generated code in a locked-down subprocess: macOS sandbox-exec, temp cwd, minimal env,
+no stdin, hard timeout, process group killed after every run.
 
-Documented limits:
-- This is not a container. The code can read and write any file the user can, by absolute path.
-- A grandchild that calls setsid survives until it exits. It can no longer block the parent,
-  because output goes to a file and we never wait on a pipe.
-- Pass/fail is reported by the same process that runs the code, so a determined function can
-  still lie. The nonce marker and exit code only stop accidental or naive fakes.
+What it does and does not do:
+- Network is denied by the sandbox. Writes are confined to the run's temp dir. Reads are not
+  confined: code can read any file the user can.
+- Size caps: 50 MB per file (RLIMIT_FSIZE) and 200 MB per run (a watchdog on the temp dir).
+- A grandchild that calls setsid survives until it exits. It can't block the parent, because
+  output goes to a file and we never wait on a pipe.
+- Results come back as a nonce marker the code can't see by name. A function that inspects
+  the interpreter's frames or prints the marker itself can still lie.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import re
 import resource
 import secrets
 import shutil
@@ -21,14 +22,16 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from app.contracts import MESSAGES
 
 SANDBOX_EXEC = "/usr/bin/sandbox-exec"
-PROFILE = "(version 1)(allow default)(deny network*)"
 RAW_CAP = 200_000
+MAX_RUN_BYTES = 200_000_000
+DISK_MSG = "Stopped: wrote more than 200 MB."
 TAIL = 1_500
 UNAVAILABLE = "Code sandbox unavailable on this machine."
 
@@ -59,7 +62,7 @@ PRELUDE = (
 )
 
 MAX_FILE_BYTES = 50_000_000
-LAST_OUT_SIZE = 0  # size of the last run's output file; read by tests
+LAST_OUT_SIZE = 0  # test-only: size of the last run's output file
 
 
 def _limit_file_size() -> None:
@@ -83,13 +86,32 @@ class SandboxResult:
     timed_out: bool
 
 
-def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[int | None, str, bool]:
+def _dir_bytes(path: str) -> int:
+    total = 0
+    stack = [path]
+    while stack:
+        try:
+            with os.scandir(stack.pop()) as it:
+                for e in it:
+                    try:
+                        if e.is_dir(follow_symlinks=False):
+                            stack.append(e.path)
+                        else:
+                            total += e.stat(follow_symlinks=False).st_size
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+    return total
+
+
+def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[int | None, str, bool, bool]:
     """Run cmd in the sandbox. Output goes to a file outside tmp, which the child can't open for writing."""
     global LAST_OUT_SIZE
     env = {"PATH": os.environ.get("PATH", ""), "HOME": tmp, "PYTHONHASHSEED": "0"}
     if nonce:
         env["HOMEFIX_NONCE"] = nonce
-    timed_out = False
+    timed_out = disk_full = False
     with tempfile.TemporaryDirectory() as outdir:
         out_path = Path(outdir, "out")
         with open(out_path, "wb") as f:
@@ -98,10 +120,19 @@ def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[i
                 stdin=subprocess.DEVNULL, stdout=f, stderr=subprocess.STDOUT,
                 start_new_session=True, preexec_fn=_limit_file_size,  # noqa: PLW1509
             )
-            try:
-                proc.wait(timeout=timeout_s)
-            except subprocess.TimeoutExpired:
-                timed_out = True
+            deadline = time.monotonic() + timeout_s
+            while True:
+                try:
+                    proc.wait(timeout=0.2)
+                    break
+                except subprocess.TimeoutExpired:
+                    pass
+                if _dir_bytes(tmp) > MAX_RUN_BYTES:
+                    disk_full = True
+                    break
+                if time.monotonic() >= deadline:
+                    timed_out = True
+                    break
             # Always kill the group, so background children don't outlive the run.
             try:
                 os.killpg(proc.pid, signal.SIGKILL)
@@ -119,7 +150,7 @@ def _run(cmd: list[str], tmp: str, timeout_s: float, nonce: str = "") -> tuple[i
     text = data.decode("utf-8", "replace")
     if proc.returncode == -signal.SIGXFSZ:
         text += "\nOutput or file size limit exceeded."
-    return proc.returncode, text, timed_out
+    return proc.returncode, text, timed_out, disk_full
 
 
 def _timeout_result(timeout_s: float) -> SandboxResult:
@@ -141,7 +172,11 @@ def run_doctests(code: str, files: dict[str, Path], timeout_s: float) -> Sandbox
         Path(tmp, "solution.py").write_text(code)
         for name, src in files.items():
             shutil.copy(src, Path(tmp, name))
-        rc, text, timed_out = _run([sys.executable, "-I", "-c", PRELUDE], tmp, timeout_s, nonce)
+        rc, text, timed_out, disk_full = _run(
+            [sys.executable, "-I", "-c", PRELUDE], tmp, timeout_s, nonce
+        )
+    if disk_full:
+        return SandboxResult(False, 0, 0, DISK_MSG, False)
     if timed_out:
         return _timeout_result(timeout_s)
     prefix = f"__HOMEFIX_{nonce}__"
@@ -163,6 +198,34 @@ def run_doctests(code: str, files: dict[str, Path], timeout_s: float) -> Sandbox
     return SandboxResult(failed == 0 and rc == 0, attempted, failed, output, False)
 
 
+CONFTEST = BLOCK + '''
+import os as _os, json as _json, sys as _sys
+
+def _make_hooks():
+    nonce = _os.environ.pop("HOMEFIX_NONCE")
+    box = {}
+
+    def pytest_sessionfinish(session, exitstatus):
+        stats = session.config.pluginmanager.get_plugin("terminalreporter").stats
+        box["r"] = {
+            "passed": len(stats.get("passed", [])),
+            "failed": len(stats.get("failed", [])),
+            "errors": len(stats.get("error", [])),
+        }
+
+    def pytest_unconfigure(config):
+        if "r" in box:
+            _sys.stdout.flush()
+            print("\\n__HOMEFIX_" + nonce + "__" + _json.dumps(box["r"]))
+            _sys.stdout.flush()
+
+    return pytest_sessionfinish, pytest_unconfigure
+
+pytest_sessionfinish, pytest_unconfigure = _make_hooks()
+del _make_hooks
+'''
+
+
 def run_test_file(code: str, test_file: Path, module_name: str, timeout_s: float) -> SandboxResult:
     test_name = Path(test_file).name
     if module_name == Path(test_file).stem:
@@ -173,25 +236,29 @@ def run_test_file(code: str, test_file: Path, module_name: str, timeout_s: float
         raise ValueError(f"bad module name: {module_name!r}")
     if not Path(SANDBOX_EXEC).exists():
         return _unavailable()
+    nonce = secrets.token_hex(16)
     with tempfile.TemporaryDirectory() as tmp:
         Path(tmp, f"{module_name}.py").write_text(code)
         shutil.copy(test_file, Path(tmp, test_name))
-        Path(tmp, "conftest.py").write_text(BLOCK)
-        rc, text, timed_out = _run(
+        Path(tmp, "conftest.py").write_text(CONFTEST)
+        rc, text, timed_out, disk_full = _run(
             [sys.executable, "-I", "-m", "pytest", "-q", "-p", "no:cacheprovider", test_name],
-            tmp, timeout_s,
+            tmp, timeout_s, nonce,
         )
+    if disk_full:
+        return SandboxResult(False, 0, 0, DISK_MSG, False)
     if timed_out:
         return _timeout_result(timeout_s)
-    summary = None
-    for line in reversed(text.splitlines()):
-        if re.search(r"\bin [\d.]+s\b", line) and re.search(r"\d+ (passed|failed|errors?)", line):
-            summary = line
-            break
-    if summary is None:
+    prefix = f"__HOMEFIX_{nonce}__"
+    lines = text.splitlines()
+    nonempty = [i for i, ln in enumerate(lines) if ln.strip()]
+    if not nonempty or not lines[nonempty[-1]].startswith(prefix):
         return SandboxResult(False, 0, 0, text[-TAIL:], False)
-    passed_n = sum(int(n) for n in re.findall(r"(\d+) passed", summary))
-    failed_n = sum(int(n) for n in re.findall(r"(\d+) (?:failed|errors?)\b", summary))
-    return SandboxResult(
-        rc == 0 and failed_n == 0 and passed_n > 0, passed_n + failed_n, failed_n, text[-TAIL:], False
-    )
+    try:
+        d = json.loads(lines[nonempty[-1]][len(prefix):])
+        passed_n, failed_n, errors_n = int(d["passed"]), int(d["failed"]), int(d["errors"])
+    except (ValueError, KeyError, TypeError):
+        return SandboxResult(False, 0, 0, text[-TAIL:], False)
+    output = "\n".join(lines[: nonempty[-1]]).rstrip()[-TAIL:]
+    bad = failed_n + errors_n
+    return SandboxResult(rc == 0 and bad == 0 and passed_n > 0, passed_n + bad, bad, output, False)
