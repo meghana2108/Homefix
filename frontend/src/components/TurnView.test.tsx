@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { HomeFixEvent } from "../contract";
 import { newTurn, reduce } from "../state/reduce";
 import { ManualPicker } from "./ManualPicker";
-import { StatusChips } from "./StatusChips";
+import { StepList } from "./StepList";
 import { TurnView } from "./TurnView";
 
 const final = (answer = "", latency_ms = 6214): HomeFixEvent => ({
@@ -15,7 +15,8 @@ describe("TurnView", () => {
   it("shows the answer and the latency badge", () => {
     render(<TurnView turn={build([{ type: "token", text: "4. Four mugs" }, final("4. Four mugs on the shelf.")])} />);
     expect(screen.getByText("4. Four mugs on the shelf.")).toBeInTheDocument();
-    expect(screen.getByText("⏱ 6.2 s")).toHaveAttribute("title", "Model: qwen3-vl:8b");
+    expect(screen.getByText("6.2 s")).toHaveAttribute("title", "Model: qwen3-vl:8b");
+    expect(screen.getByText("Answered from your photo")).toBeInTheDocument();  // the outcome stamp
   });
 
   it("a safety refusal shows only the red card, no answer or payloads", () => {
@@ -32,7 +33,7 @@ describe("TurnView", () => {
     expect(screen.queryByText(/smoke alarm beeping loudly/)).toBeNull();
   });
 
-  it("other refusals get the grey card", () => {
+  it("other refusals get the amber card", () => {
     const { container } = render(<TurnView turn={build([
       { type: "refusal", reason: "unsupported_file", message: "I can't open .exe files.", category: null }, final()])} />);
     expect(container.querySelector(".card--refusal")).toHaveTextContent("I can't open .exe files.");
@@ -47,11 +48,11 @@ describe("TurnView", () => {
   });
 });
 
-describe("StatusChips", () => {
-  it("shows the swap time for loading_model", () => {
-    render(<StatusChips statuses={[{ stage: "loading_model", detail: "loading qwen2.5-coder:3b", ms: 6400, done: false }]} />);
-    expect(screen.getByText("· 6.4 s")).toBeInTheDocument();
-    expect(screen.getByLabelText("running")).toBeInTheDocument();
+describe("StepList", () => {
+  it("shows the swap time for loading_model and says which step is running", () => {
+    render(<StepList steps={[{ stage: "loading_model", title: "Load the model", does: "Loads it.", state: "running", result: null, ms: 6400 }]} />);
+    expect(screen.getByText("6.4 s")).toBeInTheDocument();
+    expect(screen.getByText(": running")).toBeInTheDocument();
   });
 });
 

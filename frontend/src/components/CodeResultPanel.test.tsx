@@ -8,21 +8,21 @@ const base = { type: "code_result" as const, code: "def f():\n    return 1", pas
 describe("CodeResultPanel", () => {
   it("shows a passed badge, attempt and code", () => {
     const { container } = render(<CodeResultPanel result={base} />);
-    expect(screen.getByText("✓ passed 2/2")).toBeInTheDocument();
+    expect(screen.getByText("Passed 2 of 2")).toBeInTheDocument();
     expect(screen.getByText("Attempt 1 of 2")).toBeInTheDocument();
     expect(container.querySelector("pre code")).toHaveTextContent("return 1");
   });
 
   it("shows a failed badge and test output in details", () => {
     const { container } = render(<CodeResultPanel result={{ ...base, passed: false, tests_run: 3, failures: 1, output_tail: "boom", attempts: 2 }} />);
-    expect(screen.getByText("✕ failed 1/3")).toBeInTheDocument();
+    expect(screen.getByText("Failed 1 of 3")).toBeInTheDocument();
     expect(screen.getByText("Test output")).toBeInTheDocument();
     expect(container.querySelector("details")).toHaveTextContent("boom");
   });
 
   it("says when no examples ran", () => {
     render(<CodeResultPanel result={{ ...base, passed: false, tests_run: 0, failures: 0 }} />);
-    expect(screen.getByText("✕ no examples ran")).toBeInTheDocument();
+    expect(screen.getByText("No examples ran")).toBeInTheDocument();
   });
 
   it("scrolls long code inside the card", () => {

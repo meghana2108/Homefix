@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Mic, Square } from "lucide-react";
 import { wsUrl } from "../api/client";
+import { Icon } from "./Icons";
 
 /** WS /api/mic messages (app/api/mic.py). Not part of the shared SSE contract. */
 type MicMessage = { type: "partial"; text: string } | { type: "final"; text: string } | { type: "error"; message: string };
@@ -120,7 +122,7 @@ export function MicButton({ onPartial, onFinal, disabled = false }: {
     <span className="mic">
       {state === "recording" ? (
         <button type="button" className="btn btn--icon mic--on" aria-label="Stop the mic" onClick={stop}>
-          ⏹ {clock(seconds)}
+          <Icon as={Square} size={14} />{clock(seconds)}
         </button>
       ) : state === "finishing" ? (
         <button type="button" className="btn btn--icon" aria-label="Transcribing…" disabled>
@@ -135,7 +137,7 @@ export function MicButton({ onPartial, onFinal, disabled = false }: {
       ) : (
         <button type="button" className="btn btn--icon" aria-label="Start the mic" title="Speak your question"
           disabled={disabled} onClick={() => void start()}>
-          🎤
+          <Icon as={Mic} />
         </button>
       )}
       {error && <span className="mic__error" role="alert">{error}</span>}

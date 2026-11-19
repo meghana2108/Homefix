@@ -1,8 +1,10 @@
+import { CircleHelp, OctagonAlert } from "lucide-react";
 import type { RefusalEvent } from "../contract";
+import { Icon } from "./Icons";
 
 /** A plain title for each kind of "no", so the user knows what happened and what to do next. */
 const TITLES: Record<string, string> = {
-  not_in_document: "Not in the document",
+  not_in_document: "The document doesn't say",
   no_document: "Give me something to answer from",
   unsupported_file: "Can't open that file",
   empty_input: "Nothing to answer yet",
@@ -17,12 +19,19 @@ export function safetySteps(message: string): string[] {
   return body.split(/(?<=[.!])\s+(?=[A-Z])/).map((x) => x.trim()).filter(Boolean);
 }
 
+/** What to try next, for the refusals where there is something to try. */
+const NEXT: Record<string, string> = {
+  not_in_document: "HomeFix only answers from the document, so it won't guess. Try asking about the symptom instead (for example, \"the washer won't drain\"), or ask your landlord.",
+  no_document: "Attach a photo, a sound, a clip or a document, or pick a manual below.",
+  unsupported_file: "Photos, sounds, videos, PDFs, Word files, text and CSV files work.",
+};
+
 export function RefusalCard({ refusal }: { refusal: RefusalEvent }) {
   if (refusal.reason === "safety") {
     const steps = safetySteps(refusal.message);
     return (
       <div className="card card--safety" role="alert">
-        <p className="card__title"><span aria-hidden="true">⚠️ </span>Stop: this could be dangerous</p>
+        <p className="card__title"><Icon as={OctagonAlert} />Stop: this could be dangerous</p>
         {steps.length > 1
           ? <ul className="safety__steps">{steps.map((x, i) => <li key={i}>{x}</li>)}</ul>
           : <p>{steps[0] ?? refusal.message}</p>}
@@ -31,8 +40,9 @@ export function RefusalCard({ refusal }: { refusal: RefusalEvent }) {
   }
   return (
     <div className="card card--refusal" role="status">
-      {TITLES[refusal.reason] && <p className="card__title">{TITLES[refusal.reason]}</p>}
+      {TITLES[refusal.reason] && <p className="card__title"><Icon as={CircleHelp} />{TITLES[refusal.reason]}</p>}
       <p>{refusal.message}</p>
+      {NEXT[refusal.reason] && <p className="card__next">{NEXT[refusal.reason]}</p>}
     </div>
   );
 }

@@ -1,6 +1,9 @@
 import type { SentFile } from "../state/reduce";
 
-const ICON = { image: "🖼", audio: "🔊", video: "🎬", file: "📄" } as const;
+import { Camera, FileText, Film, Volume2 } from "lucide-react";
+import { Icon } from "./Icons";
+
+const ICON = { image: Camera, audio: Volume2, video: Film, file: FileText } as const;
 
 /** What the user attached: photo thumbnails, a playable sound or clip, documents as chips. */
 export function SentFiles({ files }: { files: SentFile[] }) {
@@ -12,7 +15,7 @@ export function SentFiles({ files }: { files: SentFile[] }) {
           {f.url && f.kind === "image" && <img className="sent__img" src={f.url} alt={f.name} />}
           {f.url && f.kind === "audio" && <audio className="sent__audio" src={f.url} controls preload="metadata" aria-label={f.name} />}
           {f.url && f.kind === "video" && <video className="sent__video" src={f.url} controls muted preload="metadata" aria-label={f.name} />}
-          <span className="file"><span aria-hidden="true">{ICON[f.kind]} </span>{f.name}</span>
+          <span className="file"><Icon as={ICON[f.kind]} size={14} />{f.name}</span>
         </li>
       ))}
     </ul>

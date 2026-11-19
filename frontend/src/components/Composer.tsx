@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from "react";
+import { Camera, FileText, Film, Paperclip, Send, Volume2, X } from "lucide-react";
 import type { Manual } from "../contract";
 import { kindOf } from "../state/reduce";
 import { ManualPicker } from "./ManualPicker";
+import { Icon } from "./Icons";
 import { MicButton } from "./MicButton";
 
 export const MAX_FILES = 4;
 export const ACCEPT = [
   "image/*", "audio/*", "video/*", ".heic", ".heif", ".pdf", ".docx", ".txt", ".md", ".csv", ".json", ".py",
 ].join(",");
-const ICON = { image: "🖼", audio: "🔊", video: "🎬", file: "📄" } as const;
+const ICON = { image: Camera, audio: Volume2, video: Film, file: FileText } as const;
 
 /** Object URLs for image previews, revoked when the files change. Empty where the browser has none (tests). */
 function usePreviews(files: File[]): (string | null)[] {
@@ -54,7 +56,7 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
     <form className="composer" onSubmit={(e) => { e.preventDefault(); if (!busy) onSend(); }}>
       <div className="composer__box">
         {partial && (
-          <div className="mic-partial" aria-live="polite">🎤 <span>{partial}</span></div>
+          <div className="mic-partial" aria-live="polite"><span className="sr-only">Hearing: </span><span>{partial}</span></div>
         )}
         {(files.length > 0 || note) && (
           <div className="composer__files">
@@ -62,10 +64,10 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
               <span key={`${f.name}-${i}`} className="file file--pending">
                 {previews[i]
                   ? <img className="file__thumb" src={previews[i]!} alt="" />
-                  : <span aria-hidden="true">{ICON[kindOf(f.name, f.type)]} </span>}
+                  : <Icon as={ICON[kindOf(f.name, f.type)]} size={16} />}
                 {f.name}
                 <button type="button" className="file__remove" aria-label={`Remove ${f.name}`}
-                  onClick={() => onFiles(files.filter((_, j) => j !== i))}>×</button>
+                  onClick={() => onFiles(files.filter((_, j) => j !== i))}><Icon as={X} size={16} /></button>
               </span>
             ))}
             {note && <span className="muted">{note}</span>}
@@ -74,9 +76,9 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
         <textarea className="composer__text" rows={2} placeholder="Ask about something at home, or drop a photo, sound, video or file…"
           value={text} aria-label="Question" onChange={(e) => onText(e.target.value)} onKeyDown={onKey} />
         <div className="composer__row">
-          <button type="button" className="btn btn--ghost" aria-label="Attach files" title="Attach a photo, sound, video or file"
+          <button type="button" className="btn btn--icon" aria-label="Attach files" title="Attach a photo, sound, video or file"
             onClick={() => { if (input.current) { input.current.accept = ACCEPT; input.current.click(); } }}>
-            📎 <span className="btn__text">Attach</span>
+            <Icon as={Paperclip} /><span className="btn__text">Attach</span>
           </button>
           <input ref={input} type="file" multiple accept={ACCEPT} hidden
             onChange={(e) => {
@@ -88,11 +90,11 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
           {onManual && <ManualPicker manuals={manuals} value={manualId} onChange={onManual} />}
           <span className="composer__spacer" />
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? "Working…" : "Ask"}
+            <Icon as={Send} size={16} />{busy ? "Working…" : "Ask"}
           </button>
         </div>
       </div>
-      <p className="composer__hint muted">Enter to send · Shift+Enter for a new line · Everything stays on this laptop</p>
+      <p className="composer__hint">Press Enter to ask, Shift and Enter for a new line. Nothing you send leaves this laptop.</p>
     </form>
   );
 }
