@@ -31,7 +31,7 @@ from app.safety import SAFETY_MESSAGE
 Step = tuple[float, Event]
 Scenario = Callable[[str, list[str], str | None], list[Step]]
 
-BRAIN = "qwen3-vl:8b"
+BRAIN = "qwen3-vl:8b-instruct"
 CODER = "qwen2.5-coder:3b"
 CLAP = "laion/clap-htsat-unfused"
 

@@ -12,7 +12,6 @@ The audio track is not transcribed or safety-checked (a named limit).
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -27,7 +26,9 @@ from app.contracts import (
     UnsupportedFile,
     final_for,
 )
+from app.numbers import first_int  # noqa: F401 - re-export only for tests/test_image.py::test_matches_video_copies
 from app.pipelines.common import collect, stream_brain
+from app.prompts import READ_PROMPT, count_prompt, force_number_first
 from app.settings import ROOT
 from app.video import motion
 from app.video.frames import extract_frames
@@ -38,39 +39,6 @@ MOTION_PROMPT = ("Answer with one direction word from: left, right, up, down, to
                  "counterclockwise, then one sentence.")
 COUNT_IN_FRAME = " Count what is visible in this one frame."
 
-# ---- TEMP local copies of M6's app/prompts.py and app/numbers.py (plan: A6 uses its own copies
-# ---- until M6 is on main, then imports them and deletes this block).
-NUMBER_WORDS = {w: i for i, w in enumerate([
-    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
-    "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"])}
-_INT = re.compile(r"\b(\d+|" + "|".join(NUMBER_WORDS) + r")\b", re.IGNORECASE)
-_THING = re.compile(r"\bhow many\s+(.+?)(?:\s+(?:are|is|do|does|did|can|could|were|was|in|on|at|there|you)\b|[?.!,]|$)",
-                    re.IGNORECASE)
-READ_PROMPT = "Read the text exactly as written. If you can't read it, reply exactly: I can't tell."
-
-
-def first_int(text: str) -> int | None:
-    m = _INT.search(text)
-    if not m:
-        return None
-    tok = m.group(1).lower()
-    return int(tok) if tok.isdigit() else NUMBER_WORDS[tok]
-
-
-def count_prompt(message: str) -> str:
-    m = _THING.search(message)
-    thing = m.group(1).strip() if m and m.group(1).strip() else "objects"
-    return (f"Count the {thing}. Reply with the number first as digits, then one short sentence. "
-            "If the image is too blurry to count, reply exactly: I can't tell.")
-
-
-def force_number_first(answer: str) -> str:
-    text = answer.strip()
-    if not text or text[0].isdigit() or text.lower().startswith(MESSAGES["cant_tell"].lower().rstrip(".")):
-        return text
-    n = first_int(text)
-    return f"{n}. {text}" if n is not None else text
-# ---- end of TEMP copies
 
 
 DESCRIBE_PROMPT = ("Describe what happens in the video in one paragraph of at most 80 words. "

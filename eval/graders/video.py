@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-from app.pipelines.video import NUMBER_WORDS, first_int  # TODO: app.numbers once M6 lands
+from app.numbers import NUMBER_WORDS, first_int
 from eval.graders import FUZZY_HIT, as_list, fuzzy
 from eval.types import REF_KEYS, GradeResult, PackItem, RunRecord
 

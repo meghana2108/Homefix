@@ -10,7 +10,7 @@ from PIL import Image
 
 from app.contracts import Attachment, Final, Frames, PipelineRequest, Refusal, Status, Token
 from app.pipelines import video
-from app.pipelines.video import MOTION_WORDS, first_int, force_number_first, frame_labels
+from app.pipelines.video import MOTION_WORDS, frame_labels
 from app.video.grid import make_grids
 from app.video.motion import measure_motion
 from tests import media_fixtures as mf
@@ -232,17 +232,13 @@ def test_no_hint_when_nothing_moves(ctx_lite, tmp_path, fake_brain):
     assert "Measured from the frames" not in fake_brain.calls[0]["messages"][-1]["content"]
 
 
-# ---------------------------------------------------------------- local copies of M6 helpers
-@pytest.mark.parametrize(("text", "n"), [("There are four mugs", 4), ("12 mugs, maybe 13", 12),
-                                         ("none visible", None), ("Twenty birds", 20)])
-def test_first_int(text, n):
-    assert first_int(text) == n
+def test_video_uses_the_shared_m6_helpers():
+    """video.py imports app.prompts (no local copies left), so image and video count the same way."""
+    from app import prompts
 
-
-@pytest.mark.parametrize(("text", "out"), [("three people", "3. three people"), ("4 cats", "4 cats"),
-                                           ("I can't tell.", "I can't tell."), ("lots of them", "lots of them")])
-def test_force_number_first(text, out):
-    assert force_number_first(text) == out
+    assert video.count_prompt is prompts.count_prompt
+    assert video.force_number_first is prompts.force_number_first
+    assert video.READ_PROMPT is prompts.READ_PROMPT
 
 
 @pytest.mark.model

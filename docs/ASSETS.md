@@ -14,6 +14,10 @@ Nothing copyrighted is committed. Gitignored folders: `practice_pack/`, `data/ma
 | PWA icons | `frontend/public/icons/` | Made by us | MIT | Yes |
 
 ## Manuals to download (fill in)
+**File names:** letters, digits, `_`, `.` and `-` only, no spaces, starting with a letter or digit,
+e.g. `washer_lg_wm3400.pdf`. The file stem is the `manual_id` the UI sends, and
+`app/pipelines/text.py` refuses any other id (it blocks paths like `../`).
+
 | File name in `data/manuals/` | Appliance | Brand / model | Download URL |
 |---|---|---|---|
 | | Washing machine | | |
