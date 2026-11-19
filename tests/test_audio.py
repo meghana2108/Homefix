@@ -208,3 +208,24 @@ def test_real_voice_note_on_lite(tmp_path, profile_lite):
     ev = run(ctx, "What error does the washer show?", "speech", [Attachment(wav, "audio", "v.wav")])
     assert "washing" in of(ev, Transcript)[0].text.lower()
     assert "21" in ev[-1].answer or "twenty" in ev[-1].answer.lower()
+
+
+def test_tokens_stream_live(ctx_lite, heard, monkeypatch):
+    """The first token must reach the UI while the brain is still generating."""
+    from app.models import ollama_client
+
+    heard("The washer shows E21.")
+    progress = {"done": False}
+
+    def slow_brain(*a, **kw):
+        yield "It "
+        yield "shows "
+        progress["done"] = True
+        yield "E21."
+    monkeypatch.setattr(ollama_client, "chat_stream", slow_brain)
+    for ev in audio.run(PipelineRequest("what does it show?", [WAV], "speech"), ctx_lite):
+        if isinstance(ev, Token):
+            assert progress["done"] is False
+            break
+    else:
+        pytest.fail("no token")

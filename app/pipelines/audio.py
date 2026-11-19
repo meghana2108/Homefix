@@ -27,7 +27,7 @@ from app.contracts import (
 )
 from app.models.clap import classify, load_vocab
 from app.models.whisper import TranscriptResult, transcribe
-from app.pipelines.common import collect, refused, stream_brain
+from app.pipelines.common import collect, stream_brain
 from app.safety import check, check_sound, refusal_for
 
 MIN_SPEECH_WORDS = 3
@@ -65,9 +65,11 @@ def _speech(req: PipelineRequest, ctx: Ctx, tr: TranscriptResult) -> Iterator[Ev
         yield final_for(ctx, "audio", "speech", answer=tr.text, model=ctx.profile.models.whisper_file)
         return
     answer: list[str] = []
-    seen = list(collect(stream_brain(ctx, _prompt(tr, req.message.strip())), answer))
-    yield from seen
-    if refused(seen):
+    was_refused = False
+    for ev in collect(stream_brain(ctx, _prompt(tr, req.message.strip())), answer):  # stream live
+        was_refused = was_refused or isinstance(ev, Refusal)
+        yield ev
+    if was_refused:
         yield final_for(ctx, "audio", "speech")
     else:
         yield final_for(ctx, "audio", "speech", answer="".join(answer).strip(), model=ctx.memory.tag("brain"))
