@@ -11,9 +11,11 @@ import json
 from pathlib import Path
 
 from eval.pack import ID_KEYS, LIST_KEYS
-from eval.types import GradeResult, PackItem, RunRecord
+from eval.types import REF_KEYS, GradeResult, PackItem, RunRecord
 
 ANSWERS_FILE = "answers.json"
+# The pack's own name for the answer (its README); graders read it as REF_KEYS["answer"].
+PACK_ANSWER_KEYS = ("reference_answer",)
 
 
 def refs_available(pack_dir: Path) -> bool:
@@ -32,8 +34,16 @@ def load_refs(pack_dir: Path) -> dict[str, dict]:
     for row in data:
         item_id = next((row[k] for k in ID_KEYS if k in row), None)
         if item_id is not None:
-            out[str(item_id)] = row
+            out[str(item_id)] = _with_answer_key(row)
     return out
+
+
+def _with_answer_key(row: dict) -> dict:
+    key = REF_KEYS["answer"]
+    if key in row:
+        return row
+    found = next((k for k in PACK_ANSWER_KEYS if k in row), None)
+    return {**row, key: row[found]} if found else row
 
 
 def grade_run(records: list[RunRecord], items: dict[str, PackItem], refs: dict[str, dict]) -> list[GradeResult]:

@@ -155,3 +155,31 @@ def test_missing_reference_answer_is_a_miss_not_a_crash():
     assert not g.hit and "no reference" in g.note
     g = audio.grade(item("audio", "sounds"), ours(sound_labels=["dog"]), {})
     assert not g.hit and "no reference" in g.note
+
+
+# The pack's references are sentences: the count or direction comes first, then a description.
+def test_video_count_from_a_sentence_reference():
+    q = "How many squares appear in this clip?"
+    ref = {"answer": "5 squares appear one after another."}
+    g = video.grade(item("video", question=q), ours("5. Five squares.", "count", modality="video"), ref)
+    assert (g.metric, g.hit) == ("count_exact", True)
+    g = video.grade(item("video", question=q), ours("4. Four squares.", "count", modality="video"), ref)
+    assert (g.metric, g.hit) == ("count_exact", False)
+    ref = {"answer": "Seven dots blink in turn."}
+    assert video.grade(item("video", question=q), ours("7", "count", modality="video"), ref).metric == "count_exact"
+
+
+def test_video_direction_from_a_sentence_reference():
+    q = "In which direction does the triangle move?"
+    ref = {"answer": "The triangle slides to the left across the frame."}
+    g = video.grade(item("video", question=q), ours("Left.", "motion", modality="video"), ref)
+    assert (g.metric, g.hit) == ("direction", True)
+    assert not video.grade(item("video", question=q), ours("Right.", "motion", modality="video"), ref).hit
+
+
+def test_video_sentence_reference_on_other_questions_stays_fuzzy():
+    # a number or a direction word inside a description doesn't make it a count or direction item
+    g = video.grade(item("video", question="What happens in this clip?"),
+                    ours("A ball rolls left and stops.", "describe", modality="video"),
+                    {"answer": "2 balls roll left and stop."})
+    assert g.metric == "fuzzy"

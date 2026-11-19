@@ -8,6 +8,7 @@
 uv run python -m eval.run --profile lite --modality all            # every item
 uv run python -m eval.run --profile lite --modality image --limit 2  # quick check: 2 items per modality
 uv run python -m eval.run --profile full --modality text --set text.quote_fuzz_threshold=85   # bake-off
+uv run python -m eval.run --regrade <run_id>                         # grade a finished run again, no models
 uv run python -m eval.report --run <run_id>                         # -> results/summary_<profile>.md
 ```
 Flow: `eval/pack.py` loads `items.json` → each item goes through `app.orchestrate.handle()` (same
@@ -23,9 +24,12 @@ pass) → `eval/report.py` writes the summary.
   Only `results/summary_<profile>.md` is committed (counts and scores, no questions or answers).
 - Latency includes loading each model the first time it is used in a run. Peak memory is sampled
   every 0.5 s while each item runs (Ollama's loaded models + the eval process).
-- Not done: the pack's real key names are still guesses (constants at the top of `eval/pack.py`,
-  `REF_KEYS` in `eval/types.py`) until the pack is downloaded. Image, text and code graders are
-  stubs until M11, so their rows show `todo`.
+- Pack format (checked against the downloaded pack, 2026-11-19): items have `id`, `modality`,
+  `file`, `question` only, with no subtype. The answer key is `reference_answer`; `eval/grade.py` maps
+  it to `REF_KEYS["answer"]`. Speech items carry `transcript`, which is how the audio grader tells
+  speech from sounds. References are sentences, so the video grader takes a count from the start of
+  the reference on a count question, and the first direction word on a direction question.
+- `--regrade <run_id>` re-grades `results/raw/<run_id>.jsonl` after a grader fix, without the models.
 
 **Only `eval/grade.py` reads `answers.json`** (HARD RULE 4, enforced by `tests/test_hard_rules.py`).
 

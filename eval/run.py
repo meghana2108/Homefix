@@ -182,6 +182,19 @@ def _write_grades(raw: Path, run_id: str, records: list[RunRecord], items: dict[
     print(f"graded {len(graded)} items: {hits} hits -> {raw / f'{run_id}_graded.jsonl'}")
 
 
+def _regrade(run_id: str, pack_dir: Path) -> str:
+    raw = RESULTS / "raw"
+    rec_file = raw / f"{run_id}.jsonl"
+    if not rec_file.is_file():
+        raise SystemExit(f"No run {run_id} in {raw}")
+    if not refs_available(pack_dir):
+        raise SystemExit(f"No reference answers in {pack_dir}")
+    records = [RunRecord(**json.loads(ln)) for ln in rec_file.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    _write_grades(raw, run_id, records, {i.id: i for i in load_items(pack_dir)}, load_refs(pack_dir))
+    print(f"next: uv run python -m eval.report --run {run_id}")
+    return run_id
+
+
 def main(argv: list[str] | None = None) -> str:
     ap = argparse.ArgumentParser(prog="python -m eval.run", description="Run the practice pack through HomeFix.")
     ap.add_argument("--profile", choices=["full", "lite"], default=None, help="default: PROFILE from .env")
@@ -191,9 +204,13 @@ def main(argv: list[str] | None = None) -> str:
                     help="override a profile setting, e.g. models.brain=gemma4:e4b (repeatable)")
     ap.add_argument("--no-grade", action="store_true", help="skip grading even if reference answers exist")
     ap.add_argument("--pack", default=None, help="practice pack folder (default: PRACTICE_PACK_DIR)")
+    ap.add_argument("--regrade", default=None, metavar="RUN_ID",
+                    help="grade a finished run again (after a grader fix) without running the models")
     a = ap.parse_args(argv)
 
     pack_dir = _pack_dir(a.pack)
+    if a.regrade:
+        return _regrade(a.regrade, pack_dir)
     profile = apply_overrides(load_profile(a.profile), a.set)
     all_items = load_items(pack_dir)
     items = _select(all_items, a.modality, a.limit)

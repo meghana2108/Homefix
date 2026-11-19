@@ -235,3 +235,20 @@ def test_real_pack_two_images(pack_dir, tmp_path, monkeypatch):
     run_id = er.main(["--profile", "lite", "--modality", "image", "--limit", "2", "--pack", str(pack_dir),
                       "--no-grade"])
     assert len((tmp_path / "raw" / f"{run_id}.jsonl").read_text().splitlines()) == 2
+
+
+def test_regrade_a_finished_run(fake_pack, monkeypatch):
+    """A grader fix shouldn't need a 30-minute re-run: --regrade grades the saved answers again."""
+    d, results = fake_pack
+    run_id = er.main(["--profile", "lite", "--modality", "all", "--pack", str(d), "--no-grade"])
+    (d / grade.ANSWERS_FILE).write_text(json.dumps([{"id": "fake-aud-1", "reference_answer": "dog"}]))
+    monkeypatch.setattr(er, "handle", lambda *a, **k: pytest.fail("regrade must not run the models"))
+    assert er.main(["--regrade", run_id, "--pack", str(d)]) == run_id
+    graded = [json.loads(ln) for ln in (results / "raw" / f"{run_id}_graded.jsonl").read_text().splitlines()]
+    assert {g["item_id"]: g["hit"] for g in graded}["fake-aud-1"] is True
+
+
+def test_regrade_missing_run(fake_pack):
+    d, _ = fake_pack
+    with pytest.raises(SystemExit, match="No run"):
+        er.main(["--regrade", "20260101-0000-lite-all", "--pack", str(d)])

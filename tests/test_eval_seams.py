@@ -109,6 +109,16 @@ def test_refs_dict_format(tmp_path):
     assert load_refs(p)["fake-img-1"] == {"answer": "3"}
 
 
+def test_refs_use_the_pack_answer_key(tmp_path):
+    """The practice pack names the answer "reference_answer" (its README); graders read REF_KEYS["answer"]."""
+    p = write_pack(tmp_path, FAKE_ITEMS, refs=[{"id": "fake-img-1", "reference_answer": "3 (3 zebras)",
+                                                 "answerable": True}])
+    ref = load_refs(p)["fake-img-1"]
+    assert ref[REF_KEYS["answer"]] == "3 (3 zebras)" and ref["answerable"] is True
+    items = {i.id: i for i in load_items(p)}
+    assert grade_run([record("fake-img-1", "image")], items, {"fake-img-1": ref})[0].metric != "missing_ref"
+
+
 def test_no_refs(tmp_path):
     assert not refs_available(write_pack(tmp_path, FAKE_ITEMS))
 
