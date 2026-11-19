@@ -105,3 +105,36 @@ def test_code_module_equal_to_test_stem(tmp_path):
 def test_image_count_without_reference():
     r = image.grade(_item("image"), _ours("image", "4", "count"), {})
     assert not r.hit and r.note == "no reference answer"
+
+
+# HumanEval-style test files (the practice pack's format): no import of our code, a check(candidate)
+# function and a top-level call, and no test_ function for pytest to collect.
+HUMANEVAL_STYLE = ("def check(candidate):\n    assert candidate(1, 2) == 3\n    assert candidate(-1, 1) == 0\n\n\n"
+                   "check(add)\n")
+
+
+def test_code_humaneval_style_pass_and_fail(tmp_path):
+    p = _write(tmp_path, "fake_code_1_test.py", HUMANEVAL_STYLE)
+    ok = code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b):\n    return a + b\n"), {})
+    bad = code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b):\n    return a - b\n"), {})
+    assert ok.hit, ok.note
+    assert not bad.hit
+
+
+def test_code_humaneval_style_uses_entry_point_when_no_call(tmp_path):
+    p = _write(tmp_path, "fake_code_2_test.py", "def check(candidate):\n    assert candidate(2, 2) == 4\n")
+    r = code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b):\n    return a + b\n"),
+                   {"entry_point": "add"})
+    assert r.hit, r.note
+
+
+def test_code_humaneval_style_missing_function_is_a_miss(tmp_path):
+    p = _write(tmp_path, "fake_code_3_test.py", HUMANEVAL_STYLE)
+    r = code.grade(_item("code", test_path=p), _ours("code", code="def plus(a, b):\n    return a + b\n"), {})
+    assert not r.hit
+
+
+def test_code_humaneval_style_leaves_the_pack_file_alone(tmp_path):
+    p = _write(tmp_path, "fake_code_4_test.py", HUMANEVAL_STYLE)
+    code.grade(_item("code", test_path=p), _ours("code", code="def add(a, b):\n    return a + b\n"), {})
+    assert p.read_text() == HUMANEVAL_STYLE
