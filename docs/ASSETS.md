@@ -10,7 +10,9 @@ Nothing copyrighted is committed. Gitignored folders: `practice_pack/`, `data/ma
 | `data/smartplug_fridge.csv` | repo | Synthetic, `scripts/make_smartplug_csv.py` | MIT | Yes |
 | Appliance manuals (PDF) | `data/manuals/` | Manufacturer support sites; record the exact URL per file below | Manufacturer copyright | **Never** (HARD RULE 6) |
 | Appliance beeps / noises | `data/assets/private/` | Recorded by us, or CC0 clips from Freesound (record URL + license) | Ours / CC0 | No (media) |
-| Error-display photos | `data/assets/private/` | Photographed by us | Ours | No (media) |
+| `washer_end_of_cycle_beep_synthetic.wav` | `data/assets/private/` | Made by us: `scripts/make_demo_assets.py` (five 2.4 kHz beeps over a drum hum, 16 kHz mono, 4.8 s) | MIT | No (media); the script is committed |
+| `washer_display_e21_synthetic.jpg`, `washer_display_e21_closeup_synthetic.jpg` | `data/assets/private/` | Made by us: `scripts/make_demo_assets.py` (washer panel with a 7-segment "E21", phone-photo blur and noise; `--code` for others) | MIT | No (media); the script is committed |
+| Error-display photos (real) | `data/assets/private/` | Photographed by us | Ours | No (media) |
 | PWA icons | `frontend/public/icons/` | Made by us | MIT | Yes |
 
 ## Manuals to download (fill in)
@@ -20,10 +22,28 @@ e.g. `washer_lg_wm3400.pdf`. The file stem is the `manual_id` the UI sends, and
 
 | File name in `data/manuals/` | Appliance | Brand / model | Download URL |
 |---|---|---|---|
-| | Washing machine | | |
+| `washer_aeg_l6fbj741n.pdf` | Washing machine | AEG L6FBJ741N (front loader, 40 pages) | https://www.appliancesdirect.co.uk/PDFs/L6FBJ741N_usermanual1.PDF (retailer copy of AEG's user manual; downloaded 2026-11-19) |
 | | Dishwasher | | |
 | | Refrigerator | | |
 | | Microwave | | |
+
+### What the demo assets do (checked on the M2, `lite`, 2026-11-19)
+- **G1, synthetic beep:** `uv run python -m app.cli "what is this sound?" --file data/assets/private/washer_end_of_cycle_beep_synthetic.wav`
+  gives `microwave beeping 19%, washing machine beeping 18%, busy signal 11%`: in the top 3, but only
+  1 point behind "microwave beeping". Plain beeps without the hum don't reach the top 3. **A real
+  recording of a washer finishing is safer for the demo.**
+- **E21 photo:** the brain reads `E21` 5/5 times on both photos with the M13 display prompt. An earlier
+  version with short, unjoined segments read as "888", "0" or the knob label "Wool"; segments must
+  be long and joined, and unlit segments nearly invisible.
+- **Manual:** AEG lists E21 as a draining fault (AEG support pages), but in this manual, like the 5
+  Electrolux manuals we checked, **alarm codes are drawn as display graphics, not text**: "E21"
+  appears nowhere in the PDF's text. What it does say: "Clean the filter regularly and, especially,
+  if the alarm code appears on the display" (p. 37) and the drain checklist (p. 32). So:
+  - "The washer won't drain. What should I check?" → answer quoted from p. 32.
+  - "What is the warranty period for this washer?" → "The document doesn't contain the answer." (G3)
+  - "What does error code E21 mean…?" (what G2 asks) can't be matched to a code in the text. On
+    2026-11-19 the text pipeline answered "null" with a citation (reported to Meghana).
+- Manual file names: letters, digits, `_`, `.`, `-`; the stem is the `manual_id`.
 
 ## Models
 Downloaded by `scripts/pull_models.sh` into the Ollama and Hugging Face caches (never into the repo). Licenses: Qwen3-VL and Qwen2.5-Coder (Apache 2.0 for the sizes used; check the model card), Gemma 4 (Gemma terms), Whisper (MIT), CLAP (CC0/Apache per model card), bge-small (MIT).
