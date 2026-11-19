@@ -18,7 +18,13 @@ class Verdict:
     ok: bool
     page: int | None
     score: float
-    reason: Literal["ok", "quote_not_found", "number_not_in_quote", "quote_too_short", "no_answer"]
+    reason: Literal["ok", "quote_not_found", "number_not_in_quote", "quote_too_short", "no_answer",
+                    "code_not_in_quote"]
+
+
+def codes_in(text: str) -> set[str]:
+    """Alphanumeric codes such as e21 or 9v (letters and digits in one word)."""
+    return set(re.findall(r"\b(?=\w*\d)(?=\w*[a-z])\w+\b", text.lower()))
 
 
 def normalize(text: str) -> str:
@@ -60,4 +66,6 @@ def verify(answer: str | None, quote: str | None, pages: list[str], cited_page: 
         page = best_i + 1
     if not numbers_in(answer) <= numbers_in(quote or ""):
         return Verdict(False, page, score, "number_not_in_quote")
+    if not codes_in(answer) <= codes_in(quote or ""):
+        return Verdict(False, page, score, "code_not_in_quote")
     return Verdict(True, page, score, "ok")

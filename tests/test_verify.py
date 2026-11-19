@@ -49,3 +49,25 @@ def test_thousands_separator_matches():
 def test_normalize_and_tokens():
     assert normalize("  It’s  “A” – B\n") == "it's \"a\" - b"
     assert estimate_tokens("a b c d e f g h i j") == 13
+
+
+EQ = "Error E21 means the water did not drain"
+
+
+def test_wrong_code_refused():
+    assert verify("Use E22.", EQ, PAGES, 1, 92).reason == "code_not_in_quote"
+
+
+def test_code_in_quote_ok():
+    assert verify("E21 means it did not drain.", EQ, PAGES, 1, 92).ok
+
+
+def test_code_invented_refused():
+    v = verify("It needs a 9V battery.", Q, PAGES, 1, 92)
+    assert v.reason == "code_not_in_quote"
+
+
+def test_code_case_insensitive():
+    v = verify("Error E21 shows when it can't drain.", "error e21 means the water did not drain",
+               PAGES, 1, 92)
+    assert v.ok
