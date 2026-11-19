@@ -29,14 +29,14 @@ results/raw/
 !.env.example
 # ---- model + tool caches ----
 .cache/
-models/
+/models/
 *.safetensors
 *.npz
 *.bin
 *.gguf
-huggingface/
+/huggingface/
 .hf_cache/
-cache/
+/cache/
 # ---- python ----
 .venv/
 __pycache__/
@@ -45,8 +45,8 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 *.egg-info/
-dist/
-build/
+/dist/
+/build/
 # ---- node ----
 node_modules/
 frontend/dist/

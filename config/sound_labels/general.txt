@@ -1,0 +1,381 @@
+# General everyday-sound vocabulary, derived from the AudioSet ontology (CC BY-SA 4.0)
+# by scripts/build_sound_vocab.py. NOT derived from ESC-50 (HARD RULE 3).
+accelerating, revving, vroom
+air brake
+air conditioning
+air horn, truck horn
+aircraft
+aircraft engine
+alarm clock
+ambulance
+applause
+arrow
+artillery fire
+babbling
+baby cry, infant cry
+baby laughter
+background noise
+bang
+bark
+basketball bounce
+bathtub
+battle cry
+bee, wasp, etc.
+beep, bleep
+bellow
+belly laugh
+bicycle
+bird
+bird flight, flapping wings
+bird vocalization, bird call, bird song
+biting
+bleat
+blender
+boat, water vehicle
+boiling
+boing
+booing
+boom
+bouncing
+bow-wow
+breaking
+breathing
+burping, eructation
+burst, pop
+bus
+busy signal
+buzz
+buzzer
+cacophony
+camera
+canidae, dogs, wolves
+cap gun
+car
+car alarm
+car passing by
+cash register
+cat
+caterwaul
+cattle, bovinae
+caw
+cellphone buzz, vibrating alert
+chainsaw
+chatter
+cheering
+chewing, mastication
+chicken, rooster
+child singing
+child speech, kid speaking
+children playing
+children shouting
+chink, clink
+chipmunk
+chirp tone
+chirp, tweet
+chop
+chopping
+chorus effect
+chuckle, chortle
+civil defense siren
+clang
+clapping
+clickety-clack
+clicking
+clip-clop
+clock
+cluck
+clunk
+coin
+computer keyboard
+conversation
+coo
+cough
+crack
+crackle
+creak
+cricket
+croak
+crow
+crowd
+crowing, cock-a-doodle-doo
+crumpling, crinkling
+crunch
+crushing
+crying, sobbing
+cupboard open or close
+cutlery, silverware
+dental drill, dentist's drill
+dial tone
+ding
+ding-dong
+dishes, pots, and pans
+distortion
+dog
+domestic animals, pets
+donkey, ass
+door
+doorbell
+drawer open or close
+drill
+drip
+duck
+echo
+effects unit
+electric shaver, electric razor
+electric toothbrush
+emergency vehicle
+engine starting
+environmental noise
+eruption
+fart
+female singing
+female speech, woman speaking
+filing
+fill
+finger snapping
+fire
+fire alarm
+fire engine, fire truck
+firecracker
+fireworks
+fixed-wing aircraft, airplane
+fizz
+flap
+fly, housefly
+foghorn
+fowl
+frog
+frying
+gargling
+gasp
+gears
+giggle
+goat
+gobble
+goose
+grind
+groan
+growling
+grunt
+gull, seagull
+gunshot, gunfire
+gurgling
+gush
+hair dryer
+hammer
+hands
+heart sounds, heartbeat
+heavy engine
+helicopter
+hiccup
+hiss
+honk
+hoot
+horse
+howl
+hubbub, speech noise, speech babble
+hum
+humming
+ice cream truck, ice cream van
+idling
+insect
+inside, large room or hall
+inside, public space
+inside, small room
+jackhammer
+jet engine
+jingle, tinkle
+kettle whistle
+keys jangling
+knock
+laughter
+lawn mower
+light engine
+livestock, farm animals, working animals
+machine gun
+mains hum
+male singing
+male speech, man speaking
+mechanical fan
+medium engine
+meow
+microwave oven
+moo
+mosquito
+motor vehicle
+motorboat, speedboat
+motorcycle
+mouse
+music
+narration, monologue
+neigh, whinny
+nicker
+noise
+non-motorized land vehicle
+ocean
+oink
+outside, rural or natural
+outside, urban or manmade
+owl
+packing tape, duct tape
+pant
+pig
+pigeon, dove
+ping
+pink noise
+plop
+police car
+pour
+power tool
+power windows, electric windows
+printer
+propeller, airscrew
+puff
+pulleys
+pulse
+pump
+purr
+quack
+race car, auto racing
+radio
+rail transport
+railroad car, train wagon
+rain
+rain on surface
+raindrop
+rapping
+ratchet, pawl
+rattle
+reverberation
+reversing beeps
+ringtone
+roar
+roaring cats
+rodents, rats, mice
+rowboat, canoe, kayak
+rub
+rumble
+run
+rustle
+rustling leaves
+sailboat, sailing ship
+sanding
+sawing
+scissors
+scrape
+scratch
+screaming
+screech
+sewing machine
+shatter
+sheep
+ship
+shout
+shuffle
+shuffling cards
+sigh
+silence
+sine wave
+singing
+single-lens reflex camera
+sink
+siren
+sizzle
+skateboard
+skidding
+slam
+slap, smack
+sliding door
+slosh
+smash, crash
+smoke detector, smoke alarm
+snake
+snap
+sneeze
+snicker
+sniff
+snoring
+snort
+sonar
+sound effect
+speech
+speech synthesizer
+splash, splatter
+splinter
+spray
+squawk
+squeak
+squeal
+squish
+static
+steam
+steam whistle
+stir
+stomach rumble
+stream
+subway, metro, underground
+synthetic singing
+tap
+tearing
+telephone
+telephone bell ringing
+telephone dialing, dtmf
+television
+throat clearing
+throbbing
+thump, thud
+thunder
+thunderstorm
+thunk
+tick
+tick-tock
+tire squeal
+toilet flush
+toot
+toothbrush
+traffic noise, roadway noise
+train
+train horn
+train wheels squealing
+train whistle
+trickle, dribble
+truck
+turkey
+twang
+typewriter
+typing
+vacuum cleaner
+vehicle horn, car horn, honking
+velcro, hook and loop fastener
+wail, moan
+walk, footsteps
+water
+water tap, faucet
+waterfall
+waves, surf
+whack, thwack
+whale vocalization
+wheeze
+whimper
+whip
+whir
+whispering
+whistle
+whistling
+white noise
+whoop
+whoosh, swoosh, swish
+wild animals
+wildfire
+wind
+wind noise
+wobble
+wolf-whistling
+writing
+yak
+yawn
+yell
+yip
+yodeling
+zing
+zipper

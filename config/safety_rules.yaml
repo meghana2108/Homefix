@@ -1,0 +1,28 @@
+# Deterministic pre-filter. Runs on every text message BEFORE any model.
+# If any pattern matches (case-insensitive regex, word boundaries), the fixed message is returned verbatim.
+patterns:
+  gas:
+    - '\b(smell|smells|smelling|odou?r)\b.{0,40}\bgas\b'
+    - '\bgas\b.{0,40}\b(smell|leak|leaking|odou?r|hiss|hissing)\b'
+    - '\brotten eggs?\b'
+  sparks:
+    - '\bspark(s|ing|ed)?\b'
+    - '\barc(ing)?\b.{0,20}\b(outlet|plug|wire|socket)\b'
+  smoke_fire:
+    - '\bsmok(e|ing|y)\b'
+    - '\bburn(ing|t|ed)?\b.{0,20}\b(smell|plastic|rubber|odou?r)\b'
+    - '\b(fire|flames?|on fire)\b'
+    - '\bmelt(ed|ing)\b.{0,20}\b(plug|cord|outlet|wire)\b'
+  exposed_wires:
+    - '\b(exposed|bare|frayed|stripped)\s+(wire|wires|wiring|cable|cord)\b'
+  water_electric:
+    - '\bwater\b.{0,40}\b(outlet|socket|plug|electrical|breaker|panel)\b'
+    - '\b(outlet|socket|plug|breaker|panel)\b.{0,40}\b(wet|water|flood|flooded|leak)\b'
+  shock:
+    - '\b(electric )?shock(ed)?\b'
+message: >-
+  ⚠️ This could be dangerous. Stop using the appliance now.
+  If it's safe to do so, switch it off and unplug it (or turn off its breaker) — do not touch anything wet or sparking.
+  If you smell gas: do not use switches, flames, or your phone indoors; leave the building and call your gas utility's emergency line or 911 from outside.
+  If there is smoke or fire, leave and call 911.
+  Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.

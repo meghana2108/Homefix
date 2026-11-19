@@ -1,0 +1,28 @@
+# MacBook Pro M4, 16 GB unified memory. Demo inference server.
+# Model budget target: <= 11 GB resident. Tags verified against registry.ollama.ai on 2026-11-18.
+name: full
+models:
+  brain: qwen3-vl:8b          # bake-off candidates: gemma4:e4b (6.6 GB), qwen3-vl:4b (3.3 GB), qwen3-vl:8b (6.2 GB)
+  coder: qwen2.5-coder:3b     # alt: qwen2.5-coder:7b (4.7 GB, swapped in), or the brain itself
+  whisper_file: mlx-community/whisper-large-v3-turbo
+  whisper_live: mlx-community/whisper-small.en-mlx
+  clap: laion/clap-htsat-unfused
+  embeddings: BAAI/bge-small-en-v1.5
+resident: [brain, coder, whisper_file, whisper_live, clap, embeddings]
+keep_alive:                   # Ollama keep_alive; -1 = forever, 0 = unload now
+  brain: -1
+  coder: -1
+image:
+  max_side: 1280
+video:
+  frames: 16
+  frame_side: 448
+  read_extra_frames: 2        # sharpest frames at native resolution for read questions
+text:
+  full_doc_max_tokens: 6000   # above this, switch to RAG
+  rag_top_k: 5
+  quote_fuzz_threshold: 92    # tuned on practice text items in Phase 3
+brain_num_ctx: 16384
+code:
+  selfcheck_timeout_s: 10
+  max_retries: 1

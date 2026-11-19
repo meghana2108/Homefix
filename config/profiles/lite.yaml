@@ -1,0 +1,29 @@
+# MacBook Air M2, 8 GB unified memory. Proves the app runs on 8 GB; demo backup.
+# Only ONE Ollama LLM resident at a time (OLLAMA_MAX_LOADED_MODELS=1).
+name: lite
+models:
+  brain: qwen3-vl:2b          # 1.9 GB. gemma4:e2b is 4.6 GB on disk - likely too big next to Whisper+CLAP on 8 GB; bake off anyway
+  coder: qwen2.5-coder:3b     # swapped in on demand (brain unloaded with keep_alive 0)
+  whisper_file: mlx-community/whisper-small.en-mlx
+  whisper_live: mlx-community/whisper-small.en-mlx
+  clap: laion/clap-htsat-unfused
+  embeddings: BAAI/bge-small-en-v1.5
+resident: [brain, whisper_file, clap, embeddings]
+swap: [coder]
+keep_alive:
+  brain: -1
+  coder: 120                  # seconds; unloaded after a short idle so the brain can come back
+image:
+  max_side: 1280
+video:
+  frames: 8
+  frame_side: 448
+  read_extra_frames: 2
+text:
+  full_doc_max_tokens: 6000
+  rag_top_k: 5
+  quote_fuzz_threshold: 92
+brain_num_ctx: 8192
+code:
+  selfcheck_timeout_s: 10
+  max_retries: 1
