@@ -5,11 +5,11 @@ All tags verified on 2026-11-18 against `registry.ollama.ai` (manifest HTTP 200)
 ## Candidates
 | Role | Candidate | Size | Profile | Runtime | Why consider |
 |---|---|---|---|---|---|
-| Vision + text brain | `qwen3-vl:8b` | 6.2 GB | full | Ollama | Strong OCR and counting for its size; native multi-image |
-| | `gemma4:e4b` | 6.6 GB | full | Ollama | Multimodal Gemma, efficient "effective 4B" |
+| Vision + text brain | `qwen3-vl:8b-instruct` | 6.2 GB | full | Ollama | Strong OCR and counting for its size; native multi-image. Instruct tag: the plain tag thinks by default (D14) |
+| | `gemma4:e4b` | 9.5 GB on disk | full | Ollama | Multimodal Gemma, efficient "effective 4B". ⚠️ 9.5 GB next to the coder and Whisper is over the 11 GB target |
 | | `qwen3-vl:4b` | 3.3 GB | full / lite stretch | Ollama | Leaves headroom for 7B coder on full |
-| | `qwen3-vl:2b` | 1.9 GB | lite | Ollama | Fits 8 GB next to Whisper + CLAP |
-| | `gemma4:e2b` | 4.6 GB | lite | Ollama | ⚠️ 4.6 GB on disk; may not fit 8 GB with the rest |
+| | `qwen3-vl:2b-instruct` | 1.9 GB | lite | Ollama | Fits 8 GB next to Whisper + CLAP. Instruct tag: the plain tag ignores think=False with images (D11) |
+| | `gemma4:e2b` | 7.5 GB on disk | lite | Ollama | ⚠️ 7.5 GB on disk; does not fit 8 GB with the rest |
 | Code | `qwen2.5-coder:3b` | 1.9 GB | both | Ollama | Small, good HumanEval for size, can stay resident |
 | | `qwen2.5-coder:7b` | 4.7 GB | full (swap) | Ollama | Higher pass@1; costs a swap |
 | | *the brain itself* | — | both | Ollama | Zero swap; check its pass@1 |
