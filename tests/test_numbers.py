@@ -19,3 +19,13 @@ def test_numbers_in_digits():
 
 def test_numbers_in_word():
     assert numbers_in("four times") == {"4"}
+
+
+def test_numbers_in_thousands_separator():
+    assert numbers_in("1,101") == {"1101"}
+    assert numbers_in("1101") == {"1101"}
+    assert numbers_in("1,101 and 2,500,000") == {"1101", "2500000"}
+
+
+def test_numbers_in_list_comma_is_not_separator():
+    assert numbers_in("1, 2 and 3") == {"1", "2", "3"}

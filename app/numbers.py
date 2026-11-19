@@ -9,6 +9,7 @@ NUMBER_WORDS = {w: i for i, w in enumerate([
     "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"])}
 _INT = re.compile(r"\b(\d+|" + "|".join(NUMBER_WORDS) + r")\b", re.IGNORECASE)
 _ANY = re.compile(r"\b(\d+(?:\.\d+)?|" + "|".join(NUMBER_WORDS) + r")\b", re.IGNORECASE)
+_THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}\b)")
 
 
 def first_int(text: str) -> int | None:
@@ -22,6 +23,7 @@ def first_int(text: str) -> int | None:
 def numbers_in(text: str) -> set[str]:
     """Normalized numbers: "30", "2.5"; number words become digits ("four" -> "4")."""
     out: set[str] = set()
+    text = _THOUSANDS.sub("", text)
     for m in _ANY.finditer(text):
         tok = m.group(1).lower()
         out.add(str(NUMBER_WORDS[tok]) if tok in NUMBER_WORDS else tok)
