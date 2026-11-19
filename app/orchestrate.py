@@ -1,0 +1,154 @@
+"""The single entry point for the API, the CLI and eval.
+
+handle(): converting -> upload limits -> normalize -> empty check -> safety -> router -> pipeline.
+Every stream ends with exactly one Final (latency_ms set here). A refusal or error comes right
+before it. A crash anywhere becomes Error(retryable=True); the next request is unaffected.
+Converted files live in a per-request temp folder that is deleted when the stream ends.
+"""
+
+from __future__ import annotations
+
+import importlib
+import shutil
+import tempfile
+import time
+from collections.abc import Iterator
+from pathlib import Path, PurePath
+
+from app.contracts import (
+    MESSAGES,
+    Attachment,
+    Ctx,
+    Error,
+    Event,
+    Final,
+    Modality,
+    PipelineRequest,
+    QuestionType,
+    Refusal,
+    Stage,
+    Status,
+    UnsupportedFile,
+    final_for,
+)
+from app.media.convert import normalize
+from app.models.memory import MemoryManager
+from app.models.ollama_client import OllamaBackend
+from app.router import route
+from app.safety import check, refusal_for
+from app.settings import load_profile
+
+
+def build_ctx(profile_name: str | None = None) -> Ctx:
+    profile = load_profile(profile_name)
+    return Ctx(profile, MemoryManager(profile, OllamaBackend()),
+               deadline_s=profile.server.model_call_timeout_s)
+
+
+class _Stop(Exception):
+    """Internal: a refusal or error ended the flow before a pipeline ran."""
+
+    def __init__(self, event: Refusal | Error, modality: Modality = "none", question_type: QuestionType = "none"):
+        self.event, self.modality, self.question_type = event, modality, question_type
+
+
+def _size(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0  # missing file -> normalize says "That file is empty."
+
+
+def _convert(files: list[Path], names: list[str], ctx: Ctx, workdir: Path) -> Iterator[Event | Attachment]:
+    server = ctx.profile.server
+    if len(files) > server.max_files:
+        raise _Stop(Refusal(reason="unsupported_file", message=MESSAGES["too_many_files"]))
+    limit = server.max_file_mb * 1024 * 1024
+    if any(_size(f) > limit for f in files):
+        raise _Stop(Refusal(reason="too_large", message=MESSAGES["too_large"]))
+    for f, name in zip(files, names, strict=True):
+        try:
+            att = normalize(f, name, ctx.profile, workdir)
+        except UnsupportedFile as e:
+            raise _Stop(Refusal(reason="unsupported_file", message=str(e))) from e
+        for note in att.notes:
+            yield Status(stage="converting", detail=note)
+        yield att
+
+
+def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, names: list[str],
+          attachments: list[Attachment] | None, workdir: Path, state: dict) -> Iterator[Event]:
+    yield Status(stage="converting")
+    if attachments is None:
+        attachments = []
+        for item in _convert(files, names, ctx, workdir):
+            if isinstance(item, Attachment):
+                attachments.append(item)
+            else:
+                yield item
+
+    text = message.strip()
+    if not text and not attachments:
+        raise _Stop(Refusal(reason="empty_input", message=MESSAGES["empty_input"]))
+
+    state["stage"] = "safety_check"
+    yield Status(stage="safety_check")
+    hit = check(text)
+    if hit:
+        raise _Stop(refusal_for(hit))
+
+    state["stage"] = "routing"
+    yield Status(stage="routing")
+    r = route(text, attachments, manual_id)
+    if r.refusal:
+        raise _Stop(r.refusal, r.modality, r.question_type)
+    if r.note:
+        yield Status(stage="routing", detail=r.note)
+    state["modality"], state["question_type"] = r.modality, r.question_type
+    if r.modality == "code":
+        try:
+            ctx.memory.prefetch("coder")  # no-op on lite
+        except Exception:  # noqa: BLE001, S110 - prefetch is only a speed-up
+            pass
+
+    module = importlib.import_module(f"app.pipelines.{r.modality}")
+    req = PipelineRequest(text, attachments, r.question_type, manual_id)
+    yield from module.run(req, ctx)
+
+
+def handle(message: str, files: list[Path], manual_id: str | None, ctx: Ctx,
+           original_names: list[str] | None = None,
+           attachments: list[Attachment] | None = None) -> Iterator[Event]:
+    """Run one request. `attachments`, when given, skips conversion (eval's inline documents)."""
+    t0 = time.perf_counter()
+    files = [Path(f) for f in files]
+    names = [PurePath(n).name for n in original_names] if original_names else [f.name for f in files]
+    if len(names) != len(files):
+        names = [f.name for f in files]
+    workdir = Path(tempfile.mkdtemp(prefix="homefix_conv_"))
+    state: dict = {"stage": "converting", "modality": "none", "question_type": "none"}
+    final: Final | None = None
+
+    def stamp(f: Final) -> Final:
+        return f.model_copy(update={"latency_ms": int((time.perf_counter() - t0) * 1000)})
+
+    try:
+        try:
+            for ev in _flow(message, files, manual_id, ctx, names, attachments, workdir, state):
+                if isinstance(ev, Final):
+                    final = final or ev  # keep the first; a pipeline must send only one
+                    continue
+                if isinstance(ev, Status):
+                    state["stage"] = ev.stage
+                yield ev
+        except _Stop as stop:
+            yield stop.event
+            final = final_for(ctx, stop.modality, stop.question_type)
+        except Exception:  # noqa: BLE001 - any crash becomes a message; the app keeps serving
+            stage: Stage = state["stage"]
+            where = state["modality"] if state["modality"] != "none" else stage.replace("_", " ")
+            yield Error(stage=stage, message=MESSAGES["pipeline_crash"].format(modality=where), retryable=True)
+            final = final_for(ctx, state["modality"], state["question_type"])
+        yield stamp(final or final_for(ctx, state["modality"], state["question_type"]))
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
