@@ -23,6 +23,7 @@ def test_chirp_is_a_sound():
     assert c.kind == "sound"
     assert c.seconds <= 10
     assert (c.start, c.seconds, c.gain_db) == (38.0, 9.0, 20.0)  # the window HomeFix hears as a smoke-alarm chirp
+    assert all(x.gain_db == 0 for x in f.COMMONS if x is not c)  # only the quiet chirp is amplified
 
 
 def test_pinned_list_is_clean():
