@@ -19,12 +19,15 @@ const fin = (modality = "image", answer = "ok"): object =>
 const st = (stage: string, detail: string | null = null, ms: number | null = null) => ({ type: "status", stage, detail, ms });
 
 describe("routes", () => {
-  it("#/ask is the workspace, everything else the front door", () => {
+  it("#/ask is the workspace, #/demo the pitch demo, everything else the front door", () => {
     expect(routeOf("#/ask")).toBe("ask");
     expect(routeOf("#/ask/x")).toBe("ask");
     expect(routeOf("")).toBe("landing");
     expect(routeOf("#why")).toBe("landing");
     expect(routeOf("#/asking")).toBe("landing");
+    expect(routeOf("#/demo")).toBe("demo");
+    expect(routeOf("#/demo/x")).toBe("demo");
+    expect(routeOf("#/demos")).toBe("landing");
   });
 });
 
