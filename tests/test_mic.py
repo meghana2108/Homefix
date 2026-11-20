@@ -13,7 +13,14 @@ from tests import media_fixtures as mf
 
 
 @pytest.fixture
-def client(ctx_lite):
+def warmed(monkeypatch):
+    calls = []
+    monkeypatch.setattr(mic, "_warm", lambda repo: calls.append(repo))
+    return calls
+
+
+@pytest.fixture
+def client(ctx_lite, warmed):
     app.state.ctx = ctx_lite
     yield TestClient(app)
     del app.state.ctx
@@ -168,3 +175,44 @@ def test_silence_is_not_speech(client, monkeypatch):
         ws.receive_json()
         ws.send_json({"type": "stop"})
         assert ws.receive_json() == {"type": "final", "text": "", "speech": False}
+
+
+def test_whisper_starts_loading_when_the_mic_opens(client, warmed, fake_asr, ctx_lite):
+    """The first transcript used to wait ~10 s for Whisper to load, and every chunk queued behind it."""
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_json({"type": "stop"})
+        ws.receive_json()
+    assert warmed == [ctx_lite.profile.models.whisper_live]
+
+
+def test_chunks_that_arrive_during_a_transcript_are_folded_into_the_next_one(client, monkeypatch, ctx_lite):
+    """Stop waits for at most one transcript in progress, not one per chunk; the final hears every chunk."""
+    import threading
+    gate = threading.Event()
+    seen = []
+
+    def to_wav(src, dst):
+        dst.write_bytes(b"RIFF")
+        seen.append(src.stat().st_size)
+        return True
+
+    def transcribe(path, repo):
+        gate.wait(5)
+        return TranscriptResult(text="beep", seconds=1.0, mean_no_speech_prob=0.9)
+    monkeypatch.setattr(mic, "_to_wav", to_wav)
+    monkeypatch.setattr(mic, "transcribe", transcribe)
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"aa")        # transcript 1 starts and blocks
+        ws.send_bytes(b"bb")        # arrive while it runs
+        ws.send_bytes(b"cc")
+        ws.send_json({"type": "stop"})
+        gate.set()
+        msgs = []
+        while True:
+            m = ws.receive_json()
+            msgs.append(m)
+            if m["type"] == "final":
+                break
+    assert msgs[-1] == {"type": "final", "text": "", "speech": False}
+    assert len(seen) <= 2          # one live transcript, then the final, instead of 3 + 1
+    assert seen[-1] == 6           # the final covers all three chunks

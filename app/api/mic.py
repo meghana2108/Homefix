@@ -12,6 +12,7 @@ text box; sending it is the user's choice, and the safety filter runs then, as f
 
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
 import subprocess
@@ -55,8 +56,25 @@ def _transcript(rec: Path, wav: Path, repo: str) -> TranscriptResult | None:
     return transcribe(wav, repo)
 
 
+def _warm(repo: str) -> None:
+    """Load Whisper now (half a second of silence), so the first partial doesn't wait ~10 s for it."""
+    import numpy as np
+    import soundfile as sf
+
+    tmp = Path(tempfile.mkdtemp(prefix="homefix_warm_"))
+    try:
+        sf.write(tmp / "silence.wav", np.zeros(8000, dtype=np.float32), 16000)
+        transcribe(tmp / "silence.wav", repo)
+    except Exception:  # noqa: BLE001, S110 - warming is only a speed-up; real errors surface on the real call
+        pass
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 @router.websocket("/api/mic")
 async def mic(ws: WebSocket) -> None:
+    """One live transcript at a time: chunks that arrive while one runs are folded into the next, so stop
+    waits for at most one transcript in progress, then the final pass."""
     from app.api.main import get_ctx
 
     await ws.accept()
@@ -64,11 +82,31 @@ async def mic(ws: WebSocket) -> None:
     models, max_no_speech = profile.models, profile.audio.speech_max_no_speech_prob
     tmp = Path(tempfile.mkdtemp(prefix="homefix_mic_"))
     rec, wav = tmp / "recording.webm", tmp / "recording.wav"
-    size, last = 0, ""
+    state = {"size": 0, "last": "", "new_audio": False, "failed": False}
+    warm = asyncio.ensure_future(run_in_threadpool(_warm, models.whisper_live))
+    live: asyncio.Future | None = None
+
+    async def partials() -> None:
+        await warm
+        try:
+            while state["new_audio"] and not state["failed"]:
+                state["new_audio"] = False
+                text = await run_in_threadpool(_text, rec, wav, models.whisper_live)
+                state["last"] = text if text is not None else state["last"]
+                await ws.send_json({"type": "partial", "text": state["last"]})
+        except ModelUnavailable as e:  # runs beside the receive loop, so it reports the error itself
+            state["failed"] = True
+            await ws.send_json({"type": "error", "message": str(e)})
 
     async def finish() -> None:
-        text, speech = last, bool(last.strip())
-        if size:
+        state["new_audio"] = False   # the final pass hears everything; no more partials
+        if live is not None:
+            await live
+        await warm
+        if state["failed"]:
+            return
+        text, speech = state["last"], bool(state["last"].strip())
+        if state["size"]:
             tr = await run_in_threadpool(_transcript, rec, wav, models.whisper_file)
             if tr is not None:
                 speech = is_speech("none", tr, max_no_speech)
@@ -82,15 +120,15 @@ async def mic(ws: WebSocket) -> None:
                 return
             data = msg.get("bytes")
             if data is not None:
-                size += len(data)
+                state["size"] += len(data)
                 with rec.open("ab") as f:
                     f.write(data)
-                if size > MAX_BYTES:
+                if state["size"] > MAX_BYTES:
                     await finish()
                     break
-                text = await run_in_threadpool(_text, rec, wav, models.whisper_live)
-                last = text if text is not None else last
-                await ws.send_json({"type": "partial", "text": last})
+                state["new_audio"] = True
+                if live is None or live.done():
+                    live = asyncio.ensure_future(partials())
                 continue
             try:
                 cmd = json.loads(msg.get("text") or "")
@@ -104,5 +142,8 @@ async def mic(ws: WebSocket) -> None:
     except WebSocketDisconnect:
         return
     finally:
+        for task in (live, warm):
+            if task is not None and not task.done():
+                task.cancel()
         shutil.rmtree(tmp, ignore_errors=True)
     await ws.close()

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Mic, Square } from "lucide-react";
 import { wsUrl } from "../api/client";
 import { Icon } from "./Icons";
@@ -30,12 +30,21 @@ function soundFile(chunks: Blob[], mime: string): File {
  * hands over the final text. When the server says it wasn't speech (an alarm, a beep, a drip), it hands
  * over the recording itself instead, so it can be sent as a sound. It never sends a chat message itself.
  */
-export function MicButton({ onPartial, onFinal, onSound, disabled = false }: {
+/** Lets the composer stop the mic when Ask is pressed mid-recording, and wait for its result. */
+export interface MicHandle {
+  /** Recording, or already stopping: a final (or an error) is still to come. */
+  busy: () => boolean;
+  stop: () => void;
+}
+
+export const MicButton = forwardRef<MicHandle, {
   onPartial: (text: string) => void;
   onFinal: (text: string) => void;
   onSound?: (file: File) => void;
+  /** The mic gave up (no permission, server error, socket closed, too slow). */
+  onFail?: () => void;
   disabled?: boolean;
-}) {
+}>(function MicButton({ onPartial, onFinal, onSound, onFail, disabled = false }, ref) {
   const [state, setState] = useState<"idle" | "starting" | "recording" | "finishing">("idle");
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
@@ -47,8 +56,8 @@ export function MicButton({ onPartial, onFinal, onSound, disabled = false }: {
   const mime = useRef("");
   const timers = useRef<number[]>([]);
   // latest callbacks, so text typed while recording isn't lost when the final arrives
-  const cb = useRef({ onPartial, onFinal, onSound });
-  cb.current = { onPartial, onFinal, onSound };
+  const cb = useRef({ onPartial, onFinal, onSound, onFail });
+  cb.current = { onPartial, onFinal, onSound, onFail };
 
   const cleanup = () => {
     timers.current.forEach((t) => window.clearInterval(t));
@@ -72,6 +81,7 @@ export function MicButton({ onPartial, onFinal, onSound, disabled = false }: {
     setError(msg);
     cb.current.onPartial("");
     cleanup();
+    cb.current.onFail?.();
   };
 
   const start = async () => {
@@ -130,12 +140,18 @@ export function MicButton({ onPartial, onFinal, onSound, disabled = false }: {
   };
 
   const stop = () => {
+    if (state !== "recording") return;
     setState("finishing");
     stream.current?.getTracks().forEach((t) => t.stop());
     rec.current?.stop();  // its last chunk goes out, then onstop sends {"type":"stop"}
     timers.current.forEach((t) => window.clearInterval(t));
     timers.current = [window.setTimeout(() => { if (!done.current) fail("The transcript took too long. Try again."); }, FINAL_TIMEOUT_MS)];
   };
+
+  useImperativeHandle(ref, () => ({
+    busy: () => state === "recording" || state === "finishing",
+    stop,
+  }));
 
   if (!micSupported()) return null;
   return (
@@ -163,4 +179,4 @@ export function MicButton({ onPartial, onFinal, onSound, disabled = false }: {
       {error && <span className="mic__error" role="alert">{error}</span>}
     </span>
   );
-}
+});

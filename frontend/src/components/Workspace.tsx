@@ -180,12 +180,13 @@ export function Workspace() {
   const askedWith = asking ? sent.current.get(asking.id) : undefined;
   const replying = asking && askedWith && files.length === 0 ? askedWith : null;
 
-  const send = () => {
+  const send = (what?: { text: string; files: File[] }) => {
     if (busy) return;
-    const typed = text.trim();
-    const req = replying && typed
+    const typed = (what?.text ?? text).trim();
+    const withFiles = what?.files ?? files;
+    const req = replying && typed && withFiles.length === 0
       ? { text: replying.text ? `${replying.text}\n${typed}` : typed, files: replying.files, manualId: replying.manualId }
-      : { text: typed, files, manualId: manuals.length > 0 ? manualId : null };
+      : { text: typed, files: withFiles, manualId: manuals.length > 0 ? manualId : null };
     setText("");
     setFiles([]);
     void run(req);

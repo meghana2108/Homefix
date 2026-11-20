@@ -178,4 +178,46 @@ describe("Composer with the mic", () => {
     act(() => FakeWS.last.server({ type: "final", text: "", speech: false }));
     expect(onText).not.toHaveBeenCalled();
   });
+
+  it("Ask while recording a sound stops the mic and sends the question with the recording", async () => {
+    const onSend = vi.fn();
+    render(<Composer text="What is this?" onText={() => {}} files={[]} onFiles={() => {}} onSend={onSend} busy={false} note={null} />);
+    await startRecording();
+    act(() => FakeRecorder.last.chunk("beep"));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Ask$/ })); });
+    expect(FakeWS.last.sent[FakeWS.last.sent.length - 1]).toBe(JSON.stringify({ type: "stop" }));  // the mic stopped
+    expect(onSend).not.toHaveBeenCalled();  // waits for the recording
+    expect(screen.getByRole("button", { name: /Stopping the mic/ })).toBeDisabled();
+    act(() => FakeWS.last.server({ type: "final", text: "", speech: false }));
+    expect(onSend).toHaveBeenCalledTimes(1);
+    const sent = onSend.mock.calls[0][0] as { text: string; files: File[] };
+    expect(sent.text).toBe("What is this?");
+    expect(sent.files.map((f) => f.name)[0]).toMatch(/^mic-sound-/);
+  });
+
+  it("Ask while dictating sends the spoken words too", async () => {
+    const onSend = vi.fn();
+    render(<Composer text="" onText={() => {}} files={[]} onFiles={() => {}} onSend={onSend} busy={false} note={null} />);
+    await startRecording();
+    await act(async () => { fireEvent.keyDown(screen.getByLabelText("Question"), { key: "Enter" }); });
+    act(() => FakeWS.last.server({ type: "final", text: "my washer shows E21", speech: true }));
+    expect(onSend).toHaveBeenCalledWith({ text: "my washer shows E21", files: [] });
+  });
+
+  it("Ask still sends what's there if the mic fails while stopping", async () => {
+    const onSend = vi.fn();
+    render(<Composer text="Is this normal?" onText={() => {}} files={[]} onFiles={() => {}} onSend={onSend} busy={false} note={null} />);
+    await startRecording();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Ask$/ })); });
+    act(() => FakeWS.last.server({ type: "error", message: "The whisper model isn't installed." }));
+    expect(onSend).toHaveBeenCalledWith({ text: "Is this normal?", files: [] });
+  });
+
+  it("Ask without the mic sends as before", async () => {
+    const onSend = vi.fn();
+    render(<Composer text="hi" onText={() => {}} files={[]} onFiles={() => {}} onSend={onSend} busy={false} note={null} />);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Ask$/ })); });
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onSend.mock.calls[0][0]).toBeUndefined();
+  });
 });
