@@ -28,6 +28,15 @@ def codes_in(text: str) -> set[str]:
     return set(re.findall(r"\b(?=\w*\d)(?=\w*[a-z])\w+\b", text))
 
 
+def error_codes_in(text: str) -> set[str]:
+    """Display error codes asked about in a question: 1-2 letters then 1-3 digits ("E21", "F-05", "dE4").
+
+    Narrower than codes_in, so "2nd", "60C" and model numbers like "WM3400" are not codes.
+    """
+    text = re.sub(r"\b([a-z]{1,2})-(\d{1,3})\b", r"\1\2", text.lower())
+    return set(re.findall(r"\b[a-z]{1,2}\d{1,3}\b", text))
+
+
 _UNITS = ("v|w|mm|cm|m|km|kg|g|mg|lb|lbs|oz|ml|l|hz|khz|kw|kwh|psi|ft|hr|hrs|h|min|mins|sec|s|pm|am|"
           "f|c|gal|qt")
 _UNIT_GAP = re.compile(r"(?<=\d)\s+(?=(?:" + _UNITS + r")\b)")
@@ -85,7 +94,7 @@ def verify(answer: str | None, quote: str | None, pages: list[str], cited_page: 
         if best_i is None or score < threshold:
             return Verdict(False, None, float(score), "quote_not_found")
         page = best_i + 1
-    if question and not codes_in(glue_units(question)) <= codes_in(glue_units(quote or "")):
+    if question and not error_codes_in(question) <= codes_in(glue_units(quote or "")):
         return Verdict(False, page, score, "question_code_not_in_quote")
     a, qq = glue_units(answer), glue_units(quote or "")
     if not numbers_in(a) <= numbers_in(qq):

@@ -1,3 +1,5 @@
+import pytest
+
 from app.text.verify import estimate_tokens, normalize, verify
 
 PAGES = [
@@ -207,3 +209,38 @@ def test_plain_question_code_matches_hyphen_quote():
 def test_nine_volt_is_not_a_code():
     from app.text.verify import codes_in
     assert codes_in("use a 9 volt battery") == set()
+
+
+WASH = ["Wash cotton at 60 C. Use the delicate programme for wool."]
+
+
+def test_ordinal_in_question_is_not_a_code():
+    v = verify("Wash cotton at 60 C.", "Wash cotton at 60 C.", WASH, 1, 92,
+               question="My 2nd floor washer: what temperature for cotton?")
+    assert v.ok
+
+
+def test_model_number_in_question_is_not_a_code():
+    v = verify("Wash cotton at 60 C.", "Wash cotton at 60 C.", WASH, 1, 92,
+               question="How do I wash cotton at 60C on my LG WM3400?")
+    assert v.ok
+
+
+def test_code_next_to_model_number_still_required():
+    v = verify("The programme did not finish.", "The programme was not finished properly", QPAGES, 2, 92,
+               question="My WM3400 shows E21, what does it mean?")
+    assert not v.ok and v.reason == "question_code_not_in_quote"
+
+
+@pytest.mark.parametrize("q, codes", [
+    ("What does E21 mean?", {"e21"}),
+    ("What is F-05?", {"f05"}),
+    ("It shows LE1 and then dE4", {"le1", "de4"}),
+    ("My 2nd floor washer", set()),
+    ("at 60C on my LG WM3400", set()),
+    ("Which 9V battery?", set()),
+    ("It says h2o", set()),
+])
+def test_error_codes_in_question(q, codes):
+    from app.text.verify import error_codes_in
+    assert error_codes_in(q) == codes
