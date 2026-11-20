@@ -248,3 +248,10 @@ def test_system_prompt_asks_for_short_answer(fake_brain, ctx_full):
     fake_brain(reply("Clean it.", "Clean the drain pump filter every month", 1))
     run(req(), ctx_full)
     assert "at most 2 sentences" in fake_brain.calls[0]["messages"][0]["content"]
+
+
+def test_ordinal_in_question_still_answers(fake_brain, ctx_full):
+    pages = ["Wash cotton at 60 C. Use the delicate programme for wool."]
+    fake_brain(reply("Wash cotton at 60 C.", "Wash cotton at 60 C.", 1))
+    ev = run(req("My 2nd floor washer: what temperature for cotton?", pages), ctx_full)
+    assert of(ev, Citation) and not of(ev, Refusal)

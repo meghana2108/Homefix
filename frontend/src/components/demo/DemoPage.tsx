@@ -16,6 +16,9 @@ export function recordedDate(iso: string): string {
 
 const MISSING_MEDIA = "Run scripts/fetch_real_samples.py";
 
+/** Time between steps while a scene builds up by itself. */
+export const STEP_MS = 1000;
+
 function Photo({ src, caption }: { src: string; caption: string }) {
   const [failed, setFailed] = useState(false);
   return (
@@ -96,14 +99,20 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
   scenes?: Scene[]; recordings?: Partial<Record<SceneId, Recording>>;
 } = {}) {
   const flat: Flat[] = useMemo(() => expandBeats(scenes, recordings), [scenes, recordings]);
+  // ends[s] = index of scene s's last step in flat
+  const ends = useMemo(() => scenes.map((_, s) => flat.map((f) => f.scene).lastIndexOf(s)), [scenes, flat]);
   const [idx, setIdx] = useState(() => {
+    // "#/demo/3" = scene 3, shown complete (a reload or a clicker's F5 does not replay it)
     const n = Number(/^#\/demo\/(\d+)$/.exec(window.location.hash)?.[1]);
-    return Number.isInteger(n) && n >= 1 ? Math.min(n, expandBeats(scenes, recordings).length) - 1 : 0;
+    if (!Number.isInteger(n) || n < 1) return 0;
+    const f = expandBeats(scenes, recordings);
+    return Math.max(0, f.map((x) => x.scene).lastIndexOf(Math.min(n, scenes.length) - 1));
   });
   const [blocked, setBlocked] = useState(false);
   const [audioMissing, setAudioMissing] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const last = flat.length - 1;
 
   const jump = useCallback((scene: number) => {
@@ -117,8 +126,15 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
       const k = e.key;
       const step = k === "ArrowRight" || k === " " || k === "PageDown" || k === "ArrowLeft" || k === "PageUp";
       if (step && e.repeat) { e.preventDefault(); return; }
-      if (k === "ArrowRight" || k === " " || k === "PageDown") { e.preventDefault(); setIdx((i) => Math.min(last, i + 1)); }
-      else if (k === "ArrowLeft" || k === "PageUp") { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)); }
+      if (k === "ArrowRight" || k === " " || k === "PageDown") {
+        // Mid-scene: finish it. Scene done: start the next one.
+        e.preventDefault();
+        setIdx((i) => { const end = ends[flat[i]?.scene ?? 0] ?? last; return i < end ? end : Math.min(last, end + 1); });
+      } else if (k === "ArrowLeft" || k === "PageUp") {
+        // The previous scene, shown complete. On the first scene: start it again.
+        e.preventDefault();
+        setIdx((i) => { const s = flat[i]?.scene ?? 0; return s > 0 ? ends[s - 1] : 0; });
+      }
       else if (k === "Escape") window.location.hash = "#/ask";
       else if (k === "f" || k === "F") {
         if (document.fullscreenElement) void document.exitFullscreen?.();
@@ -127,7 +143,7 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
     };
     window.addEventListener("keydown", on);
     return () => window.removeEventListener("keydown", on);
-  }, [last, jump]);
+  }, [last, jump, ends, flat]);
 
   const cur = flat[Math.min(idx, last)];
   const scene = scenes[cur?.scene ?? 0];
@@ -157,9 +173,26 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
   }, [playing, clip, start]);
 
   useEffect(() => {
-    // replaceState: Back never steps beats, and no hashchange fires (so App doesn't re-render or scroll).
-    try { window.history.replaceState(null, "", `#/demo/${Math.min(idx, last) + 1}`); } catch { /* ignore */ }
-  }, [idx, last]);
+    // A sent clip plays from the start, muted, when its scene opens, so the room sees what the answer is about.
+    const v = stageRef.current?.querySelector("video");
+    if (!v) return;
+    v.muted = true;
+    try { v.currentTime = 0; } catch { /* not loaded yet */ }
+    v.play?.()?.catch?.(() => undefined); // a blocked or missing clip keeps its own controls
+  }, [cur?.scene]);
+
+  const sceneEnd = ends[cur?.scene ?? 0] ?? last;
+  useEffect(() => {
+    // The scene builds up by itself, one step every STEP_MS, until its last step.
+    if (idx >= sceneEnd) return;
+    const t = window.setTimeout(() => setIdx(idx + 1), STEP_MS);
+    return () => window.clearTimeout(t);
+  }, [idx, sceneEnd]);
+
+  useEffect(() => {
+    // replaceState: Back never steps scenes, and no hashchange fires (so App doesn't re-render or scroll).
+    try { window.history.replaceState(null, "", `#/demo/${(cur?.scene ?? 0) + 1}`); } catch { /* ignore */ }
+  }, [cur?.scene]);
 
   useEffect(() => {
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -178,7 +211,7 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
         ))}
       </nav>
 
-      <div className="demo__stage" key={cur.scene} aria-live="polite">
+      <div className="demo__stage" key={cur.scene} ref={stageRef} aria-live="polite">
         {upto.map(({ f, i }) => {
           if (f.kind === "missing") {
             return <p key={i} className="demo__missing" role="note">This scene hasn't been recorded. Run scripts/record_demo.py.</p>;
@@ -205,7 +238,7 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
           Recorded on the {rec.profile === "lite" ? "M2" : "M4"}, {rec.profile} profile, {recordedDate(rec.recorded_at)}
         </p>
       )}
-      <p className="demo__hint" aria-hidden="true">{idx + 1} / {flat.length} &nbsp; → next &nbsp; ← back &nbsp; 1-{scenes.length} scenes &nbsp; F full screen &nbsp; Esc open the app</p>
+      <p className="demo__hint" aria-hidden="true">{cur.scene + 1} / {scenes.length} &nbsp; → next scene &nbsp; ← back &nbsp; 1-{scenes.length} scenes &nbsp; F full screen &nbsp; Esc open the app</p>
     </main>
   );
 }

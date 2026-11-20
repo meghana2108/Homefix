@@ -95,7 +95,8 @@ describe("the front door", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Is it broken, or is it normal?");
     const ask = screen.getAllByRole("link", { name: "Ask about something at home" });
     expect(ask.length).toBeGreaterThan(0);
-    ask.forEach((a) => expect(a).toHaveAttribute("href", "#/ask"));
+    ask.forEach((a) => expect(a).toHaveAttribute("href", "#/demo")); // plays the pitch demo from scene 1
+    expect(screen.getByRole("link", { name: "Open HomeFix" })).toHaveAttribute("href", "#/ask"); // live app
     expect(screen.getByRole("heading", { name: "What HomeFix can't do" })).toBeInTheDocument();
     // no emoji anywhere: icons are lucide SVGs
     expect(container.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
