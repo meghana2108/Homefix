@@ -30,8 +30,8 @@ CASES = [
     ("smoke alarm is going off. it chirps", "smoke_fire"),
     ("the fire alarm is going off, is it the battery?", "smoke_fire"),
     ("is there smoke near my smoke detector", "smoke_fire"),
-    ("the co alarm went off", "gas"),
-    ("my carbon monoxide detector keeps beeping", "gas"),
+    ("the co alarm went off", "co"),
+    ("my carbon monoxide detector keeps beeping", "co"),
     ("smoke detector beeps once a minute", None),
     ("the wires are exposed behind the stove", "exposed_wires"),
     ("the cord is frayed", "exposed_wires"),
@@ -156,10 +156,43 @@ def test_gas_says_leave_and_never_touch_switches():
     assert "leave" in msg and "from outside" in msg
 
 
-def test_co_alarm_sound_gets_the_gas_message():
+def test_co_alarm_sound_gets_the_co_message():
     hit = check_sound(_labels("carbon monoxide alarm", 0.8), 0.5)
-    assert hit is not None and hit.category == "gas"
-    assert "carbon monoxide" in refusal_for(hit).message.lower()
+    assert hit is not None and hit.category == "co"
+    msg = refusal_for(hit).message.lower()
+    assert "carbon monoxide" in msg and "911" in msg
+
+
+def test_co_alarm_text_says_leave_call_911_and_stay_out():
+    msg = refusal_for(check("the co alarm went off")).message.lower()
+    first = _first_step(msg)
+    assert "leave" in first or "get everyone out" in first
+    assert "911" in msg and "go back in" in msg and ("dizzy" in msg or "headache" in msg)
+
+
+def test_gas_says_dont_go_back_and_911_if_unwell():
+    msg = refusal_for(check("I smell gas in the kitchen")).message.lower()
+    assert "go back in" in msg and ("dizzy" in msg or "headache" in msg)
+    assert "this applies" not in msg  # no non-action sentence becomes a UI step
+
+
+def test_wet_breaker_panel_is_never_touched():
+    msg = refusal_for(check("water is leaking onto the breaker panel")).message.lower()
+    assert "dry" in msg and "never touch a wet panel" in msg
+
+
+def test_sounding_smoke_alarm_means_get_out():
+    msg = refusal_for(check("the smoke alarm is going off")).message.lower()
+    first = _first_step(msg)
+    assert "alarm" in first and "get everyone out" in first and "911" in first
+    assert "don't go back in" in msg
+    assert "grease" in msg  # no water on electrical or grease fires
+
+
+def test_shock_cuts_power_before_touching_a_person():
+    msg = refusal_for(check("my roommate got a shock from the toaster")).message.lower()
+    assert "don't touch them" in msg
+    assert msg.index("don't touch them") < msg.index("911")
 
 
 @pytest.mark.parametrize("text,must", [

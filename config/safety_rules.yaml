@@ -47,12 +47,18 @@ messages:
   gas: >-
     ⚠️ This could be dangerous. Don't touch any light switch, plug, flame or lighter, and don't use your phone inside.
     Leave the building now and get everyone out, leaving the door open behind you.
-    From outside, call your gas utility's emergency line or 911. This applies to a gas smell and to a sounding carbon monoxide alarm.
+    From outside, call your gas utility's emergency line or 911. If anyone feels dizzy, sick or has a headache, call 911.
+    Don't go back in until the gas company or fire department says it's safe.
+    Then contact your landlord. HomeFix won't give repair steps for this situation.
+  co: >-
+    ⚠️ This could be dangerous. A carbon monoxide alarm means leave now: get everyone out, including pets, into fresh air.
+    From outside, call 911 or the fire department. If anyone feels dizzy, sick or has a headache, tell them when you call.
+    Don't go back in until the fire department says it's safe, even if the alarm stops.
     Then contact your landlord. HomeFix won't give repair steps for this situation.
   smoke_fire: >-
-    ⚠️ This could be dangerous. If you see smoke or fire, get everyone out and call 911 from outside.
+    ⚠️ This could be dangerous. If a smoke alarm is sounding or you see smoke or fire, get everyone out and call 911 from outside.
+    Don't go back in. Don't try to put it out with water: water makes electrical and grease fires worse.
     If it's only a burning smell and it's safe to do so, turn off the appliance's breaker and don't use it again.
-    Don't throw water on an electrical fire.
     Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.
   sparks: >-
     ⚠️ This could be dangerous. Don't touch the outlet, plug or appliance.
@@ -66,19 +72,19 @@ messages:
     Then contact your landlord or a licensed electrician. HomeFix won't give repair steps for this situation.
   water_electric: >-
     ⚠️ This could be dangerous. Don't touch the water or anything plugged in near it.
-    If you can reach the breaker panel without stepping in water, turn off the breaker for that area. If you can't, stay out of the room.
-    If there is smoke or sparks, leave and call 911.
+    Never touch a wet panel. If the breaker panel is dry and you can reach it without standing in water, turn off the breaker for that area.
+    If you can't, stay out of the room. If there is smoke or sparks, leave and call 911.
     Then call your landlord's emergency line. HomeFix won't give repair steps for this situation.
   shock: >-
-    ⚠️ This could be dangerous. Don't touch the appliance or outlet again.
+    ⚠️ This could be dangerous. Don't touch the appliance or outlet.
+    If someone is still touching it, don't touch them: turn off the power at the breaker first, if it's safe.
     If someone is hurt, burned or feels unwell, call 911.
-    If it's safe to do so, turn off its breaker at the panel and don't use it until it has been checked.
-    Then contact your landlord or a licensed electrician. HomeFix won't give repair steps for this situation.
+    Don't use it again until it has been checked. Then contact your landlord or a licensed electrician. HomeFix won't give repair steps for this situation.
 # A sounding alarm is checked first, on the original text, so benign phrases can't hide it.
 alarm_active:
   smoke_fire:
     - '\b(smoke|fire) (alarms?|detectors?)\b.{0,40}\b(going off|went off|goes off|go off|sounding|blaring|won''t stop|wont stop|beeping loudly|is loud)\b'
-  gas:
+  co:
     - '\b(carbon monoxide|co) (alarms?|detectors?)\b.{0,40}\b(going off|went off|goes off|go off|sounding|blaring|won''t stop|wont stop|beeping)\b'
 # Device names are replaced with " device " (not a blank) so "the smoke detector is burning" still matches.
 device_names:

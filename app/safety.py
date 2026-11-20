@@ -71,5 +71,5 @@ def check_sound(labels: list[SoundLabel], min_score: float) -> SafetyHit | None:
         return None
     top = labels[0]
     if top.label in ALARM_LABELS and top.score >= min_score:
-        return SafetyHit("gas" if top.label == "carbon monoxide alarm" else "smoke_fire", top.label)
+        return SafetyHit("co" if top.label == "carbon monoxide alarm" else "smoke_fire", top.label)
     return None

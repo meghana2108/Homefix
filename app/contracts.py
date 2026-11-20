@@ -94,7 +94,7 @@ class Refusal(BaseModel):
     type: Literal["refusal"] = "refusal"
     reason: RefusalReason
     message: str                    # shown verbatim
-    category: str | None = None     # safety only: gas, sparks, smoke_fire, exposed_wires, water_electric, shock
+    category: str | None = None     # safety only: gas, co, sparks, smoke_fire, exposed_wires, water_electric, shock
 
 
 class Error(BaseModel):
