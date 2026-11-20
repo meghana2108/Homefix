@@ -542,6 +542,16 @@ details summary { cursor: pointer; font-size: 0.875rem; color: var(--ink-soft); 
 .demo__note, .demo__label { margin: 0; font-size: 0.95rem; color: var(--ink-faint); }
 .demo__hint { margin: 0; position: sticky; bottom: 0; background: var(--paper); padding: 0.3rem 0; font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-faint); text-align: right; }
 .demo-page .card__title, .demo-page .card__next, .demo-page .card--citation figcaption { font-size: 1.1rem; }
+/* Proof: scores and limits side by side under the heading, so the whole scene fits one laptop or projector screen. */
+.demo__stage[data-scene="proof"] { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 2rem; row-gap: 0.75rem; align-items: start; }
+.demo__stage[data-scene="proof"] > * { grid-column: 1 / -1; }
+.demo__stage[data-scene="proof"] > .demo__beat--scores { grid-column: 1; }
+.demo__stage[data-scene="proof"] > .demo__beat--limits { grid-column: 2; }
+.demo__stage[data-scene="proof"] .demo__title { margin-top: 0.5rem; }
+.demo__stage[data-scene="proof"] .demo__scores { font-size: 1.1rem; }
+.demo__stage[data-scene="proof"] .demo__scores th, .demo__stage[data-scene="proof"] .demo__scores td { padding: 0.3rem 0.7rem; }
+.demo__stage[data-scene="proof"] .demo__list { font-size: 1.2rem; gap: 0.8rem; }
+.demo__stage[data-scene="proof"] .demo__credit { margin: 0.5rem 0 0; font-size: 0.9rem; }
 @keyframes demo-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .demo__beat { animation: none; } }
 @media (max-width: 640px) {
@@ -549,4 +559,6 @@ details summary { cursor: pointer; font-size: 0.875rem; color: var(--ink-soft); 
   .demo__photos { grid-template-columns: 1fr; }
   .demo__title { font-size: 1.7rem; }
   .demo__list, .demo__scores { font-size: 1.1rem; }
+  .demo__stage[data-scene="proof"] { grid-template-columns: minmax(0, 1fr); }
+  .demo__stage[data-scene="proof"] > .demo__beat--scores, .demo__stage[data-scene="proof"] > .demo__beat--limits { grid-column: 1; }
 }
