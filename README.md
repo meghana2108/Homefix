@@ -453,10 +453,12 @@ More: [Plan](docs/PLAN.md) · [Architecture](docs/ARCHITECTURE.md) · [Models](d
 
 ## Team
 
+From the git history (85 commits by Meghana, 51 by Akshayaa).
+
 | Name | Built |
 | --- | --- |
-| Meghana R | Image, text and code pipelines, the backend, the quote check, the HomeFix manuals; runs the `full` profile on the M4 |
-| Akshayaa Mahesh | Audio and video pipelines, the web app, the eval framework; runs the `lite` profile on the M2 |
+| Meghana R | **Backend core:** the shared event contract and profiles, the rule-based router, the danger-word filter and the fixed message for each danger. **Image:** describe, count (number first) and read. **Text:** answers shown only with a verified quote and page, unit and error-code matching (230 V = 230V, E-21 = E21). **Code:** function writing with one retry, and the locked-down sandbox (no network, time and disk limits, no faked passes); the 7b coder swap on the M4. **Photo + manual:** an error-code photo answered from the chosen manual. **Eval:** image, text and code scoring. **UI:** quote and code-result cards, the concrete and safety-orange look, and the `#/demo` page with its recorder. Runs `full` on the M4 |
+| Akshayaa Mahesh | **Audio:** speech-to-text, sound labels over our AudioSet-derived vocabulary, the live mic and alarm recording. **Video:** timestamped frame sampling, counts and motion direction. **API:** file conversion (iPhone photos, voice notes, videos, PDFs, Word), the `/api/chat` stream and terminal CLI, clear messages when Ollama is down, one-model-at-a-time swapping on 8 GB, and the start-up warm-up. **UI:** the mock backend, chat with drag-and-drop and live steps, the front page, the 23-example gallery with real samples, phone install, and the tamper-evident repair request with its file check. **Safety:** danger by meaning and in photos, read twice and ask, alarm follow-up questions. **Eval:** the practice-pack runner and summary, speech, sound and video scoring. Runs `lite` on the M2 |
 
 ## Credits and licenses
 
