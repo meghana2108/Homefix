@@ -8,6 +8,8 @@ import { Wordmark } from "../Wordmark";
 import { HeroDemo } from "./HeroDemo";
 
 export const ASK_HREF = "#/ask";
+/** The front page's main buttons play the pitch demo from scene 1. */
+export const DEMO_HREF = "#/demo";
 
 function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
   return (
@@ -79,7 +81,7 @@ export const LIMITS = [
 ];
 
 /** The front door: what HomeFix is for, one worked example, what you can bring, what an answer looks like,
- *  and what it can't do. "Ask about something at home" opens the workspace (#/ask). */
+ *  and what it can't do. "Ask about something at home" plays the demo (#/demo); "Open HomeFix" opens the workspace (#/ask). */
 export function Landing() {
   return (
     <div className="landing">
@@ -97,7 +99,7 @@ export function Landing() {
                 you where it found the answer.
               </p>
               <div className="hero__actions">
-                <a className="btn btn--primary btn--big" href={ASK_HREF}>
+                <a className="btn btn--primary btn--big" href={DEMO_HREF}>
                   Ask about something at home
                 </a>
                 <a className="textlink" href="#example">See what an answer looks like</a>
@@ -174,7 +176,7 @@ export function Landing() {
             <div className="cta__panel">
               <h2 id="cta-h">Something beeping right now?</h2>
               <p>Take a photo of the display, or record the sound, and ask. You'll see each step as HomeFix works.</p>
-              <a className="btn btn--big" href={ASK_HREF}>Ask about something at home</a>
+              <a className="btn btn--big" href={DEMO_HREF}>Ask about something at home</a>
             </div>
           </div>
         </section>
