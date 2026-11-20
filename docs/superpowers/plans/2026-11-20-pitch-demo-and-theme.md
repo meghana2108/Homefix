@@ -5,8 +5,8 @@
 **Goal:** a presenter-paced `#/demo` that replays six real, recorded HomeFix answers one key press at a
 time, plus a light "maintenance tag" theme (warm concrete, safety orange) across the whole app.
 
-**Architecture:** Two setup scripts do the work before the pitch. `scripts/fetch_demo_media.py`
-downloads pinned Wikimedia Commons files. `scripts/record_demo.py` sends each scene's input to
+**Architecture:** Two setup scripts do the work before the pitch. `scripts/fetch_real_samples.py`
+(Akshayaa's, extended) downloads Wikimedia Commons files. `scripts/record_demo.py` sends each scene's input to
 `POST /api/chat` on the `full` profile and saves the raw SSE events. The frontend replays those events
 through the existing `reduce()` and renders them with the existing `TurnView`, so demo cards are app
 cards. The theme is a token swap in `index.css`, plus a hazard stripe on the safety card.
@@ -20,7 +20,7 @@ Testing Library. lucide-react icons.
 
 Meghana runs every task. Tasks 1 and 5 edit files Akshayaa wrote: `frontend/src/index.css`,
 `RefusalCard.tsx`, `App.tsx` and `Redesign.test.tsx`. **Akshayaa pauses UI edits from the start of
-Task 1 until Task 5 is merged to `main`.** Tasks 2, 3, 4 and 6 only create new files, plus small edits
+Task 1 until Task 5 is merged to `main`.** Task 2 extends Akshayaa's `scripts/fetch_real_samples.py`. Tasks 3, 4 and 6 only create new files, plus small edits
 to `.gitignore` and `docs/ASSETS.md`.
 
 ## Global Constraints
@@ -32,29 +32,25 @@ to `.gitignore` and `docs/ASSETS.md`.
 - Recording file: `frontend/src/demo/recordings/<scene>.json`, holding
   `{ scene, recorded_at, profile, request: { message, files, manual_id }, events }`. Recordings exist
   only for `photo`, `sound`, `honesty` and `danger`. `request.files` holds web paths
-  (`/samples/...`, `/demo/...`), never disk paths.
+  (`/samples/...`), never disk paths.
 - Scene inputs and pass rules (from the spec):
 
   | Scene | `message` | file on disk → web path | `manual_id` | Must have |
   |---|---|---|---|---|
   | photo | `What should I do?` | `frontend/public/samples/washer_display_e21.jpg` → `/samples/washer_display_e21.jpg` | `apartment_guide_unit_4b` | `citation` whose `quote` contains `E21` (case-insensitive), no `refusal`, a `final` |
-  | sound | `What is this sound?` | `frontend/public/demo/smoke_alarm_chirp.wav` → `/demo/smoke_alarm_chirp.wav` | none | `sound_labels` with `labels[0].label == "smoke alarm chirp"`, no `refusal`, a `final` |
+  | sound | `What is this sound?` | `frontend/public/samples/real_smoke_alarm_chirp.wav` → `/samples/real_smoke_alarm_chirp.wav` | none | `sound_labels` with `labels[0].label == "smoke alarm chirp"`, no `refusal`, a `final` |
   | honesty | `Is there a warranty on the washer?` | none | `apartment_guide_unit_4b` | `refusal.reason == "not_in_document"`, a `final` |
   | danger | `I smell burning from the outlet behind the fridge` | none | none | `refusal.reason == "safety"`, a `final` |
 
 - The recorder refuses to run unless `GET /api/health` returns `"profile": "full"` (exit code 2).
 - A recorded string must not start with `data:` or be longer than 4,000 characters.
-- Commons list: `config/demo_media.yaml`, with these fields per item: `file`, `url`, `author`,
-  `license`, `sha256`, `use` and `out`.
-  - Licenses allowed: values starting with `CC0`, `CC BY ` or `CC BY-SA `, or exactly `CC BY`.
-  - `out` matches `^[a-z0-9_]+\.(jpg|png|wav)$`.
-  - Output folder: `frontend/public/demo/` (gitignored).
-  - Audio becomes 16 kHz mono `.wav`: `ffmpeg -y -i <src> -ac 1 -ar 16000 <out>`.
-- Pinned `out` names: `breaker_panel.jpg`, `leaking_pipe.jpg`, `thermostat.jpg`,
-  `smoke_detector.jpg`, `smoke_alarm_chirp.wav`.
+- Demo media (from Task 2): `DEMO_MEDIA` in `scripts/fetch_real_samples.py`, saved in
+  `frontend/public/samples/` (gitignored) and served at `/samples/<out>`:
+  `real_breaker_panel.jpg`, `real_leaking_pipe.jpg`, `real_thermostat_66.jpg`,
+  `real_smoke_detector.jpg`, `real_smoke_alarm_chirp.wav` (16 kHz mono).
 - Theme tokens in `index.css`:
   - Changed: `--paper #f4f2ee`, `--wash #f0ece5`, `--ink #1c1917`, `--ink-soft #44403c`,
-    `--ink-faint #78716c`, `--rule #e2ddd4`, `--rule-strong #b8b0a3`, `--pen #c2410c`,
+    `--ink-faint #6b645f`, `--rule #e2ddd4`, `--rule-strong #b8b0a3`, `--pen #c2410c`,
     `--pen-deep #9a3412`, `--pen-tint #fdeee4`.
   - New: `--panel #1f1d1b`, `--seg #ff8a3d`, `--seg-dim #5a3a26`, `--hazard #f5b800`.
   - Unchanged: `--sheet #ffffff`, `--answered`, `--notfound` and `--danger`, with their tints.
@@ -71,7 +67,7 @@ to `.gitignore` and `docs/ASSETS.md`.
 - Demo copy (exact):
   - Corner label: `Recorded on the M4, full profile, <D Mon YYYY>`, from `recorded_at`.
   - Missing recording: `This scene hasn't been recorded. Run scripts/record_demo.py.`
-  - Missing media: `Run scripts/fetch_demo_media.py`.
+  - Missing media: `Run scripts/fetch_real_samples.py`.
   - Blocked audio button: `Play the sound`.
   - Scene 2 photo note: `Drawn by us: no openly licensed photo of an error display exists`.
   - Credit line: `Photos and sounds: Wikimedia Commons, see ASSETS.md`.
@@ -100,7 +96,7 @@ to `.gitignore` and `docs/ASSETS.md`.
 1. **Empty or partial recording** (`events: []`, or no `final`): the scene shows the missing-recording
    message and the other scenes still play. Task 4 (`expandBeats` tests) and Task 5 (DemoPage test).
 2. **Unsupported media type in the list** (`out: chirp.ogg`, a GIF) or a non-free license
-   (`CC BY-NC`): `load_media_list` raises `ValueError` naming the item. Task 2.
+   (`CC BY-NC`): `check_list` reports it by `out`, and `fetch_real_samples.py` refuses to start. Task 2.
 3. **Malformed server output during recording** (a `data:` line that isn't JSON, or a stream with no
    `final`): that scene fails with a reason, nothing is written for it, and the next scene still
    records. Task 3.
@@ -166,73 +162,67 @@ to `.gitignore` and `docs/ASSETS.md`.
   git commit -m "feat(ui): a warm concrete and safety-orange look, with hazard stripes on the stop card"
   ```
 
-### Task 2: Commons media list and fetch script
+### Task 2: Add the demo's Commons files to the real-samples fetcher
+
+Ruling (2026-11-20): Akshayaa's `scripts/fetch_real_samples.py` already fetches Commons files by title,
+with rate-limit backoff, ffmpeg sound clipping, 1280 px photo resizing and credits. This task extends it
+instead of adding a second fetcher. The spec's per-file sha256 is dropped, because the script resizes
+photos, so the saved file's hash isn't stable.
 
 **Files:**
-- Create: `config/demo_media.yaml`, `scripts/fetch_demo_media.py`
-- Modify: `.gitignore` (add `frontend/public/demo/` under the samples block), `docs/ASSETS.md` (one row
-  per Commons file)
-- Test: `tests/test_demo_media.py`
+- Modify: `scripts/fetch_real_samples.py` (the `COMMONS` list, plus the allowed-license check)
+- Modify: `docs/ASSETS.md` (add the three new files to the "Real gallery photos" row, or add a row
+  for the demo)
+- Test: `tests/test_fetch_real_samples.py` (new)
 
 **Interfaces:**
+- Consumes: `Commons(out, title, kind, author, license, start=0.0, seconds=10.0)`, `COMMONS`, `names()`
+  and `SAMPLES` (all existing).
 - Produces:
-  - `@dataclass(frozen=True) class MediaItem: file: str; url: str; author: str; license: str; sha256: str; use: str; out: str`
-  - `load_media_list(path: Path) -> list[MediaItem]`, which raises `ValueError(f"{file}: …")`.
-  - `class ChecksumError(Exception)`
-  - `fetch_one(item: MediaItem, dest: Path, get: Callable[[str], bytes], convert: Callable[[Path, Path], None]) -> Path`
-  - `main(argv: list[str] | None = None) -> int`, which returns 0 on success, 1 on any failure, and
-    prints one line per item.
-  - The files `frontend/public/demo/<out>`, which Tasks 3 and 5 read.
+  - `ALLOWED_LICENSES: tuple[str, ...] = ("CC0", "Public domain", "CC BY ", "CC BY-SA ")`. A license
+    passes if it starts with one of these, or is exactly `CC BY` or `CC BY-SA`.
+  - `check_list(items: list[Commons]) -> list[str]`, which returns problems: a non-free license, a
+    duplicate `out`, an `out` not matching `^[a-z0-9_]+\.(jpg|png|wav|mp4)$`, or a `kind` that doesn't
+    match the extension.
+  - `DEMO_MEDIA: tuple[str, ...]`: the five demo files, which Tasks 3, 4 and 5 read from
+    `frontend/public/samples/` and serve at `/samples/<out>`.
 
-- [ ] **Step 1: Write the failing tests** in `tests/test_demo_media.py`. Use `tmp_path`, a fake `get`
-  that returns fixed bytes, and a fake `convert` that records its calls.
-  - `test_load_accepts_cc0_and_cc_by_sa`: a two-item YAML with `CC0` and `CC BY-SA 4.0` loads as 2 items.
-  - `test_load_rejects_non_free_license`: `CC BY-NC 2.0` raises `ValueError`, and the message contains
-    the item's `file`.
-  - `test_load_rejects_bad_out_name`: `out: Chirp.ogg` and `out: ../x.jpg` both raise `ValueError`.
-  - `test_load_rejects_missing_field`: an item without `sha256` raises `ValueError`.
-  - `test_checksum_mismatch_writes_nothing`: when `sha256` doesn't match the bytes, it raises
-    `ChecksumError`, the message contains `file`, and `dest/<out>` doesn't exist.
-  - `test_image_written_as_is`: for a matching sha256 the file is written byte-for-byte, and `convert`
-    is not called.
-  - `test_audio_converted_to_wav`: a `.webm` URL with `out: smoke_alarm_chirp.wav` calls `convert`
-    once with the downloaded temp file and `dest/smoke_alarm_chirp.wav`.
-  - `test_existing_output_skipped`: if `dest/<out>` already exists, `get` is never called.
-  - `test_pinned_list_is_valid`: `load_media_list(ROOT / "config/demo_media.yaml")` loads. Its `out`
-    names are exactly the five pinned names. Every `sha256` is 64 hex characters, and every `url`
-    starts with `https://upload.wikimedia.org/`.
-  - `test_demo_folder_ignored`: `git check-ignore frontend/public/demo/x.jpg` exits 0 (use
+- [ ] **Step 1: Write the failing tests** in `tests/test_fetch_real_samples.py`. Import the script with
+  `importlib` from `scripts/`; there are no network calls in the tests.
+  - `test_demo_media_listed`: `DEMO_MEDIA == ("real_breaker_panel.jpg", "real_leaking_pipe.jpg",
+    "real_thermostat_66.jpg", "real_smoke_detector.jpg", "real_smoke_alarm_chirp.wav")`, and every
+    name is in `names()`.
+  - `test_chirp_is_a_sound`: the `COMMONS` entry for `real_smoke_alarm_chirp.wav` has `kind == "sound"`
+    and `seconds <= 10`.
+  - `test_pinned_list_is_clean`: `check_list(COMMONS) == []`.
+  - `test_check_list_rejects_non_free`: an item with license `CC BY-NC 2.0` gives one problem naming its
+    `out`.
+  - `test_check_list_rejects_duplicates_and_bad_names`: two items with the same `out`, an
+    `out="../x.jpg"` and a `kind="sound"` with `out="a.jpg"` each give a problem.
+  - `test_samples_folder_ignored`: `git check-ignore frontend/public/samples/real_x.jpg` exits 0 (use
     `subprocess.run`).
-- [ ] **Step 2: Run `uv run pytest tests/test_demo_media.py -v`** → FAIL (module not found).
+- [ ] **Step 2: Run `uv run pytest tests/test_fetch_real_samples.py -v`** → FAIL (no `DEMO_MEDIA`,
+  no `check_list`).
 - [ ] **Step 3: Implement.**
-  - **Script:**
-    - `get` uses `httpx.get(url, follow_redirects=True, timeout=60, headers={"User-Agent": "homefix-setup/1.0"})`
-      and returns `.content`.
-    - `convert` runs the ffmpeg command from Global Constraints and raises if it exits non-zero.
-    - `main` reads `config/demo_media.yaml`, creates `frontend/public/demo/`, and calls `fetch_one`
-      for each item. It catches each item's error, prints it, and carries on with the next item.
-    - Docstring: "Setup only, never imported by app/. Downloads once; runs offline afterwards."
-  - **Pin the list.** Look up each file through the Commons API:
-    `https://commons.wikimedia.org/w/api.php?action=query&titles=File:<title>&prop=imageinfo&iiprop=url|sha1|extmetadata&format=json`.
-    - Take `url`, `extmetadata.Artist` (as plain text) and `extmetadata.LicenseShortName`.
-    - Download the file once and compute its sha256.
-    - Candidates:
-      - `Eaton circuit breaker panel open.JPG` → `breaker_panel.jpg`
-      - `Leaking pipe by Saltash Field - geograph.org.uk - 7324720.jpg` → `leaking_pipe.jpg`
-      - `Person holds a thermostat showing room temperature in a home setting.jpg` → `thermostat.jpg`
-      - `Smoke detector (1).JPG` → `smoke_detector.jpg`
-      - `Smoke detector alarm battery beep.webm` → `smoke_alarm_chirp.wav`
-    - If a candidate's license isn't allowed, pick another Commons file for the same `use` and say so
-      in the report.
-  - **ASSETS.md:** add one row per item: file title, `frontend/public/demo/<out>`, author, license,
-    URL, and "No (media)".
-- [ ] **Step 4: Run `uv run pytest tests/test_demo_media.py -v`** → PASS. Then
-  `uv run python scripts/fetch_demo_media.py` → five `ok` lines. A second run prints five `skip`
-  lines.
+  - Add three `COMMONS` entries. For each, confirm the license and author from the Commons API
+    (`prop=imageinfo&iiprop=extmetadata`, using `LicenseShortName` and `Artist` as plain text) before
+    pinning:
+    - `real_leaking_pipe.jpg`: `Leaking pipe by Saltash Field - geograph.org.uk - 7324720.jpg` (photo)
+    - `real_smoke_detector.jpg`: `Smoke detector (1).JPG` (photo)
+    - `real_smoke_alarm_chirp.wav`: `Smoke detector alarm battery beep.webm` (sound). Set `start` and
+      `seconds` so the clip holds at least two chirps, at most 10 s.
+  - If a license isn't allowed, pick another Commons file for the same use and say so in the report.
+  - Add `ALLOWED_LICENSES`, `check_list` and `DEMO_MEDIA`. Make `main()` call `check_list(COMMONS)`
+    first and exit with the problems if there are any.
+  - Keep her existing entries, behaviour and `--from` flag unchanged.
+- [ ] **Step 4: Run `uv run pytest tests/test_fetch_real_samples.py -v`** → PASS. Then run
+  `uv run python scripts/fetch_real_samples.py`. Expect `fetch` lines for the files this Mac lacks, and
+  no traceback; it is slow, because it waits 20 s between Commons downloads. Then
+  `ls frontend/public/samples/real_*` shows all five `DEMO_MEDIA` files.
 - [ ] **Step 5: Commit.**
   ```bash
-  git add config/demo_media.yaml scripts/fetch_demo_media.py tests/test_demo_media.py .gitignore docs/ASSETS.md
-  git commit -m "feat(ui): one setup command fetches the demo's real photos and smoke-alarm chirp from Wikimedia Commons"
+  git add scripts/fetch_real_samples.py tests/test_fetch_real_samples.py docs/ASSETS.md
+  git commit -m "feat(ui): the real-samples download also fetches a leaking pipe, a smoke detector and a real smoke-alarm chirp"
   ```
 
 ### Task 3: The demo recorder
@@ -292,7 +282,7 @@ to `.gitignore` and `docs/ASSETS.md`.
       `request.files == ["/samples/washer_display_e21.jpg"]`.
     - `test_missing_input_file_names_setup_script`: with no `washer_display_e21.jpg` under root, the
       problems contain `scripts/make_samples.py`. For the sound scene, they contain
-      `scripts/fetch_demo_media.py`.
+      `scripts/fetch_real_samples.py`.
     - `test_timeout_fails_scene`: when the handler raises `httpx.ReadTimeout`, `main` returns 1 and
       the next scene still records.
 - [ ] **Step 2: Run `uv run pytest tests/test_record_demo.py -v`** → FAIL (module not found).
@@ -360,7 +350,7 @@ to `.gitignore` and `docs/ASSETS.md`.
   - `SCENES` checks:
     - The ids are exactly `["problem","photo","sound","honesty","danger","proof"]`.
     - `photo` has `note === "Drawn by us: no openly licensed photo of an error display exists"`.
-    - `problem` has a `photos` beat with four `/demo/` sources.
+    - `problem` has a `photos` beat with four `/samples/real_` sources: breaker panel, leaking pipe, thermostat, smoke detector.
     - `proof` has a `scores` beat and a `limits` beat.
   - `offline`: `JSON.stringify(SCENES)` doesn't match `/https?:\/\//`.
   - `SCORES`: seven rows, with labels in the Global Constraints order and values matching that table.
@@ -415,7 +405,7 @@ to `.gitignore` and `docs/ASSETS.md`.
     `This scene hasn't been recorded. Run scripts/record_demo.py.` Pressing `5` still shows the danger
     scene (Review Focus 6).
   - `missing media`: firing `error` on a problem-scene `<img>` replaces it with a tile containing
-    `Run scripts/fetch_demo_media.py`.
+    `Run scripts/fetch_real_samples.py`.
   - `blocked audio shows a play button`: stub `HTMLMediaElement.prototype.play` to return
     `Promise.reject(new DOMException("NotAllowedError"))`. On the sound scene's first beat, a button
     `Play the sound` appears.
@@ -459,12 +449,12 @@ to `.gitignore` and `docs/ASSETS.md`.
 This task needs real models, so it has no TDD cycle. Run it on the M4.
 
 - [ ] **Step 1: Setup.** Run `uv run python scripts/make_samples.py`, then
-  `uv run python scripts/fetch_demo_media.py`. Expect `washer_display_e21.jpg` in
-  `frontend/public/samples/` and five files in `frontend/public/demo/`.
+  `uv run python scripts/fetch_real_samples.py`. Expect `washer_display_e21.jpg` and the five
+  `DEMO_MEDIA` files in `frontend/public/samples/`.
 - [ ] **Step 2: Start the backend on `full`** with the project's usual server command, then check that
   `curl -s 127.0.0.1:8000/api/health` shows `"profile": "full"`.
 - [ ] **Step 3: Run `uv run python scripts/record_demo.py`** → four `ok` lines, exit 0. If `sound`
-  fails because it was heard as an alarm, pin a different Commons chirp in `config/demo_media.yaml`,
+  fails because it was heard as an alarm, pin a different Commons chirp in `scripts/fetch_real_samples.py`,
   following Task 2's rules, re-fetch, and run `--scene sound` again. Never edit a recording.
 - [ ] **Step 4: Check by eye.** In `#/demo`, step through every scene and confirm:
   - The answers read well.
@@ -472,7 +462,7 @@ This task needs real models, so it has no TDD cycle. Run it on the M4.
   - The danger card shows no repair steps.
   - The corner date is today.
 - [ ] **Step 5: Run `uv run pytest` and `cd frontend && npm test`** → green.
-- [ ] **Step 6: Commit** (and `config/demo_media.yaml` and `docs/ASSETS.md` too, if Step 3 changed them).
+- [ ] **Step 6: Commit** (and `scripts/fetch_real_samples.py` and `docs/ASSETS.md` too, if Step 3 changed them).
   ```bash
   git add frontend/src/demo/recordings/*.json results/summary_full.md
   git commit -m "feat(ui): the demo plays four real answers recorded on the M4; full-profile eval scores 87/100"
