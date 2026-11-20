@@ -46,10 +46,16 @@ def _references() -> tuple[np.ndarray, list[str], np.ndarray]:
     return hazards, [c for c, _ in pairs], safe
 
 
+@lru_cache(maxsize=256)
+def vector(text: str) -> np.ndarray:
+    """One text's embedding, cached: the danger net and app/intent.py embed the same question."""
+    return _embed([text])[0]
+
+
 def scores(text: str) -> tuple[float, float, str]:
     """(closest hazard similarity, closest safe similarity, that hazard's category)."""
     hazards, cats, safe = _references()
-    v = _embed([text])[0]
+    v = vector(text)
     h = hazards @ v
     i = int(np.argmax(h))
     return float(h[i]), float(np.max(safe @ v)), cats[i]

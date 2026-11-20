@@ -92,4 +92,11 @@ describe("evidence pack", () => {
     expect(escalation(turnOf("q", [], [{ type: "code_result", code: "def f(): pass", passed: true, tests_run: 1,
       failures: 0, output_tail: "", attempts: 1 }, FINAL]))).toBe("none");
   });
+
+  it("uses the server's judgment of the question when it has one (meaning, not just words)", () => {
+    const withIntent = (q: string, intent: "problem" | "question") =>
+      turnOf(q, [], [{ type: "token", text: "ok" }, { ...FINAL, intent }]);
+    expect(escalation(withIntent("the fridge sounds weird", "problem"))).toBe("optional");  // no problem word
+    expect(escalation(withIntent("Is it heating or cooling?", "question"))).toBe("none");
+  });
 });

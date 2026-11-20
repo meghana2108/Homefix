@@ -23,8 +23,9 @@ def _no_meaning_net_by_default(request, monkeypatch):
     ask for the real one (tests marked `model`) or set their own scores (tests/test_safety_semantic.py)."""
     if request.node.get_closest_marker("model"):
         return
-    from app import safety_semantic
+    from app import intent, safety_semantic
     monkeypatch.setattr(safety_semantic, "scores", lambda text: (0.0, 0.0, "none"))
+    monkeypatch.setattr(intent, "lean", lambda text, side, other: -1.0)  # word rules only
 
 
 @pytest.fixture

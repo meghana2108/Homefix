@@ -1,0 +1,37 @@
+# Held-out report set for config/intent_examples.yaml: never used for tuning.
+problem:
+  - the kitchen faucet sprays everywhere
+  - my washer won't spin
+  - the ceiling has a brown stain that is growing
+  - the oven door won't close
+  - the hallway light buzzes and flickers
+  - the dryer takes forever and clothes stay wet
+  - there's a draft coming through the window
+  - the shower drain backs up
+  - the fridge is making a clicking noise
+  - mice in the pantry
+question:
+  - what does the eco button do?
+  - is the oven set to bake or broil?
+  - can I put up shelves?
+  - what does the lease say about subletting?
+  - how do I lock the stove controls?
+  - what temperature does it show?
+  - which setting is for delicates?
+  - is the dishwasher running?
+  - how many lights are lit?
+  - when is the next inspection?
+vague:
+  - what is going on with this?
+  - what's this?
+  - can you explain?
+  - should I worry?
+  - what's the deal here
+  - um what is it
+specific:
+  - what does the flashing E3 mean?
+  - is the fan on high?
+  - what setting is the dial on?
+  - how many minutes are left?
+  - is the window open?
+  - what does the yellow light mean?

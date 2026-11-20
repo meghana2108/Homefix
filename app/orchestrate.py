@@ -170,6 +170,10 @@ def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, name
     if hit:
         raise _Stop(refusal_for(hit))
 
+    if text:
+        from app.intent import intent_of
+
+        state["intent"] = intent_of(text)  # the word rule or the meaning (cached vector, shared with safety)
     state["stage"] = "routing"
     yield Status(stage="routing")
     asked_auto = manual_id == AUTO_MANUAL
@@ -220,7 +224,8 @@ def handle(message: str, files: list[Path], manual_id: str | None, ctx: Ctx,
     final: Final | None = None
 
     def stamp(f: Final) -> Final:
-        return f.model_copy(update={"latency_ms": int((time.perf_counter() - t0) * 1000)})
+        return f.model_copy(update={"latency_ms": int((time.perf_counter() - t0) * 1000),
+                                    "intent": state.get("intent")})
 
     try:
         try:

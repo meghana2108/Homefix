@@ -15,7 +15,6 @@ from app.clarify import (
     cant_tell_clarify,
     clean_reading,
     given_reading,
-    is_vague,
     looks_like_display,
     photo_clarify,
     reading_clarify,
@@ -32,6 +31,7 @@ from app.contracts import (
     Token,
     final_for,
 )
+from app.intent import is_vague as intent_is_vague
 from app.pipelines.common import collect, stream_brain
 from app.prompts import (
     DESCRIBE_PROMPT,
@@ -92,7 +92,7 @@ _NONE = re.compile(r"^\W*none\b|\bno (signs?|danger)\b|\bnone of (them|these|tho
 
 def needs_danger_look(message: str) -> bool:
     """Vague ("What is this?") or about safety ("Is this okay to use?"): look for danger before answering."""
-    return is_vague(message) or bool(_SAFETY_Q.search(message))
+    return intent_is_vague(message) or bool(_SAFETY_Q.search(message))
 
 
 def danger_named(text: str) -> SafetyHit | None:
@@ -198,7 +198,7 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
             yield from stop_for_danger(ctx, req, found[0])
             return
     reading: str | None = None
-    if req.question_type in ("describe", "qa") and is_vague(req.message):
+    if req.question_type in ("describe", "qa") and intent_is_vague(req.message):
         # A display (words with numbers) is where a guess goes wrong ("a timer" for a clock): ask. A scene
         # ("What's in this photo?") just wants describing.
         parts: list[str] = []

@@ -90,12 +90,12 @@ def manuals_mentioning(code: str) -> list[dict]:
 def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
     from app.clarify import (
         code_clarify,
-        is_vague,
         manual_clarify,
         mentions_a_code,
         photo_clarify,
         two_codes_clarify,
     )
+    from app.intent import is_vague as intent_is_vague
     from app.orchestrate import AUTO_MANUAL
     from app.pipelines import image
 
@@ -130,7 +130,7 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
         if mentions_a_code(req.message):  # they say there's a code and we can't see one: ask for it
             yield from image.ask_back(ctx, req, code_clarify(reading), "homefix")
             return
-        if is_vague(req.message):  # "What does this mean?" with no code on it: ask, don't guess
+        if intent_is_vague(req.message):  # "What does this mean?" with no code on it: ask, don't guess
             yield from image.ask_back(ctx, req, photo_clarify(reading), "homefix")
             return
         # A specific question ("What does COOKTOP ON mean?"): answer it from the photo, without guessing.

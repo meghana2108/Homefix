@@ -1,0 +1,76 @@
+# Meaning-based intent (app/intent.py). Each judgment adds to a word rule, never overrides it:
+#   problem: the question is about something wrong (offers "Need it fixed? Escalate to your landlord")
+#   vague:   the question has no subject of its own (on a display: ask back; on any photo: look for danger first)
+# A question is on a side when it is closer to that side's examples than to the other's by `margin`.
+# Tuned on tests/data/intent_dev.yaml; reported on tests/data/intent_test.yaml. All phrases are ours.
+problem_margin: 0.04   # chosen on the dev set (lowest margin with no wrong ones)
+vague_margin: 0.09     # chosen on the dev set plus every gallery question
+
+problem:
+  - my dishwasher won't drain
+  - the washer is leaking water on the floor
+  - there's mold on the bathroom ceiling
+  - the fridge stopped cooling
+  - the heater isn't working
+  - the toilet keeps running
+  - the sink is clogged
+  - the tap won't stop dripping
+  - the dryer makes a loud banging noise
+  - the oven shows an error code
+  - the fridge sounds weird
+  - something smells off in the kitchen
+  - there's a crack in the ceiling
+  - the window won't lock
+  - the shower has no hot water
+  - the garbage disposal is jammed
+  - the smoke alarm keeps chirping
+  - there are ants in the kitchen
+  - the light keeps flickering
+  - the door handle came off
+question:
+  - is it heating or cooling?
+  - what temperature is the thermostat set to?
+  - can I have a cat?
+  - how much notice do I need before I move out?
+  - is parking included?
+  - how often should I clean the filter?
+  - what does this setting do?
+  - how do I use the delay start?
+  - what time does the display show?
+  - how many burners are on?
+  - which way is the water moving?
+  - what does the lease say about guests?
+  - how do I set the thermostat schedule?
+  - what is the eco mode?
+  - when is rent due?
+  - who do I call for a lockout?
+  - how long does the dishwasher cycle take?
+  - what does the green light mean?
+  - write a function that adds up my bills
+  - what is this sound?
+vague:
+  - what is this?
+  - what's this thingy?
+  - what am I looking at?
+  - explain this
+  - can you tell me about this?
+  - what's going on here?
+  - huh?
+  - is this normal?
+  - what does this mean?
+  - help
+  - what's up with this?
+  - any idea?
+specific:
+  - what temperature is it set to?
+  - is the burner on?
+  - what code is on the display?
+  - what does COOKTOP ON mean?
+  - how many lights are on?
+  - is it heating or cooling?
+  - what time does it show?
+  - which button starts the cycle?
+  - what does the red light mean?
+  - is the door locked?
+  - describe the photo
+  - what color is the mug?

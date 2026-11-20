@@ -112,6 +112,7 @@ class Final(BaseModel):
     latency_ms: int = 0             # set by handle(): POST received -> final
     profile: ProfileName
     model: str | None = None        # main model used; None if none ran
+    intent: Literal["problem", "question"] | None = None  # app/intent.py; None before routing
 
 
 Event = Annotated[Status | Token | Transcript | SoundLabels | Frames | Citation | CodeResult | Clarify | Refusal
