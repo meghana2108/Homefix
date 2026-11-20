@@ -26,15 +26,22 @@ describe("repair request", () => {
     expect(onEvidence).toHaveBeenCalled();
   });
 
-  it("a plain answer only has a quiet link, for when you choose to escalate", () => {
+  it("a problem question has only a quiet link, for when you choose to escalate", () => {
     const onEvidence = vi.fn();
-    const t = ([{ type: "token", text: "The thermostat is set to 68°F." }, FINAL] as HomeFixEvent[])
-      .reduce(reduce, newTurn("What is it set to?", ["t.jpg"]));
+    const t = ([{ type: "token", text: "Clean the filter in the bottom of the tub." }, FINAL] as HomeFixEvent[])
+      .reduce(reduce, newTurn("My dishwasher won't drain", ["d.jpg"]));
     render(<TurnView turn={t} onEvidence={onEvidence} />);
     expect(screen.queryByText("This needs your landlord or a professional.")).toBeNull();
     expect(screen.queryByRole("button", { name: "Make a repair request" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Need it fixed? Escalate to your landlord" }));
     expect(onEvidence).toHaveBeenCalled();
+  });
+
+  it("a plain question offers no escalation at all", () => {
+    const t = ([{ type: "token", text: "Cool" }, FINAL] as HomeFixEvent[])
+      .reduce(reduce, newTurn("Is it heating or cooling?", ["t.jpg"]));
+    render(<TurnView turn={t} onEvidence={() => {}} />);
+    expect(screen.queryByRole("button", { name: /Escalate|repair request/ })).toBeNull();
   });
 
   it("after a danger stop it says to get safe first", () => {

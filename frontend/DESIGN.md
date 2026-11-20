@@ -36,8 +36,8 @@ says "Answering HomeFix's question", with a way out: "Ask something new instead"
 ## Repair request (evidence pack)
 Never by default (D15). Suggested as a small card after a danger stop ("Once you're safe, tell your
 landlord.") or when the answer or the quoted manual says to call maintenance, the landlord or a professional;
-any other answer gets only a quiet "Need it fixed? Escalate to your landlord" link; nothing while answering,
-after an error, when HomeFix asked back, or for code. "Make a repair request" opens a printable sheet (`components/EvidencePack.tsx`,
+a question about a problem (leak, error code, won't drain) gets only a quiet "Need it fixed? Escalate to your
+landlord" link; a plain question ("Is it heating or cooling?") gets nothing, nor while answering, after an error, when HomeFix asked back, or for code. "Make a repair request" opens a printable sheet (`components/EvidencePack.tsx`,
 `state/evidence.ts`): the date, each file with its SHA-256 fingerprint (Web Crypto, in the browser), what
 HomeFix found, the verified quote and page, the danger check, an editable letter to the landlord, and a
 fingerprint of the whole pack that changes when anything in it does. "Print or save as PDF" prints only the

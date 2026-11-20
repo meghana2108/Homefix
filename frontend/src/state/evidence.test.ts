@@ -59,7 +59,7 @@ describe("evidence pack", () => {
   });
 
   it("suggests escalating only when the answer says it needs your landlord or a professional", () => {
-    const ans = (text: string, extra: object[] = []) => turnOf("q", [], [{ type: "token", text }, ...extra, FINAL]);
+    const ans = (text: string, extra: object[] = []) => turnOf("What does this mean?", [], [{ type: "token", text }, ...extra, FINAL]);
     expect(escalation(ans("If it trips again, leave it off and call the maintenance line."))).toBe("suggest");
     expect(escalation(ans("The battery is low. Tell maintenance."))).toBe("suggest");
     expect(escalation(ans("Have a licensed electrician check the outlet."))).toBe("suggest");
@@ -69,9 +69,20 @@ describe("evidence pack", () => {
     ]))).toBe("suggest");
     expect(escalation(turnOf("I smell gas", [], [
       { type: "refusal", reason: "safety", message: "Leave now.", category: "gas" }, FINAL]))).toBe("suggest");
-    // plain answers: only if you choose to
-    expect(escalation(ans("The thermostat is set to 68°F."))).toBe("optional");
-    expect(escalation(ans("You must give written notice at least 60 days before you move out."))).toBe("optional");
+  });
+
+  it("a question about a problem gets the quiet link; a plain question gets nothing", () => {
+    const q = (question: string, text: string) => turnOf(question, [], [{ type: "token", text }, FINAL]);
+    // problems: escalating is the renter's choice
+    expect(escalation(q("My dishwasher won't drain", "Clean the filter in the bottom of the tub."))).toBe("optional");
+    expect(escalation(q("There's mold in my bathroom", "Scrub it with detergent and water."))).toBe("optional");
+    expect(escalation(q("My washer shows this code. What should I do?", "E21 means it can't drain."))).toBe("optional");
+    expect(escalation(q("The kitchen tap is dripping", "Turn the handle fully off."))).toBe("optional");
+    // just questions: nothing to escalate
+    expect(escalation(q("Is it heating or cooling?", "Cool"))).toBe("none");
+    expect(escalation(q("What temperature is the thermostat set to?", "The thermostat is set to 68°F."))).toBe("none");
+    expect(escalation(q("Can I have a cat?", "Yes, with a $300 pet deposit."))).toBe("none");
+    expect(escalation(q("How much notice do I need to give before I move out?", "60 days, in writing."))).toBe("none");
   });
 
   it("never offers it while answering, after an error, when HomeFix asked back, or for code", () => {

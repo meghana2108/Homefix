@@ -111,14 +111,26 @@ const NEEDS_HELP = new RegExp(
   "service (center|technician)|gas company|utility)\\b|\\b(licensed|qualified) (electrician|plumber|technician|professional)\\b",
   "i");
 
+/** Words that make a question about a problem, not just a question ("Is it heating or cooling?"). */
+const PROBLEM = new RegExp(
+  "\\b(broken|break(s|ing)?|not working|(does|is|are|do|did|was)n'?t (work|drain|turn|start|heat|cool|close|open|flush|stop)|" +
+  "won'?t|stopped|leak\\w*|drip\\w*|flood\\w*|overflow\\w*|mou?ld\\w*|damp|smell\\w*|odou?r|noise|noisy|loud|" +
+  "beep\\w*|chirp\\w*|alarm\\w*|error|code|fault\\w*|flash\\w*|blink\\w*|problem|issue|wrong|fix|repair\\w*|" +
+  "damage\\w*|crack\\w*|clog\\w*|block\\w*|jam\\w*|trip\\w*|spark\\w*|burn\\w*|stuck|no (heat|hot water|power|water)|" +
+  "too (hot|cold)|freez\\w*|ice|pest\\w*|roach\\w*|mice|mouse|rats?|bugs?)\\b",
+  "i");
+
 export type Escalation = "suggest" | "optional" | "none";
 
-/** Whether to offer a repair request for this answer. Never by default: it's suggested only when the answer
- *  (or the quoted manual) says to get the landlord or a professional, or after a danger stop; any other
- *  answer gets a quiet link, so escalating is the renter's choice. */
+/** Whether to offer a repair request for this answer. Never by default (D15):
+ *  - suggested only after a danger stop, or when the answer or the quoted manual says to get the landlord or
+ *    a professional;
+ *  - a quiet link, the renter's choice, only when the question is about a problem (leak, error code, won't
+ *    drain);
+ *  - nothing for a plain question ("Is it heating or cooling?", "Can I have a cat?"). */
 export function escalation(turn: Turn): Escalation {
   if (!turn.final || turn.error || turn.clarify || turn.codeResult) return "none";
   if (turn.refusal?.reason === "safety") return "suggest";
-  const said = `${turn.answer} ${turn.citation?.quote ?? ""}`;
-  return NEEDS_HELP.test(said) ? "suggest" : "optional";
+  if (NEEDS_HELP.test(`${turn.answer} ${turn.citation?.quote ?? ""}`)) return "suggest";
+  return PROBLEM.test(turn.userText) ? "optional" : "none";
 }
