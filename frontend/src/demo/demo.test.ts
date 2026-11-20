@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { HomeFixEvent, Stage } from "../contract";
 import { expandBeats, firstBeatOf, turnAt } from "./beats";
@@ -27,6 +28,8 @@ const all = { photo: rec("photo"), sound: rec("sound"), honesty: rec("honesty"),
 describe("cutPoints", () => {
   it("cuts on new stages, citation and final", () => expect(cutPoints(full)).toEqual([1, 3, 6, 7]));
   it("cuts on sound_labels and refusal", () => expect(cutPoints([st("a" as Stage), labels, refusal, final])).toEqual([1, 2, 3, 4]));
+  it("a stage that comes back later gets its own cut", () =>
+    expect(cutPoints([st("a" as Stage), st("b" as Stage), st("a" as Stage)])).toEqual([1, 2, 3]));
   it("empty gives none", () => expect(cutPoints([])).toEqual([]));
   it("no final, no cut at the end", () => expect(cutPoints([st("a" as Stage), tok])).toEqual([1]));
   it("last event that is a cut type still cuts", () => expect(cutPoints([tok, citation])).toEqual([2]));
@@ -82,6 +85,10 @@ describe("SCENES", () => {
     expect(kinds).toContain("limits");
   });
   it("offline", () => expect(JSON.stringify(SCENES)).not.toMatch(/https?:\/\//));
+  it("demo sources have no remote URLs", () => {
+    for (const f of ["scores.ts", "beats.ts", "cuts.ts"])
+      expect(readFileSync(`src/demo/${f}`, "utf8")).not.toMatch(/https?:\/\//);
+  });
   it("RECORDINGS is an object", () => expect(typeof RECORDINGS).toBe("object"));
 });
 
