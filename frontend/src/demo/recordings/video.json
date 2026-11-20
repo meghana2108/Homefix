@@ -1,6 +1,6 @@
 {
  "scene": "video",
- "recorded_at": "2026-11-20T12:26:35",
+ "recorded_at": "2026-11-20T14:15:45",
  "profile": "full",
  "request": {
   "message": "How many warning lights are on at the end?",
@@ -120,7 +120,7 @@
    "answer": "4\nThere are four orange warning lights visible in the frame.",
    "modality": "video",
    "question_type": "count",
-   "latency_ms": 1370,
+   "latency_ms": 10248,
    "profile": "full",
    "model": "qwen3-vl:8b-instruct",
    "intent": "question"

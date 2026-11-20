@@ -100,7 +100,7 @@ describe("SCORES", () => {
     expect(PACK_ITEMS).toBe(100);
     expect(SCORES.reduce((n, s) => n + Number(s.full.split("/")[1]), 0)).toBe(PACK_ITEMS);
   });
-  it("our own test counts", () => expect(OUR_TESTS).toEqual({ backend: 807, frontend: 170, on: "20 Nov 2026" }));
+  it("our own test counts", () => expect(OUR_TESTS).toEqual({ backend: 825, frontend: 174, on: "20 Nov 2026" }));
   it("eight rows", () => {
     expect(SCORES).toEqual([
       { row: "Image count", full: "14/15" }, { row: "Image, other questions", full: "8/10" },

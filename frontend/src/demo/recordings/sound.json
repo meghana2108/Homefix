@@ -1,6 +1,6 @@
 {
  "scene": "sound",
- "recorded_at": "2026-11-20T11:28:17",
+ "recorded_at": "2026-11-20T14:15:35",
  "profile": "full",
  "request": {
   "message": "What is this sound?",
@@ -57,7 +57,7 @@
    "answer": "Most likely **smoke alarm chirp** (13%). Also possible: silence, background noise.\n\nIf this could be a smoke or carbon monoxide alarm, don't wait: leave and call 911.",
    "modality": "audio",
    "question_type": "sound",
-   "latency_ms": 597,
+   "latency_ms": 6733,
    "profile": "full",
    "model": "laion/clap-htsat-unfused",
    "intent": "question"

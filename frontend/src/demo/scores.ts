@@ -16,4 +16,4 @@ export const SCORES: { row: string; full: string }[] = [
 ];
 
 /** `uv run pytest` and `cd frontend && npx vitest run` on main. Update when the counts change. */
-export const OUR_TESTS = { backend: 807, frontend: 170, on: "20 Nov 2026" };
+export const OUR_TESTS = { backend: 825, frontend: 174, on: "20 Nov 2026" };
