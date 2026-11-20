@@ -198,3 +198,55 @@ describe("scenes", () => {
     expect(screen.queryByText(/sound file is missing/)).toBeNull();
   });
 });
+
+describe("beat in the address", () => {
+  it("starts at the beat named in the hash", () => {
+    window.location.hash = "#/demo/5";
+    mount();
+    const hint = document.querySelector(".demo__hint")!;
+    expect(hint.textContent).toContain(`5 / ${flat.length}`);
+  });
+
+  it("advancing writes the next beat with replaceState, not a new history entry", () => {
+    const push = vi.spyOn(window.history, "pushState");
+    mount();
+    press("ArrowRight");
+    expect(window.location.hash).toBe("#/demo/2");
+    press("ArrowRight");
+    expect(window.location.hash).toBe("#/demo/3");
+    expect(push).not.toHaveBeenCalled();
+    push.mockRestore();
+  });
+
+  it("garbage and out-of-range numbers clamp", () => {
+    window.location.hash = "#/demo/abc";
+    const a = mount();
+    expect(document.querySelector(".demo__hint")!.textContent).toContain(`1 / ${flat.length}`);
+    a.unmount();
+    window.location.hash = "#/demo/999";
+    mount();
+    expect(document.querySelector(".demo__hint")!.textContent).toContain(`${flat.length} / ${flat.length}`);
+  });
+});
+
+describe("page chrome", () => {
+  it("root class is demo-page, not the landing card's demo", () => {
+    const { container } = mount();
+    expect(container.querySelector("main.demo-page")).toBeTruthy();
+    expect(container.querySelector(".demo")).toBeNull();
+  });
+
+  it("shows the honesty scene's manual note", () => {
+    mount();
+    jump(4);
+    expect(screen.getByText("Manual loaded: Unit 4B apartment guide")).toBeTruthy();
+  });
+
+  it("a clicked scene tab gives up focus so Space does not re-trigger it", () => {
+    mount();
+    const tab = screen.getByRole("button", { name: /Sound/ });
+    tab.focus();
+    fireEvent.click(tab);
+    expect(document.activeElement).not.toBe(tab);
+  });
+});

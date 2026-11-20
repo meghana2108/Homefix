@@ -96,7 +96,10 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
   scenes?: Scene[]; recordings?: Partial<Record<SceneId, Recording>>;
 } = {}) {
   const flat: Flat[] = useMemo(() => expandBeats(scenes, recordings), [scenes, recordings]);
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(() => {
+    const n = Number(/^#\/demo\/(\d+)$/.exec(window.location.hash)?.[1]);
+    return Number.isInteger(n) && n >= 1 ? Math.min(n, expandBeats(scenes, recordings).length) - 1 : 0;
+  });
   const [blocked, setBlocked] = useState(false);
   const [audioMissing, setAudioMissing] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -154,17 +157,22 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
   }, [playing, clip, start]);
 
   useEffect(() => {
+    // replaceState: Back never steps beats, and no hashchange fires (so App doesn't re-render or scroll).
+    try { window.history.replaceState(null, "", `#/demo/${Math.min(idx, last) + 1}`); } catch { /* ignore */ }
+  }, [idx, last]);
+
+  useEffect(() => {
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     endRef.current?.scrollIntoView?.({ block: "end", behavior: reduced ? "auto" : "smooth" });
   }, [idx]);
 
-  if (!cur || !scene) return <main className="demo"><p className="demo__missing">Nothing to show.</p></main>;
+  if (!cur || !scene) return <main className="demo-page"><p className="demo__missing">Nothing to show.</p></main>;
 
   return (
-    <main className="demo">
+    <main className="demo-page">
       <nav className="demo__strip" aria-label="Scenes">
         {scenes.map((s, i) => (
-          <button key={s.id} type="button" className="demo__tab" aria-current={i === cur.scene ? "step" : undefined} onClick={() => jump(i)}>
+          <button key={s.id} type="button" className="demo__tab" aria-current={i === cur.scene ? "step" : undefined} onClick={(e) => { e.currentTarget.blur(); jump(i); }}>
             <span aria-hidden="true">{i + 1} </span>{s.title}
           </button>
         ))}

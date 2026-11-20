@@ -51,7 +51,7 @@ export const SCENES: Scene[] = [
     beats: [{ kind: "turn" }],
   },
   { id: "sound", title: "Sound", beats: [{ kind: "turn" }] },
-  { id: "honesty", title: "Honesty", beats: [{ kind: "turn" }] },
+  { id: "honesty", title: "Honesty", note: "Manual loaded: Unit 4B apartment guide", beats: [{ kind: "turn" }] },
   { id: "danger", title: "Danger", beats: [{ kind: "turn" }] },
   {
     id: "proof",

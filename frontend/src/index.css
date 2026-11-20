@@ -1,7 +1,8 @@
 /*
- * HomeFix design system: "the repair card".
- * A calm card you'd find taped inside a closet door: paper, ink, one blue pen, and three stamps
- * (answered, not in the document, stop). Tokens are semantic; components never use raw hex.
+ * HomeFix design system: "the maintenance tag".
+ * A tag hung on a boiler: warm concrete paper, near-black ink, one safety-orange pen for actions,
+ * and three stamps (answered, not in the document, stop). A hazard stripe appears on the safety card only.
+ * Tokens are semantic; components never use raw hex.
  * Three voices: the interface (IBM Plex Sans), the document's own words (Newsreader, serif),
  * the data (IBM Plex Mono: times, pages, percentages, codes).
  * Depth comes from hairlines and whitespace, not shadows. No emoji: lucide icons only.
@@ -508,7 +509,7 @@ details summary { cursor: pointer; font-size: 0.875rem; color: var(--ink-soft); 
 }
 
 /* ---------- demo ---------- */
-.demo { min-height: 100vh; box-sizing: border-box; background: var(--paper); color: var(--ink); padding: 0.75rem 1.5rem 1rem;
+.demo-page { min-height: 100vh; box-sizing: border-box; background: var(--paper); color: var(--ink); padding: 0.75rem 1.5rem 1rem;
   display: flex; flex-direction: column; gap: 0.75rem; }
 .demo__strip { display: flex; gap: 0.4rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.6rem; overflow-x: auto; max-width: 100%; }
 .demo__tab { flex: none; font: inherit; font-size: 1rem; color: var(--ink-soft); background: var(--sheet); border: 1px solid var(--rule-strong);
@@ -535,10 +536,11 @@ details summary { cursor: pointer; font-size: 0.875rem; color: var(--ink-soft); 
 .demo__play { align-self: flex-start; }
 .demo__note, .demo__label { margin: 0; font-size: 0.95rem; color: var(--ink-faint); }
 .demo__hint { margin: 0; position: sticky; bottom: 0; background: var(--paper); padding: 0.3rem 0; font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-faint); text-align: right; }
+.demo-page .card__title, .demo-page .card__next, .demo-page .card--citation figcaption { font-size: 1.1rem; }
 @keyframes demo-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .demo__beat { animation: none; } }
 @media (max-width: 640px) {
-  .demo { padding: 0.5rem 1rem; }
+  .demo-page { padding: 0.5rem 1rem; }
   .demo__photos { grid-template-columns: 1fr; }
   .demo__title { font-size: 1.7rem; }
   .demo__list, .demo__scores { font-size: 1.1rem; }

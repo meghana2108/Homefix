@@ -17,6 +17,11 @@ describe("maintenance-tag theme", () => {
     for (const [name, hex] of Object.entries(want)) expect(root).toContain(`--${name}: ${hex};`);
   });
 
+  it("the landing card and the demo page each own one root rule", () => {
+    expect(css.match(/^\.demo\s*\{/gm)).toHaveLength(1);
+    expect(css.match(/^\.demo-page\s*\{/gm)).toHaveLength(1);
+  });
+
   it("no raw hex outside :root", () => {
     const rest = css.replace(root, "");
     const hits = (rest.match(/#[0-9a-fA-F]{3,6}\b/g) ?? []).filter((h) => !["#fff", "#000"].includes(h.toLowerCase()));
