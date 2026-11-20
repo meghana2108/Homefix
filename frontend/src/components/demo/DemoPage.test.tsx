@@ -187,4 +187,14 @@ describe("scenes", () => {
     expect(await screen.findByText(/Run scripts\/fetch_real_samples\.py/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Play the sound" })).toBeNull();
   });
+
+  it("leaving the sound scene before play() settles never shows the missing-sound note", async () => {
+    let reject!: (e: unknown) => void;
+    play.mockImplementation(() => new Promise((_, r) => { reject = r; }));
+    mount();
+    await act(async () => { jump(3); });
+    await act(async () => { jump(4); });
+    await act(async () => { reject(new DOMException("x", "AbortError")); });
+    expect(screen.queryByText(/sound file is missing/)).toBeNull();
+  });
 });

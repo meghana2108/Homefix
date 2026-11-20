@@ -137,8 +137,11 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
 
   const start = useCallback(() => {
     setBlocked(false);
-    const p = audioRef.current?.play?.();
+    const el = audioRef.current;
+    const p = el?.play?.();
     p?.catch((err: unknown) => {
+      // A play() still pending when the scene changed rejects with AbortError: not a real failure.
+      if (audioRef.current !== el || (err as { name?: string } | null)?.name === "AbortError") return;
       if ((err as { name?: string } | null)?.name === "NotAllowedError") setBlocked(true);
       else setAudioMissing(true);
     });
