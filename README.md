@@ -1,281 +1,170 @@
+<div align="center">
+
 # HomeFix
 
-**A local assistant for students renting their first apartment**, built for the IEEE AI Hackathon 2026,
-Multimodal LLM Challenge ("Build AI we own").
+**Is it broken, or is it normal?**
 
-> Hackathon prototype. Not professional or safety advice. In an emergency, call 911.
-> Everything runs on one laptop with open-weight models. It works with Wi-Fi off.
+A local assistant for students renting their first apartment. Show it a photo, play it a beep, ask about
+the landlord's guide or send a short video. It answers on your own laptop, with Wi-Fi off, and shows
+where the answer came from.
 
-Show HomeFix a photo of an error code, play it a beep, ask about your lease or the landlord's guide, or
-send a short video. It tells you what is going on and what to do, and shows where it found the answer.
-If the answer isn't in your document, it says so. If something sounds dangerous, it says stop first.
+![macOS on Apple Silicon](https://img.shields.io/badge/macOS-Apple%20Silicon-000000?logo=apple&logoColor=white) ![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white) ![React](https://img.shields.io/badge/Web-React-61DAFB?logo=react&logoColor=black) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![Ollama](https://img.shields.io/badge/Models-Ollama-000000?logo=ollama&logoColor=white) ![Offline](https://img.shields.io/badge/Runs-offline-2E7D32)
 
-## How to run it, step by step
+[Demo](#demo) · [See it work](#see-it-work) · [Quick start](#quick-start) · [Docs](#documentation)
 
-HomeFix runs on **macOS on Apple Silicon** only (M1 or newer). Speech uses `mlx-whisper`, which needs
-Apple Silicon, and Ollama must run natively to use the GPU. The first setup takes about 30 to 60
-minutes, most of it downloading models (about 14 GB on `full`, 5 GB on `lite`).
+</div>
 
-### Step 1. Check your Mac and Homebrew
+![HomeFix front page: "Is it broken, or is it normal?", with a washer display reading E21 and the steps HomeFix takes](docs/img/home.png)
 
-```bash
-uname -m            # must print arm64
-brew --version      # any version
-git --version       # any version
-```
+Built for the **IEEE AI Hackathon 2026, Multimodal LLM Challenge ("Build AI we own")** by Meghana R and
+Akshayaa Mahesh.
 
-If `brew` is missing, install it from <https://brew.sh>. The setup script installs everything else.
+> **Hackathon prototype.** Not professional or safety advice. In an emergency, call 911.
+> Every model runs on the laptop. Nothing you send leaves it.
 
-### Step 2. Get the code
+## Contents
 
-```bash
-git clone https://github.com/meghana2108/Homefix.git
-cd Homefix
-```
+- [Demo](#demo)
+- [What it does](#what-it-does)
+- [See it work](#see-it-work)
+- [How an answer is decided](#how-an-answer-is-decided)
+- [Quick start](#quick-start)
+- [Results](#results)
+- [Documentation](#documentation)
+- [Limitations](#limitations)
+- [Team](#team)
+- [Credits and licenses](#credits-and-licenses)
 
-Run every remaining command from inside this `Homefix` folder unless the step says otherwise.
+## Demo
 
-### Step 3. Install everything
+The app has a built-in demo at `#/demo`: eight short scenes (the problem, photo to manual, sound, video,
+honesty, danger, code, proof), each a real answer recorded on the M4. It never calls a model, so it works
+with Wi-Fi off. On the front page, click **Ask about something at home** to play it. Each scene builds up
+by itself and ends on the answer; `→` goes to the next one.
 
-```bash
-bash scripts/setup_mac.sh
-```
+![The demo's proof scene: practice-pack scores on the M4 next to what HomeFix can't do](docs/img/demo-proof.png)
 
-This installs what is missing: ffmpeg, the Ollama app, uv, Python 3.11 (through uv), Node 20, the
-Python packages (about 1.5 GB, most of it torch) and the web packages. It is safe to run again. It also
-creates `.env` from `.env.example`.
+How to run it in front of a room, re-record it and check the laptop first: [docs/DEMO.md](docs/DEMO.md).
 
-If it says `node -v` is not v20, run the `export PATH=...` line it prints, then open a new terminal.
+## What it does
 
-### Step 4. Pick a profile
+When something in your first apartment beeps, blinks or leaks, you have to work out what it means, find
+the manual and decide whether it is dangerous. The landlord may not answer. HomeFix does that work.
 
-Open `.env` and set `PROFILE`:
+1. **Check for danger.** Every question is checked for gas, fire, smoke, sparks, exposed wires and water
+   near power before any model runs. If it matches, you get the fixed safety steps and no repair advice.
+2. **Pick how to answer.** Plain code picks the right part of HomeFix from what you sent: a photo, a sound,
+   a voice note, a document, a video or a coding task.
+3. **Answer on the laptop.** Open-weight models read the photo, label the sound, transcribe the voice note
+   or watch the clip's frames.
+4. **Check before showing.** A document answer is shown only with a quote that is really in the document,
+   and its page. A display read two ways is read a third time. Generated code is tested in a sandbox.
+5. **Hand it on.** If it's a job for the landlord, **Make a repair request** puts the photos, the manual's
+   words and a letter into one dated, fingerprinted page to print or save as PDF.
 
-| Your Mac | `PROFILE` | Models |
-| --- | --- | --- |
-| 16 GB or more | `full` | `qwen3-vl:8b-instruct` (vision), `qwen2.5-coder:7b` (code), Whisper large-v3-turbo |
-| 8 GB | `lite` | `qwen3-vl:2b-instruct`, `qwen2.5-coder:3b`, Whisper small.en, one LLM loaded at a time |
+**Example**, a photo of a washer display showing E21, with our sample Unit 4B apartment guide:
 
-Both profiles use CLAP (`laion/clap-htsat-unfused`) for sounds and `bge-small-en-v1.5` for long
-documents. `PRACTICE_PACK_DIR` is only needed for the eval (see [Tests and checks](#tests-and-checks)).
+> **My washer shows this code. What should I do?**
+>
+> E21 means the washer cannot drain the water. Turn the washer off and unplug it. Clean the drain pump
+> filter behind the small door at the bottom right (see page 3). Then check that the drain hose is not
+> kinked. If E21 comes back after cleaning the filter, call the maintenance line.
+>
+> *Word for word from the document, p. 2 · apartment_guide_unit_4b.pdf*
 
-### Step 5. Download the models
+| You bring | HomeFix gives you |
+| --- | --- |
+| A photo | What it shows, a count, or the text on a display (error codes, labels, thermostat readings) |
+| A photo of an error code | What the manual says the code means, with the page and the exact words |
+| A sound | The top three sound labels with scores, and a warning if it could be an alarm |
+| A voice note | The transcript, and an answer to your question about it |
+| A document (lease, guide, manual; PDF, text or Word) | An answer with a word-for-word quote and page, or "the document doesn't contain the answer" |
+| A short video | A count, which way something moves, or what happens, with the frames it looked at |
+| A coding task | A Python function tested in a sandbox, with "passed 2 of 2" or what failed |
+| Anything that sounds dangerous | A fixed safety message (gas: leave, don't touch a switch) and no repair steps |
 
-Open the Ollama app (it shows an icon in the menu bar), then:
+**Who it is for.** A student in their first apartment, with a beeping appliance and a landlord who isn't
+answering. Their workflow: show HomeFix the problem, read what it means and where that came from, and if
+it's beyond them, send the repair request.
 
-```bash
-bash scripts/pull_models.sh full --final     # or: lite --final
-```
+## See it work
 
-`--final` downloads only the models the profile uses. Without it, the script also downloads the
-models we compared against (about 23 GB on `full`, 10 GB on `lite`).
+**1. Pick an example, or ask your own.** One click attaches a sample file and asks. Real photos, recordings
+and documents are marked with their source.
 
-### Step 6. Make the example files and sample manuals
+![The app's start screen: "What's going on at home?", example tabs for photo, sound, voice note, document, manual, video, code and danger](docs/img/gallery.png)
 
-```bash
-uv run python scripts/make_samples.py           # our drawn photos, sounds, voice notes, clips and guides
-uv run python scripts/fetch_real_samples.py     # real photos, a smoke alarm chirp and public guides; needs the network, slow
-```
+**2. Photo to manual.** HomeFix reads E21 from the display, picks the Unit 4B guide by itself, and quotes the
+E21 row on page 2. The left side lists every step it took. This is a live answer from the M4 (11.0 s).
 
-The first script works offline. It writes the gallery files to `frontend/public/samples/` and the
-sample manuals to `data/manuals/` (including the Unit 4B apartment guide the demo uses). Both folders
-are gitignored, so every Mac runs these once.
+![A live answer: E21 means the washer cannot drain, with the quote from page 2 and a "Make a repair request" button](docs/img/live-e21.png)
 
-### Step 7. Check the machine
+**3. Sound.** The closest matching sounds with their scores, and what to do if it could be an alarm.
 
-```bash
-uv run python scripts/go_no_go.py
-```
+![Sound answer: most likely smoke alarm chirp (13%), with bars for the top three sounds](docs/img/demo-sound.png)
 
-It runs one question through each model and prints a table with `GO` or `NO-GO` for each one, with
-times and memory. Fix any `NO-GO` before going on (see [Troubleshooting](#troubleshooting)).
+**4. Video.** A count from the frame where the most lights are on, with the 16 frames it looked at.
 
-### Step 8. Start the backend
+![Video answer: 4 warning lights, with a timeline of 16 sampled frames](docs/img/demo-video.png)
 
-Terminal 1:
+**5. Honesty.** When the document doesn't say, HomeFix says so instead of guessing.
 
-```bash
-uv run uvicorn app.api.main:app --port 8000
-```
+![Honesty: asked about a washer warranty, HomeFix says the document doesn't contain the answer](docs/img/demo-honesty.png)
 
-`PROFILE` comes from `.env`. Every model starts loading in the background as soon as the API starts.
-Leave this terminal open.
+**6. Danger.** A burning smell gets the fixed safety steps in under 0.1 s, before any model runs.
 
-### Step 9. Start the web app
+![Danger: "Stop: this could be dangerous", with steps to get out and call 911, and no repair steps](docs/img/demo-danger.png)
 
-Terminal 2:
+**7. Code.** The function and its examples, tested in a sandbox.
 
-```bash
-cd frontend && npm run dev
-```
+![Code: a Fahrenheit to Celsius function, "Code tested: passed 2 of 2"](docs/img/demo-code.png)
 
-Leave this terminal open too. When it prints a `Local:` address on port 5173, go to the next step.
+## How an answer is decided
 
-### Step 10. Open it in your browser
+Fixed rules have the final say. A model can make HomeFix more careful (stop, ask, refuse), never less.
 
-Go to **<http://localhost:5173>**.
+- **Danger first:** danger words in a question or voice note get the fixed message for that danger before
+  any model runs. A second check by meaning catches paraphrases; it can only add a stop.
+- **Routing is plain code:** `app/router.py` picks the pipeline from the files and words, in about 0 ms.
+- **No verified quote, no answer:** a document answer is shown only if its quote is in the document (word
+  for word, or a fuzzy match of at least 92 for quotes of 8 words or more). Every number and code in the
+  answer must be in the quote, and a question about an error code needs that code in the quote.
+- **Displays are read twice:** if the reads disagree, a third read decides by majority; with no majority,
+  HomeFix shows the reads and asks.
+- **It asks instead of guessing** when a display question is vague, a code can't be read, or two manuals fit.
+- **Generated code never runs in the app:** its examples run in a locked-down subprocess (no network,
+  temporary folder, 10 s limit), with one retry.
 
-- **Open HomeFix** (top right) opens the app. The header says "Getting ready: Speech (2 of 5)" while
-  the models load, then shows the profile. On the M2 this takes about 29 s from a cold start.
-- **Ask about something at home** plays the demo (`#/demo`): eight short scenes with answers recorded
-  on the M4. See [The demo](#the-demo).
+Every safety layer, and what each one is measured to catch: [docs/SAFETY.md](docs/SAFETY.md).
 
-To try the app, pick an example from **Try an example** (a washer error code, a smoke alarm chirp, a
-lease question, a video, a coding task), or type a question and drop in a photo, sound, video or file.
+## Quick start
 
-### Step 11. Go offline and check
-
-Turn Wi-Fi off, then, with the backend running:
-
-```bash
-bash scripts/offline_check.sh full     # or: lite
-```
-
-It checks that the network is unreachable, that every model is on disk, runs the go/no-go test and
-asks the API for its health. It must end with `OFFLINE CHECK PASSED`.
-
-### Step 12. Stop the app
-
-Press **Ctrl+C** in both terminals. To free the model's memory too, run
-`ollama stop qwen3-vl:8b-instruct` (or `qwen3-vl:2b-instruct` on `lite`).
-
-### Running it again later
-
-Open Ollama, then steps 8 to 10:
+Needs **macOS on Apple Silicon** and **Homebrew**. From a new terminal:
 
 ```bash
-cd Homefix
-uv run uvicorn app.api.main:app --port 8000     # terminal 1
-cd frontend && npm run dev                      # terminal 2
+git clone https://github.com/meghana2108/Homefix.git && cd Homefix
+bash scripts/setup_mac.sh                     # ffmpeg, Ollama, uv, Python 3.11, Node 20, all packages
+bash scripts/pull_models.sh full --final      # open the Ollama app first; use lite on an 8 GB Mac
+uv run python scripts/make_samples.py         # example files and sample manuals (offline)
+uv run uvicorn app.api.main:app --port 8000   # terminal 1: the backend
+cd frontend && npm run dev                    # terminal 2: the web app
 ```
 
-### Without the browser (optional)
+Set `PROFILE=full` (16 GB) or `PROFILE=lite` (8 GB) in `.env` before starting the backend. Open
+<http://localhost:5173> and click **Open HomeFix**, or **Ask about something at home** for the demo. Then
+turn Wi-Fi off and run `bash scripts/offline_check.sh full`; it must print `OFFLINE CHECK PASSED`.
 
-Run one question from the terminal through the same code the API uses:
+Every step with what to expect: [Getting started](docs/GETTING_STARTED.md). Stuck? See
+[Troubleshooting](docs/DEVELOPMENT.md#troubleshooting).
+
+**Without the browser:**
 
 ```bash
 uv run python -m app.cli "What should I do?" --file frontend/public/samples/washer_display_e21.jpg \
   --manual apartment_guide_unit_4b
 ```
 
-It prints each step as it happens (`[status]`, `[citation]`, the answer). `--json` prints the raw
-events, and `--profile lite` overrides `.env`.
-
-### On a phone (optional)
-
-Camera and microphone need HTTPS. With the backend running and the phone on the same network:
-
-```bash
-brew install mkcert                 # once, needs the network
-bash scripts/https_dev.sh
-```
-
-Open the address it prints on the phone. With Wi-Fi off there is no network between phone and
-laptop, so this only works on a local network. See [docs/DEMO.md](docs/DEMO.md).
-
-If something goes wrong, see [Troubleshooting](#troubleshooting).
-
-## What it does
-
-When something in your first apartment beeps, blinks or leaks, you have to work out what it means, find
-the manual, and decide whether it is dangerous. The landlord may not answer. HomeFix does that work.
-You bring:
-
-| You bring | HomeFix gives you |
-| --- | --- |
-| A photo | What it shows, a count, or the text on a display (error codes, labels, thermostat readings) |
-| A photo of an error code, plus a manual | What the manual says the code means, with the page and the exact words |
-| A sound | The top three sound labels with scores ("smoke alarm chirp"), and a warning if it could be an alarm |
-| A voice note | The transcript, and an answer to your question about it |
-| A document (lease, guide, manual; PDF, text or Word) | An answer with a word-for-word quote and its page, or "the document doesn't contain the answer" |
-| A short video | A count, which way something moves, or what happens, with the frames it looked at |
-| A coding task | A Python function, tested in a sandbox, with "passed 2 of 2" or what failed |
-| Anything that sounds dangerous | A fixed safety message (gas: leave, don't touch a switch) and no repair steps |
-
-Example, from the demo (a photo of a washer display showing E21, with our sample Unit 4B guide):
-
-> **What should I do?**
->
-> E21 means the washer cannot drain the water. Turn the washer off and unplug it. Clean the drain pump
-> filter behind the small door at the bottom right (see page 3). Then check that the drain hose is not
-> kinked.
->
-> *Word for word from the document, p. 2 · apartment_guide_unit_4b.pdf:* "E21 - The washer cannot drain
-> the water. Turn the washer off and unplug it. Clean the drain pump filter behind the small door at the
-> bottom right (see page 3)."
-
-The other demo scenes, each a real answer recorded on the M4 (`full`):
-
-| Question | What came back | Time |
-| --- | --- | --- |
-| "What is this sound?" + a smoke alarm chirp | Most likely **smoke alarm chirp** (13%), then silence, background noise; "If this could be a smoke or carbon monoxide alarm, don't wait: leave and call 911." | 6.7 s |
-| "How many warning lights are on at the end?" + a 6 s clip | 4, with the 16 frames it looked at | 10.2 s |
-| "Is there a warranty on the washer?" + the Unit 4B guide | "The document doesn't contain the answer." (it doesn't) | 2.2 s |
-| "I smell burning from the outlet behind the fridge" | The fixed safety message for smoke or fire, no repair steps | 0.001 s |
-| "Write a function that converts a thermostat temperature from Fahrenheit to Celsius." | The function, passed 2 of 2 examples in the sandbox | 11.2 s |
-
-### Who it is for
-
-**User:** a student in their first apartment, with a beeping appliance and a landlord who isn't
-answering.
-
-**The one thing they finish:** show HomeFix the problem (photo, sound, video or question) → read what it
-means and what to do, with where that came from → if it's beyond them, press **Make a repair request**:
-a dated page with every file fingerprinted, the verified quote, the danger check and a letter to the
-landlord they can edit, then print or save as PDF. It is built in the browser; nothing is uploaded.
-**Check a file against this request** later shows whether a file was changed.
-
-### How an answer is decided
-
-Fixed rules have the final say. A model can make HomeFix more careful (stop, ask, refuse), never less.
-The full design is in [docs/SAFETY.md](docs/SAFETY.md).
-
-- **Danger first.** Every question and voice-note transcript is checked for danger words (gas, sparks,
-  smoke, exposed wires, water near an outlet, shocks) before any model runs. A match gets the fixed
-  message for that danger and no repair steps. A second check by meaning catches paraphrases ("a weird
-  sulfur smell by the oven"); it can only add a stop.
-- **Routing is plain code.** `app/router.py` picks the pipeline from the files and the question words in
-  about 0 ms. No model decides where a question goes.
-- **No verified quote, no answer.** A document answer is shown only if its quote is in the document:
-  word for word, or a fuzzy match of at least 92 (`quote_fuzz_threshold`) for quotes of 8 words or
-  more. Shorter quotes must match exactly. Every number and code in the answer must also be in the quote.
-  If the question asks about an error code ("What does E21 mean?"), the quote must name that code.
-- **Displays are read twice.** If the two reads disagree (80 vs 60, E24 vs 624), a third read decides
-  by majority. With no majority, HomeFix shows the reads and asks which one is right.
-- **It asks instead of guessing** when a question about a display is vague, a code can't be read, or two
-  manuals fit.
-- **Sounds that might be alarms** get a warning even when the alarm label isn't first.
-- **Generated code never runs in the app.** It runs its own examples in a locked-down subprocess (no
-  network, temporary folder, 10 s limit) and gets one retry if they fail.
-
-## The demo
-
-The demo page plays real answers that we recorded on the M4, so it never calls a model and works with
-Wi-Fi off.
-
-1. Open <http://localhost:5173> and click **Ask about something at home**, then press `F` for full screen.
-2. Each scene builds up by itself, one step per second, and ends on the answer. `→`, Space, PageDown or a
-   clicker goes to the next scene; pressed while a scene is still building, it finishes that scene
-   first. `←` goes back. `1` to `8` jump to a scene. `Esc` opens the live app.
-3. The scenes: 1 the problem, 2 photo to manual, 3 sound, 4 video, 5 honesty, 6 danger, 7 code, 8 proof
-   (the scores below and our test counts).
-
-Before presenting, with the backend running on the M4:
-
-```bash
-uv run python scripts/demo_check.py      # asks one question of each kind, prints seconds and OK / SLOW / FAIL
-```
-
-Run it twice; the second run is the warm number. To record the scenes again (backend on `full`):
-
-```bash
-uv run python scripts/record_demo.py                 # all six recorded scenes
-uv run python scripts/record_demo.py --scene photo   # one scene
-```
-
-A scene is saved only if its answer passes the checks in `scripts/record_demo.py` (for example, the
-photo answer must quote E21 and the code must pass its examples). The full run sheet, with the M2
-backup plan, is in [docs/DEMO.md](docs/DEMO.md).
+It prints each step and the answer, through the same code the API uses.
 
 ## Results
 
@@ -311,66 +200,23 @@ Missed our own targets: image on `full` (9.2 s vs 8 s), video on `full` (38.8 s 
 `lite` (22.7 s vs 4 s for sounds and 15 s for speech). These runs were made before the model warm-up
 was added (commit `f337823`); see [Limitations](#limitations) for what that changed on the M4.
 
-## Configuration
+## Documentation
 
-| Setting | Where | What it does |
-| --- | --- | --- |
-| `PROFILE` | `.env` | `full` or `lite`: which models and limits to use |
-| `PRACTICE_PACK_DIR` | `.env` | Absolute path to the unzipped practice pack, outside the repo. Only the eval and `go_no_go.py` use it |
-| `OLLAMA_HOST` | `.env` (default `http://127.0.0.1:11434`) | Where Ollama listens |
-| `HF_HUB_OFFLINE`, `TRANSFORMERS_OFFLINE` | `.env` (both `1`) | Never download models at runtime |
-| `OLLAMA_MAX_LOADED_MODELS` | `.env` (`1`) | `lite`: keep one LLM in memory |
-| `VITE_API_URL` | environment, for `npm run dev` (default `http://127.0.0.1:8000`) | Where the web app finds the API |
-| `config/profiles/full.yaml`, `lite.yaml` | repo | Models, video frames (16 / 8), `quote_fuzz_threshold: 92`, code timeout (10 s), file limits (4 files, 200 MB, 2 min of video) |
-| `config/safety_rules.yaml`, `safety_semantic.yaml` | repo | Danger words and the fixed message for each danger, and the paraphrases checked by meaning |
-
-To try a profile setting without editing the file, the eval takes overrides:
-`uv run python -m eval.run --profile full --modality video --set video.frames=12`.
-
-## Tests and checks
-
-```bash
-uv run pytest                    # unit and hard-rule tests (825 pass); skips tests marked `model`
-uv run pytest -m model           # tests that need a real model (Ollama running)
-uv run ruff check .              # lint
-cd frontend && npx vitest run    # web unit tests (174 pass)
-cd frontend && npm run typecheck
-cd frontend && npm run build
-```
-
-`tests/test_hard_rules.py` checks the hackathon rules on every run: only `eval/grade.py` reads
-`answers.json`, the app has no remote URLs, no practice-pack files or manuals are tracked in git, and
-the sound vocabulary is not the ESC-50 class list.
-
-Run the eval (needs `PRACTICE_PACK_DIR`):
-
-```bash
-uv run python -m eval.run --profile full --modality all       # every item; or image, audio, text, code, video
-uv run python -m eval.run --profile full --modality all --limit 2   # quick check: 2 items per modality
-uv run python -m eval.report --run <run_id>                   # writes results/summary_full.md
-```
-
-Raw answers go to `results/raw/` (gitignored). Only the summary, which holds numbers and no pack
-content, is committed.
-
-## Troubleshooting
-
-| Symptom | Fix |
+| Page | What is in it |
 | --- | --- |
-| `Ollama is not running` from `pull_models.sh`, or `ollama: false` in `/api/health` | Open the Ollama app, or run `ollama serve` |
-| Answers are very slow, and `setup_mac.sh` warned that Docker owns port 11434 | Docker's Ollama on macOS has no GPU. Stop it (`docker ps`, then `docker stop <id>`) and use the Ollama app |
-| `demo_check.py` prints `SLOW` | Ollama's memory grows over a long session. Run `ollama stop qwen3-vl:8b-instruct`, restart the API, run the check again. Quit other apps (Docker Desktop holds several GB) |
-| The header stays on "Getting ready" | A model is still loading or failed. Check terminal 1 for an error and `go_no_go.py` for a `NO-GO` |
-| `model_unavailable` or `timeout` in an answer | The model isn't pulled or didn't load in 90 s. Run `ollama list`, then `pull_models.sh <profile> --final` |
-| The manual list is empty | Run `uv run python scripts/make_samples.py` (writes `data/manuals/`) |
-| The demo says "this photo is missing" or "the sound file is missing" | Run `uv run python scripts/fetch_real_samples.py` (needs the network once) |
-| The demo says "This scene hasn't been recorded" | Run `uv run python scripts/record_demo.py` with the backend on `full` |
-| `node -v` is not v20 after setup | Run the `export PATH=...` line `setup_mac.sh` printed, then open a new terminal |
-| Port 8000 or 5173 is busy | Find it with `lsof -iTCP:8000 -sTCP:LISTEN` and stop it. The web app expects the API on 8000 unless you set `VITE_API_URL` |
-| Camera or mic doesn't work on a phone | They need HTTPS. Use `bash scripts/https_dev.sh` on the same network |
-| `OFFLINE CHECK FAILED` at step 1 | The network is still reachable. Turn Wi-Fi off and unplug Ethernet |
+| [Getting started](docs/GETTING_STARTED.md) | Twelve numbered steps from a new Mac to the offline check, plus the terminal CLI and phone use |
+| [Demo](docs/DEMO.md) | The pitch run sheet, the `#/demo` page, `demo_check.py`, re-recording, the M2 backup |
+| [Safety](docs/SAFETY.md) | Every safety layer, in order, and what each one was measured to catch |
+| [Development](docs/DEVELOPMENT.md) | Configuration, tests, troubleshooting, modules, API routes and events |
+| [Architecture](docs/ARCHITECTURE.md), [Models](docs/MODELS.md), [Eval](docs/EVAL.md) | Request flow and memory budget, why these models, how the practice pack is scored |
+| [Plan](docs/PLAN.md), [Risks](docs/RISKS.md), [Decisions](docs/DECISIONS.md), [Assets](docs/ASSETS.md) | The build plan, what could go wrong, choices we made, every asset with its source and license |
 
 ## Limitations
+
+The main ones are also on the front page and the demo's last scene.
+
+<details>
+<summary>Show all limitations</summary>
 
 - **It answers only from what you give it.** No manual, no answer from a manual. It asks for one instead
   of guessing.
@@ -398,58 +244,9 @@ content, is committed.
 - **Apple Silicon and native Ollama only.** Phone use needs HTTPS and the same network as the laptop.
 - **It is a hackathon prototype**, not professional or safety advice. In an emergency, call 911.
 
+</details>
+
 More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#limits-we-name-openly).
-
-## How it is built
-
-```text
-app/api/          FastAPI: /api/chat (SSE), /api/health, /api/manuals, /api/mic (WebSocket)
-app/pipelines/    One pipeline per input: image, audio, text, code, video, and homefix (photo + manual)
-app/text/         Retrieval for long documents (BM25 + bge-small) and the quote check (verify.py)
-app/code/         Pulling the function out of the model's reply, and the sandbox
-app/media/        ffmpeg conversion: photos, sounds, videos and documents into one format each
-app/              Router, safety checks, clarify rules, model memory and warm-up, the CLI
-frontend/         React + TypeScript (Vite): the app, the front page and the #/demo page
-eval/             Practice-pack runner, graders and report
-config/           Profiles, safety rules, intent examples, sound vocabularies
-scripts/          Setup, model download, samples, go/no-go, offline check, demo check and recorder
-docs/             Plan, architecture, models, eval, safety, demo, risks, decisions, assets
-tests/            Backend tests, including the hard-rule tests
-```
-
-Browser → `POST /api/chat` (files and question) → convert → danger check → router → one pipeline →
-Ollama (vision or code model), mlx-whisper or CLAP → checks (quote, reads, sandbox) → a stream of
-server-sent events back to the browser. No database, and no network calls at runtime.
-
-| Module | Role |
-| --- | --- |
-| `app/safety.py`, `app/safety_semantic.py` | Danger words, then danger by meaning; fixed messages |
-| `app/router.py` | Picks the pipeline and question type from the files and words (rules, no model) |
-| `app/pipelines/image.py` | Describe, count and read photos; the danger look; read twice, majority of three |
-| `app/pipelines/homefix.py` | A photo of an error code plus a chosen manual: read the code, find it in the manual, quote it |
-| `app/pipelines/audio.py` | Speech (Whisper) or sound labels (CLAP), with the possible-alarm warning |
-| `app/pipelines/text.py`, `app/text/verify.py` | Document answers and the quote check |
-| `app/pipelines/code.py`, `app/code/sandbox.py` | Write a function, run its examples in a subprocess, retry once |
-| `app/pipelines/video.py` | Sample frames, then count, follow motion or answer |
-| `app/clarify.py`, `app/intent.py` | When to ask instead of guessing |
-| `app/models/memory.py`, `app/warmup.py` | Which models stay loaded, swapping in the coder, the start-up warm-up |
-
-| API route | Purpose |
-| --- | --- |
-| `POST /api/chat` | Question, files (up to 4) and an optional `manual_id` → a stream of events |
-| `GET /api/health` | Profile, Ollama status, loaded models and warm-up progress |
-| `GET /api/manuals` | The manuals in `data/manuals/` |
-| `WS /api/mic` | Live microphone: 3 s chunks in, partial transcripts out |
-
-`/api/chat` streams these events: `status` (one per stage), `token`, `transcript`, `sound_labels`,
-`frames`, `citation`, `code_result`, `clarify`, `refusal`, `error` and `final`. A `refusal` has one of
-these reasons: `safety`, `unsupported_file`, `empty_input`, `too_large`, `no_document`,
-`not_in_document`, `model_unavailable`, `timeout`. The names are kept the same in `app/contracts.py`
-and `frontend/src/contract.ts` by `tests/test_contract_sync.py`.
-
-More: [Plan](docs/PLAN.md) · [Architecture](docs/ARCHITECTURE.md) · [Models](docs/MODELS.md) ·
-[Eval](docs/EVAL.md) · [Safety](docs/SAFETY.md) · [Demo](docs/DEMO.md) · [Risks](docs/RISKS.md) ·
-[Decisions](docs/DECISIONS.md) · [Assets](docs/ASSETS.md)
 
 ## Team
 
