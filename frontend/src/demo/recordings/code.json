@@ -1,0 +1,61 @@
+{
+ "scene": "code",
+ "recorded_at": "2026-11-20T12:38:32",
+ "profile": "full",
+ "request": {
+  "message": "Write a function that converts a thermostat temperature from Fahrenheit to Celsius.",
+  "files": [],
+  "manual_id": null
+ },
+ "events": [
+  {
+   "type": "status",
+   "stage": "converting",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "safety_check",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "routing",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": "qwen2.5-coder:7b",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "running_code",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "code_result",
+   "code": "def fahrenheit_to_celsius(fahrenheit):\n    \"\"\"\n    Convert a temperature from Fahrenheit to Celsius.\n    \n    >>> fahrenheit_to_celsius(32)\n    0.0\n    >>> fahrenheit_to_celsius(212)\n    100.0\n    \"\"\"\n    return (fahrenheit - 32) * 5 / 9\n",
+   "passed": true,
+   "tests_run": 2,
+   "failures": 0,
+   "output_tail": "",
+   "attempts": 1
+  },
+  {
+   "type": "final",
+   "answer": "Converts a temperature from Fahrenheit to Celsius.",
+   "modality": "code",
+   "question_type": "code_gen",
+   "latency_ms": 4528,
+   "profile": "full",
+   "model": "qwen2.5-coder:7b",
+   "intent": "question"
+  }
+ ]
+}

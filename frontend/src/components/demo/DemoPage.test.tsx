@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HomeFixEvent, Modality, Stage } from "../../contract";
 import { expandBeats } from "../../demo/beats";
 import { SCENES, type Recording, type SceneId } from "../../demo/scenes";
-import { DemoPage } from "./DemoPage";
+import { DemoPage, STEP_MS } from "./DemoPage";
 
 const st = (stage: Stage, detail: string | null = null): HomeFixEvent => ({ type: "status", stage, detail, ms: null });
 const final = (answer: string, modality: Modality = "image"): HomeFixEvent => ({
@@ -17,6 +17,12 @@ function rec(scene: SceneId, message: string, files: string[], events: HomeFixEv
 const RECS: Partial<Record<SceneId, Recording>> = {
   photo: rec("photo", "PHOTO QUESTION", ["/samples/x.jpg"], [st("converting"), st("generating"), citation, final("Photo answer.")]),
   sound: rec("sound", "SOUND QUESTION", ["/samples/clip.wav"], [st("converting"), final("Sound answer.", "audio")]),
+  video: rec("video", "VIDEO QUESTION", ["/samples/clip.mp4"], [
+    st("extracting_frames"), { type: "frames", timestamps: [0.1, 2.9, 5.8] }, st("generating"), final("4 lights.", "video")]),
+  code: rec("code", "CODE QUESTION", [], [
+    st("generating"), st("running_code"),
+    { type: "code_result", code: "def f_to_c(f):\n    return (f - 32) * 5 / 9\n", passed: true, tests_run: 2, failures: 0, output_tail: "", attempts: 1 },
+    final("Converts F to C.", "code")]),
   honesty: rec("honesty", "HONESTY QUESTION", [], [
     st("converting"), { type: "refusal", reason: "not_in_document", message: "no", category: null }, final("", "text")]),
   danger: rec("danger", "DANGER QUESTION", [], [
@@ -27,6 +33,8 @@ const press = (key: string, target: Element | Window = window) => fireEvent.keyD
 const pressN = (key: string, n: number) => { for (let i = 0; i < n; i++) press(key); };
 const jump = (n: number) => press(String(n));
 const mount = (recordings = RECS) => render(<DemoPage scenes={SCENES} recordings={recordings} />);
+const tick = (steps: number) => { for (let i = 0; i < steps; i++) act(() => { vi.advanceTimersByTime(STEP_MS); }); };
+const current = () => screen.getAllByRole("button").find((b) => b.getAttribute("aria-current") === "step")?.textContent;
 
 let play: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
@@ -41,23 +49,43 @@ describe("keys", () => {
     const title = SCENES[0].beats[0] as { text: string };
     press("ArrowLeft");
     expect(screen.getByText(title.text)).toBeTruthy();
-    pressN("ArrowRight", flat.length - 1);
+    pressN("ArrowRight", 2 * SCENES.length);
     expect(screen.getByRole("button", { name: "Proof" }).getAttribute("aria-current")).toBe("step");
     const last = document.body.innerHTML;
     press("ArrowRight");
     expect(document.body.innerHTML).toBe(last);
     press("ArrowLeft");
     expect(document.body.innerHTML).not.toBe(last);
+    expect(screen.getByRole("button", { name: "Code" }).getAttribute("aria-current")).toBe("step");
   });
 
-  it("Space and PageDown advance; PageUp goes back", () => {
+  it("Space finishes the scene, PageDown starts the next, PageUp goes back", () => {
     mount();
     press(" ");
-    expect(screen.getAllByRole("img").length).toBeGreaterThan(0); // photos beat
-    press("PageDown");
+    expect(screen.getAllByRole("img").length).toBeGreaterThan(0);
     expect(screen.getByText(/It runs on this laptop/)).toBeTruthy();
+    press("PageDown");
+    expect(screen.getByText("PHOTO QUESTION")).toBeTruthy();
     press("PageUp");
-    expect(screen.queryByText(/It runs on this laptop/)).toBeNull();
+    expect(screen.getByText(/It runs on this laptop/)).toBeTruthy();
+  });
+
+  it("ArrowRight in the middle of a scene finishes it and stays on it", () => {
+    mount();
+    jump(2);
+    expect(screen.queryByLabelText("Citation")).toBeNull();
+    press("ArrowRight");
+    expect(current()).toContain("Photo to manual");
+    expect(screen.getByLabelText("Citation")).toBeTruthy();
+    expect(screen.getByText("Photo answer.")).toBeTruthy();
+  });
+
+  it("ArrowLeft shows the previous scene complete", () => {
+    mount();
+    jump(3);
+    press("ArrowLeft");
+    expect(current()).toContain("Photo to manual");
+    expect(screen.getByText("Photo answer.")).toBeTruthy();
   });
 
   it("number keys jump", () => {
@@ -98,24 +126,83 @@ describe("keys", () => {
 });
 
 describe("scenes", () => {
-  it("photo scene builds up, with the recording label", () => {
+  it("photo scene builds up by itself, with no key press, and stops at the answer", () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      jump(2);
+      expect(screen.getByText("PHOTO QUESTION")).toBeTruthy();
+      expect(screen.queryByLabelText("Citation")).toBeNull();
+      expect(screen.getByText("Recorded on the M4, full profile, 20 Nov 2026")).toBeTruthy();
+      const cites = flat.findIndex((f) => f.scene === 1 && f.upTo === 3);
+      const first = flat.findIndex((f) => f.scene === 1);
+      tick(cites - first - 1);
+      expect(screen.queryByLabelText("Citation")).toBeNull();
+      tick(1);
+      expect(screen.getByLabelText("Citation")).toBeTruthy();
+      tick(20);
+      expect(screen.getByText("Photo answer.")).toBeTruthy();
+      expect(current()).toContain("Photo to manual"); // never runs on into the next scene
+      expect(window.location.hash).toBe("#/demo/2");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the first scene's slides also appear by themselves", () => {
+    vi.useFakeTimers();
+    try {
+      mount();
+      expect(screen.queryByText(/It runs on this laptop/)).toBeNull();
+      tick(2);
+      expect(screen.getAllByRole("img").length).toBeGreaterThan(0);
+      expect(screen.getByText(/It runs on this laptop/)).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("video scene shows the clip, then the frame strip and the count", () => {
     mount();
-    jump(2);
-    expect(screen.getByText("PHOTO QUESTION")).toBeTruthy();
-    expect(screen.queryByLabelText("Citation")).toBeNull();
-    expect(screen.getByText("Recorded on the M4, full profile, 20 Nov 2026")).toBeTruthy();
-    const cites = flat.findIndex((f) => f.scene === 1 && f.upTo === 3);
-    const first = flat.findIndex((f) => f.scene === 1);
-    pressN("ArrowRight", cites - first - 1);
-    expect(screen.queryByLabelText("Citation")).toBeNull();
+    jump(4);
+    expect(current()).toContain("Video");
+    expect(screen.getByText("VIDEO QUESTION")).toBeTruthy();
+    expect(document.querySelector('video[src="/samples/clip.mp4"]')).toBeTruthy();
+    expect(document.querySelector(".framestrip")).toBeNull();
     press("ArrowRight");
-    expect(screen.getByLabelText("Citation")).toBeTruthy();
+    expect(document.querySelector(".framestrip")).toBeTruthy();
+    expect(screen.getByText("4 lights.")).toBeTruthy();
+  });
+
+  it("video scene plays the clip by itself, muted", async () => {
+    mount();
+    await act(async () => { jump(4); });
+    const v = document.querySelector<HTMLVideoElement>('video[src="/samples/clip.mp4"]')!;
+    expect(play.mock.contexts).toContain(v);
+    expect(v.muted).toBe(true);
+  });
+
+  it("other scenes do not play a video", async () => {
+    mount();
+    await act(async () => { jump(2); });
+    expect(play.mock.contexts.some((c: unknown) => c instanceof HTMLVideoElement)).toBe(false);
+  });
+
+  it("code scene is 7: the question, then the tested function and its pass badge", () => {
+    mount();
+    jump(7);
+    expect(current()).toContain("Code");
+    expect(screen.getByText("CODE QUESTION")).toBeTruthy();
+    expect(screen.queryByText(/Passed 2 of 2/)).toBeNull();
+    press("ArrowRight");
+    expect(screen.getAllByText(/Passed 2 of 2/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/return \(f - 32\) \* 5 \/ 9/)).toBeTruthy();
   });
 
   it("danger scene shows the stripe and no steps", () => {
     mount();
-    jump(5);
-    pressN("ArrowRight", 2);
+    jump(6);
+    press("ArrowRight");
     expect(document.querySelector(".card--safety .hazard")).toBeTruthy();
     expect(screen.queryByLabelText("Citation")).toBeNull();
   });
@@ -123,9 +210,9 @@ describe("scenes", () => {
   it("missing recording", () => {
     const { honesty: _h, ...rest } = RECS;
     mount(rest);
-    jump(4);
-    expect(screen.getByText("This scene hasn't been recorded. Run scripts/record_demo.py.")).toBeTruthy();
     jump(5);
+    expect(screen.getByText("This scene hasn't been recorded. Run scripts/record_demo.py.")).toBeTruthy();
+    jump(6);
     expect(screen.getByText("DANGER QUESTION")).toBeTruthy();
   });
 
@@ -149,16 +236,16 @@ describe("scenes", () => {
 
   it("credits", () => {
     mount();
-    jump(6);
-    pressN("ArrowRight", 2);
+    jump(8);
+    press("ArrowRight");
     expect(screen.getByText("Photos and sounds: Wikimedia Commons, see ASSETS.md")).toBeTruthy();
     expect(document.querySelectorAll(".demo__scores tbody tr")).toHaveLength(7);
   });
 
   it("the last slide names the front page's limits", () => {
     mount();
-    jump(6);
-    pressN("ArrowRight", 2);
+    jump(8);
+    press("ArrowRight");
     for (const lead of ["It answers only from what you give it.", "Real manuals print error codes as pictures.", "It is a hackathon prototype."]) {
       expect(screen.getByText(lead)).toBeTruthy();
     }
@@ -199,21 +286,21 @@ describe("scenes", () => {
   });
 });
 
-describe("beat in the address", () => {
-  it("starts at the beat named in the hash", () => {
-    window.location.hash = "#/demo/5";
+describe("scene in the address", () => {
+  it("starts at the scene named in the hash, shown complete", () => {
+    window.location.hash = "#/demo/3";
     mount();
-    const hint = document.querySelector(".demo__hint")!;
-    expect(hint.textContent).toContain(`5 / ${flat.length}`);
+    expect(document.querySelector(".demo__hint")!.textContent).toContain(`3 / ${SCENES.length}`);
+    expect(screen.getByText("Sound answer.")).toBeTruthy();
   });
 
-  it("advancing writes the next beat with replaceState, not a new history entry", () => {
+  it("the address names the scene and changes with replaceState, not a new history entry", () => {
     const push = vi.spyOn(window.history, "pushState");
     mount();
     press("ArrowRight");
-    expect(window.location.hash).toBe("#/demo/2");
+    expect(window.location.hash).toBe("#/demo/1");
     press("ArrowRight");
-    expect(window.location.hash).toBe("#/demo/3");
+    expect(window.location.hash).toBe("#/demo/2");
     expect(push).not.toHaveBeenCalled();
     push.mockRestore();
   });
@@ -221,11 +308,11 @@ describe("beat in the address", () => {
   it("garbage and out-of-range numbers clamp", () => {
     window.location.hash = "#/demo/abc";
     const a = mount();
-    expect(document.querySelector(".demo__hint")!.textContent).toContain(`1 / ${flat.length}`);
+    expect(document.querySelector(".demo__hint")!.textContent).toContain(`1 / ${SCENES.length}`);
     a.unmount();
     window.location.hash = "#/demo/999";
     mount();
-    expect(document.querySelector(".demo__hint")!.textContent).toContain(`${flat.length} / ${flat.length}`);
+    expect(document.querySelector(".demo__hint")!.textContent).toContain(`${SCENES.length} / ${SCENES.length}`);
   });
 });
 
@@ -238,7 +325,7 @@ describe("page chrome", () => {
 
   it("shows the honesty scene's manual note", () => {
     mount();
-    jump(4);
+    jump(5);
     expect(screen.getByText("Manual loaded: Unit 4B apartment guide")).toBeTruthy();
   });
 

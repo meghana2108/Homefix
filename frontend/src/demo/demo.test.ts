@@ -23,7 +23,7 @@ const photoRec = (events: HomeFixEvent[]): Recording => ({
 });
 const full = [st("a" as Stage), st("a" as Stage, "more"), st("b" as Stage), tok, tok, citation, final];
 const rec = (scene: Recording["scene"]): Recording => ({ ...photoRec(full), scene });
-const all = { photo: rec("photo"), sound: rec("sound"), honesty: rec("honesty"), danger: rec("danger") };
+const all = { photo: rec("photo"), sound: rec("sound"), video: rec("video"), honesty: rec("honesty"), danger: rec("danger"), code: rec("code") };
 
 describe("cutPoints", () => {
   it("cuts on new stages, citation and final", () => expect(cutPoints(full)).toEqual([1, 3, 6, 7]));
@@ -69,7 +69,7 @@ describe("expandBeats", () => {
 });
 
 describe("SCENES", () => {
-  it("ids in order", () => expect(SCENES.map((s) => s.id)).toEqual(["problem", "photo", "sound", "honesty", "danger", "proof"]));
+  it("ids in order", () => expect(SCENES.map((s) => s.id)).toEqual(["problem", "photo", "sound", "video", "honesty", "danger", "code", "proof"]));
   it("photo note", () =>
     expect(SCENES[1].note).toBe("Drawn by us: no openly licensed photo of an error display exists"));
   it("problem photos", () => {
@@ -80,10 +80,13 @@ describe("SCENES", () => {
     ]);
   });
   it("proof has scores and limits", () => {
-    const kinds = SCENES[5].beats.map((b) => b.kind);
+    const kinds = SCENES[7].beats.map((b) => b.kind);
     expect(kinds).toContain("scores");
     expect(kinds).toContain("limits");
   });
+  it("video scene says the clip is made by us", () =>
+    expect(SCENES[3]).toMatchObject({ id: "video", title: "Video", note: "Made by us: no openly licensed clip of warning lights exists" }));
+  it("code is scene 7", () => expect(SCENES[6]).toMatchObject({ id: "code", title: "Code" }));
   it("offline", () => expect(JSON.stringify(SCENES)).not.toMatch(/https?:\/\//));
   it("demo sources have no remote URLs", () => {
     for (const f of ["scores.ts", "beats.ts", "cuts.ts"])

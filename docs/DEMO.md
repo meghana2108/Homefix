@@ -52,8 +52,8 @@ Phone (only if the venue allows a local network): `bash scripts/https_dev.sh` pr
 the steps). With Wi-Fi off there is no local network, so show the recorded phone clip instead (RISKS.md #10).
 
 ## Pitch demo (#/demo)
-A page you step through in front of the room. Each press shows one more piece of a real answer that we
-recorded on the M4. It never calls a model, so it works with Wi-Fi off.
+A page you step through in front of the room, one scene per screen. Each scene builds up by itself, one
+step per second, ending with a real answer that we recorded on the M4. It never calls a model, so it works with Wi-Fi off.
 
 Set up once per Mac:
 1. `uv run python scripts/make_samples.py`
@@ -62,17 +62,26 @@ Set up once per Mac:
 
 Run it:
 1. Start the backend, then `cd frontend && npm run dev`.
-2. Open http://localhost:5173/#/demo and press `F` for full screen.
-3. Step with `→`, Space or PageDown, or a clicker. Go back with `←` or PageUp. `1`-`6` jump to a scene.
+2. Open http://localhost:5173/ and click "Ask about something at home" (it opens `#/demo` at scene 1), then
+   press `F` for full screen. "Open HomeFix" in the top bar, or `Esc` in the demo, opens the live app.
+3. `→`, Space or PageDown (or a clicker) goes to the next scene. Pressed while a scene is still building,
+   it shows the rest of that scene at once instead. `←` or PageUp shows the previous scene complete.
+   `1`-`8` jump to a scene and play it.
 4. `Esc` opens the live app. In full screen the first `Esc` only leaves full screen; press it again.
 
-The address shows your place (`#/demo/7` is beat 7). A reload, or a clicker's F5, comes back to the same beat.
+The address shows your scene (`#/demo/3` is scene 3). A reload, or a clicker's F5, comes back to that scene,
+shown complete.
 Do not press the clicker's slideshow button: it sends F5 then Esc, and the Esc leaves the demo. F5 alone
 is safe.
 
+The scenes: 1 the problem, 2 photo to manual, 3 sound, 4 video, 5 honesty, 6 danger, 7 code, 8 proof.
+The video scene uses `warning_lights.mp4` from `scripts/make_samples.py` (made by us; the page says so). Its
+clip plays muted by itself when the scene opens and ends on four lights, as the answer says. The code scene
+asks for a Fahrenheit to Celsius function; it is recorded only if its examples passed in the sandbox.
+
 Re-record a scene (backend running on `full`):
 `uv run python scripts/record_demo.py --scene <id>`
-Scene ids: `photo`, `sound`, `honesty`, `danger`. Never edit a file in `frontend/src/demo/recordings/` by hand.
+Scene ids: `photo`, `sound`, `video`, `honesty`, `danger`, `code`. Never edit a file in `frontend/src/demo/recordings/` by hand.
 
 ## Backup
 - `docs/demo_backup.mp4` is *not* committed (media). Stored on both laptops + a USB stick.

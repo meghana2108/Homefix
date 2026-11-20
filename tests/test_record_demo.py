@@ -11,7 +11,17 @@ from urllib.parse import unquote_plus
 import httpx
 import pytest
 
-from app.contracts import Citation, Final, Refusal, SoundLabel, SoundLabels, Status, to_sse
+from app.contracts import (
+    Citation,
+    CodeResult,
+    Final,
+    Frames,
+    Refusal,
+    SoundLabel,
+    SoundLabels,
+    Status,
+    to_sse,
+)
 
 _spec = importlib.util.spec_from_file_location(
     "record_demo", Path(__file__).resolve().parents[1] / "scripts" / "record_demo.py")
@@ -39,7 +49,14 @@ GOOD = {
     "photo": [Status(stage="generating"),
               Citation(quote="E21 Drain fault ...", page=3, source="guide.pdf", score=97.0), FINAL],
     "sound": [SoundLabels(labels=[SoundLabel(label="smoke alarm chirp", score=0.9)], is_speech=False), FINAL],
+    "video": [Status(stage="extracting_frames"), Frames(timestamps=[0.1, 2.9, 5.8]),
+              Final(answer="4\nThere are four orange warning lights.", modality="video", question_type="count",
+                    profile="full")],
     "honesty": [NOT_IN, FINAL],
+    "code": [Status(stage="running_code"),
+             CodeResult(code="def f_to_c(f):\n    return (f - 32) * 5 / 9\n", passed=True, tests_run=2, failures=0,
+                        output_tail="", attempts=1),
+             Final(answer="Converts F to C.", modality="code", question_type="code_gen", profile="full")],
     "danger": [SAFETY, FINAL],
 }
 
@@ -48,13 +65,15 @@ def dicts(events) -> list[dict]:
     return rd.parse_sse(wire(events))
 
 
-def make_root(tmp_path: Path, jpg=True, wav=True) -> Path:
+def make_root(tmp_path: Path, jpg=True, wav=True, mp4=True) -> Path:
     s = tmp_path / "frontend/public/samples"
     s.mkdir(parents=True)
     if jpg:
         (s / "washer_display_e21.jpg").write_bytes(b"\xff\xd8stub")
     if wav:
         (s / "real_smoke_alarm_chirp.wav").write_bytes(b"RIFFstub")
+    if mp4:
+        (s / "warning_lights.mp4").write_bytes(b"\x00\x00\x00\x18ftypstub")
     return tmp_path
 
 
@@ -216,3 +235,77 @@ def test_timeout_fails_scene(tmp_path):
     assert rd.main([], client=client(bodies), root=root) == 1
     assert not (root / REC / "photo.json").exists()
     assert (root / REC / "sound.json").exists()
+
+
+def video_final(answer: str) -> Final:
+    return Final(answer=answer, modality="video", question_type="count", profile="full")
+
+
+def test_video_passes_with_frames_and_four():
+    assert rd.check_scene("video", dicts(GOOD["video"])) == []
+
+
+def test_video_fails_on_wrong_count():
+    ev = dicts([Frames(timestamps=[0.1, 5.8]), video_final("3 lights are on.")])
+    assert any("expected 4" in p for p in rd.check_scene("video", ev))
+
+
+def test_video_fails_without_frames():
+    ev = dicts([video_final("4")])
+    assert any("no frames" in p for p in rd.check_scene("video", ev))
+
+
+def test_video_fails_on_refusal():
+    ev = dicts([SAFETY, FINAL])
+    assert any("unexpected refusal" in p for p in rd.check_scene("video", ev))
+
+
+def test_video_request_sends_the_clip(tmp_path):
+    root = make_root(tmp_path)
+    seen: list = []
+    assert rd.main(["--scene", "video"], client=client(good_bodies(), seen=seen), root=root) == 0
+    chat = next(r for r in seen if r.url.path == "/api/chat")
+    assert chat.content.decode("latin-1").count('filename="warning_lights.mp4"') == 1
+    rec = json.loads((root / REC / "video.json").read_text())
+    assert rec["request"]["files"] == ["/samples/warning_lights.mp4"]
+    assert rec["request"]["manual_id"] is None
+
+
+def test_missing_clip_names_make_samples(tmp_path):
+    root = make_root(tmp_path, mp4=False)
+    with pytest.raises(rd.SceneFailed) as e:
+        rd.record_scene("video", client(good_bodies()), root)
+    assert "scripts/make_samples.py" in str(e.value)
+
+
+def code_result(passed: bool, tests_run: int) -> CodeResult:
+    return CodeResult(code="def f(x):\n    return x\n", passed=passed, tests_run=tests_run,
+                      failures=0 if passed else tests_run, output_tail="", attempts=1)
+
+
+def test_code_passes_when_sandbox_passed():
+    assert rd.check_scene("code", dicts(GOOD["code"])) == []
+
+
+def test_code_fails_when_examples_failed():
+    ev = dicts([code_result(False, 2), FINAL])
+    assert any("did not pass" in p for p in rd.check_scene("code", ev))
+
+
+def test_code_fails_when_no_example_ran():
+    ev = dicts([code_result(True, 0), FINAL])
+    assert any("no examples ran" in p for p in rd.check_scene("code", ev))
+
+
+def test_code_fails_without_code_result():
+    assert any("no code_result" in p for p in rd.check_scene("code", dicts([FINAL])))
+
+
+def test_code_request_has_no_file_or_manual(tmp_path):
+    root = make_root(tmp_path)
+    seen: list = []
+    assert rd.main(["--scene", "code"], client=client(good_bodies(), seen=seen), root=root) == 0
+    chat = next(r for r in seen if r.url.path == "/api/chat")
+    assert b"manual_id" not in chat.content and b"filename=" not in chat.content
+    rec = json.loads((root / REC / "code.json").read_text())
+    assert rec["request"] == {"message": rd.SCENES["code"].message, "files": [], "manual_id": None}

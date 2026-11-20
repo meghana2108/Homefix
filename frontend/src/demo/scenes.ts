@@ -1,6 +1,6 @@
 import type { HomeFixEvent } from "../contract";
 
-export type SceneId = "problem" | "photo" | "sound" | "honesty" | "danger" | "proof";
+export type SceneId = "problem" | "photo" | "sound" | "video" | "honesty" | "danger" | "code" | "proof";
 
 export type Beat =
   | { kind: "title"; text: string; sub?: string }
@@ -51,8 +51,15 @@ export const SCENES: Scene[] = [
     beats: [{ kind: "turn" }],
   },
   { id: "sound", title: "Sound", beats: [{ kind: "turn" }] },
+  {
+    id: "video",
+    title: "Video",
+    note: "Made by us: no openly licensed clip of warning lights exists",
+    beats: [{ kind: "turn" }],
+  },
   { id: "honesty", title: "Honesty", note: "Manual loaded: Unit 4B apartment guide", beats: [{ kind: "turn" }] },
   { id: "danger", title: "Danger", beats: [{ kind: "turn" }] },
+  { id: "code", title: "Code", beats: [{ kind: "turn" }] },
   {
     id: "proof",
     title: "Proof",
@@ -60,7 +67,7 @@ export const SCENES: Scene[] = [
   },
 ];
 
-const SCENE_IDS: SceneId[] = ["problem", "photo", "sound", "honesty", "danger", "proof"];
+const SCENE_IDS: SceneId[] = ["problem", "photo", "sound", "video", "honesty", "danger", "code", "proof"];
 const files = import.meta.glob("./recordings/*.json", { eager: true, import: "default" }) as Record<string, Recording>;
 
 export const RECORDINGS: Partial<Record<SceneId, Recording>> = {};

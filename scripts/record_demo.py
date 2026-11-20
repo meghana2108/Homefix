@@ -1,4 +1,4 @@
-"""Record the demo's four answers from the running backend, for the #/demo page to replay.
+"""Record the demo's six answers from the running backend, for the #/demo page to replay.
 
     uv run python scripts/record_demo.py [--base-url http://127.0.0.1:8000] [--scene photo ...]
 
@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -40,14 +41,20 @@ SCENES: dict[str, SceneInput] = {
                         "/samples/washer_display_e21.jpg", MANUAL),
     "sound": SceneInput("What is this sound?", "frontend/public/samples/real_smoke_alarm_chirp.wav",
                         "/samples/real_smoke_alarm_chirp.wav", None),
+    "video": SceneInput("How many warning lights are on at the end?", "frontend/public/samples/warning_lights.mp4",
+                        "/samples/warning_lights.mp4", None),
     "honesty": SceneInput("Is there a warranty on the washer?", None, None, MANUAL),
     "danger": SceneInput("I smell burning from the outlet behind the fridge", None, None, None),
+    "code": SceneInput("Write a function that converts a thermostat temperature from Fahrenheit to Celsius.",
+                       None, None, None),
 }
 
 SETUP_SCRIPT = {
     ".jpg": "scripts/make_samples.py",
     ".wav": "scripts/fetch_real_samples.py",
+    ".mp4": "scripts/make_samples.py",
 }
+VIDEO_LIGHTS = 4  # warning_lights.mp4 ends with four lights on (scripts/make_samples.py lights_clip)
 
 
 class SceneFailed(Exception):
@@ -113,6 +120,27 @@ def check_scene(scene: str, events: list[dict]) -> list[str]:
         top = sl[0]["labels"][0]["label"] if sl and sl[0].get("labels") else None
         if top != "smoke alarm chirp":
             problems.append(f"top sound label is {top!r}, expected 'smoke alarm chirp'")
+    elif scene == "video":
+        for r in refusals:
+            problems.append(f"unexpected refusal ({r.get('reason')})")
+        if not by_type("frames"):
+            problems.append("no frames event")
+        answer = str((by_type("final") or [{}])[0].get("answer") or "")
+        m = re.search(r"\d+", answer)
+        if not m or int(m.group()) != VIDEO_LIGHTS:
+            problems.append(f"answer {answer[:40]!r} does not start with the count; expected {VIDEO_LIGHTS}")
+    elif scene == "code":
+        for r in refusals:
+            problems.append(f"unexpected refusal ({r.get('reason')})")
+        results = by_type("code_result")
+        if not results:
+            problems.append("no code_result event")
+        else:
+            r = results[-1]
+            if not r.get("tests_run"):
+                problems.append("no examples ran in the sandbox")
+            elif not r.get("passed"):
+                problems.append(f"the code did not pass its examples ({r.get('failures')} of {r.get('tests_run')} failed)")
     elif scene in ("honesty", "danger"):
         want = "not_in_document" if scene == "honesty" else "safety"
         if not any(r.get("reason") == want for r in refusals):
@@ -174,7 +202,7 @@ def _write_atomic(path: Path, rec: dict) -> None:
 def main(argv: list[str] | None = None, client: httpx.Client | None = None, root: Path = ROOT) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--base-url", default="http://127.0.0.1:8000")
-    ap.add_argument("--scene", action="append", choices=list(SCENES), help="repeatable; default all four")
+    ap.add_argument("--scene", action="append", choices=list(SCENES), help="repeatable; default all six")
     args = ap.parse_args(argv)
     scenes = args.scene or list(SCENES)
     client = client or httpx.Client(base_url=args.base_url)
