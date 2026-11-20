@@ -63,6 +63,12 @@ model really can't read it. That costs the item; we keep it.
 | "Is this vague?" words alone | 2/6 | 0/6 |
 | words + meaning | **6/6** | 0/6 |
 
+**Whole practice pack, all four layers on** (`20261120-1050-lite-all`): 71/100, against 75/100 on 2026-11-19
+(`20261119-1404-lite-all`). None of the 8 items that changed was stopped or asked back by these layers. Re-run 3
+times each: 4 of the 6 that got worse pass some runs and fail others (run-to-run variation: `p_img_010`,
+`p_aud_008`, `p_txt_017`, `p_vid_005`). `p_img_023` fails by design (asks back on a vague display question,
+2026-11-19). `p_txt_008` fails 3/3 on `main` without these layers too: an older regression, still open.
+
 ## Re-run the numbers
 
 ```
