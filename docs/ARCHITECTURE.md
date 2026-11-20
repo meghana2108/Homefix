@@ -34,15 +34,15 @@ flowchart LR
 ## Memory budget
 | Component | full (M4 16 GB) | lite (M2 8 GB) |
 |---|---|---|
-| Vision brain | qwen3-vl:8b ≈ 6.2 GB disk (~7 GB loaded w/ 16k ctx) *or* gemma4:e4b ≈ 6.6 GB | qwen3-vl:2b ≈ 1.9 GB (~2.5 GB loaded) |
-| Coder | qwen2.5-coder:3b ≈ 1.9 GB resident (7B 4.7 GB swapped in if bake-off says so) | qwen2.5-coder:3b swapped in (brain unloaded) |
+| Vision brain | qwen3-vl:8b-instruct ≈ 6.2 GB disk (~7 GB loaded w/ 16k ctx) | qwen3-vl:2b-instruct ≈ 1.9 GB (~2.5 GB loaded) |
+| Coder | qwen2.5-coder:7b ≈ 4.7 GB, swapped in (brain unloaded) | qwen2.5-coder:3b ≈ 1.9 GB, swapped in (brain unloaded) |
 | Whisper | large-v3-turbo 1.6 GB + small.en 0.5 GB (live mic) | small.en 0.5 GB (file and live) |
 | CLAP | 0.6 GB | 0.6 GB |
 | bge-small | 0.13 GB weights (0.4 GB repo) | 0.13 GB |
 | **Models total** | **≈ 10.5–11 GB** (target ≤ 11) | **≈ 4 GB peak** (one LLM at a time) |
 | OS + browser + Python | ~4–5 GB | ~3–4 GB |
 
-Final numbers are measured by `scripts/go_no_go.py` and `eval/` and recorded in [MODELS.md](MODELS.md).
+Measured peak: 7.2 GB on `full`, 3.0 GB on `lite` (eval runs, see [MODELS.md](MODELS.md)).
 
 ## Streamed vs batched
 | Streamed (SSE tokens) | Batched (single event, then text streams) |

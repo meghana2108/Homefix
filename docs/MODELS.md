@@ -24,27 +24,41 @@ All tags verified on 2026-11-18 against `registry.ollama.ai` (manifest HTTP 200)
 3. Pick the best accuracy that meets the latency target in the README; ties go to the smaller model.
 4. Practice-pack items may be used as few-shot examples (allowed), but measure on items **not** used as shots.
 
-## Results (fill in during Phase 3)
-| Modality | Model | Profile | Accuracy | p50 s | p95 s | Peak mem GB | Notes |
-|---|---|---|---|---|---|---|---|
-| Image (count/read/describe) | | | | | | | |
-| Video | | | | | | | |
-| Speech (WER / answer acc) | | | | | | | |
-| Sounds (top-1 / top-3) | | | | | | | |
-| Text (ans acc / refusal P / R) | | | | | | | |
-| Code (pass@1) | | | | | | | |
+## Results (measured 2026-11-19 and 2026-11-20)
+These are the chosen models only. We did **not** run the other candidates on the whole practice pack: the
+bake-off rows below are what we measured or ruled out, and why.
 
-### Text verifier threshold
-| `partial_ratio` threshold | Answer acc | Refusal precision | Refusal recall |
+| Modality | Model | Profile | Accuracy | p50 s | p95 s | Notes |
+|---|---|---|---|---|---|---|
+| Image (count / read) | qwen3-vl:8b-instruct | full | 14/15 · 8/10 | 9.2 | 14.5 | |
+| | qwen3-vl:2b-instruct | lite | 14/15 · 9/10 | 14.9 | 19.7 | |
+| Video (count / direction / qa) | qwen3-vl:8b-instruct, 16 frames | full | 2/4 · 2/2 · 7/9 | 38.8 | 54.8 | over the 25 s target |
+| | qwen3-vl:2b-instruct, 8 frames | lite | 1/4 · 2/2 · 2/9 | 22.5 | 50.5 | |
+| Speech (transcript fuzzy) | whisper-large-v3-turbo | full | 8/10 | 2.9* | 6.1* | *audio p50 covers speech and sounds |
+| | whisper-small.en | lite | 6/10 | 22.7* | 33.7* | lite swaps memory; over target |
+| Sounds (top-1 / top-3) | CLAP htsat-unfused | both | 8/10 · 9/10 | (above) | (above) | same model on both |
+| Text (answer / refusal recall) | qwen3-vl:8b-instruct + verifier | full | 15/15 · 3/5 | 3.6 | 10.2 | refusal precision 1.00 |
+| | qwen3-vl:2b-instruct + verifier | lite | 14/15 · 2/5 | 5.1 | 8.5 | refusal precision 1.00 |
+| Code (pass@1) | qwen2.5-coder:7b | full | 20/20 | 12.7 | 27.4 | swapped in, brain unloaded |
+| | qwen2.5-coder:3b | lite | 17/20 | 24.3 | 58.6 | |
+
+Peak memory: 7.2 GB on `full`, 3.0 GB on `lite` (Ollama's loaded models plus the eval process).
+
+### What we compared, and what we didn't
+| Choice | Compared with | Result | Source |
 |---|---|---|---|
-| 85 | | | |
-| 92 (default) | | | |
-| 96 | | | |
+| `qwen3-vl:8b-instruct` over `qwen3-vl:8b` | the plain tag | `ollama show` lists "thinking", on by default, for the plain tag; the instruct tag has none, and `go_no_go.py --profile full` prints GO with it | DECISIONS D14 |
+| `qwen3-vl:2b-instruct` over `qwen3-vl:2b` | the plain tag | The plain tag ignores `think=False` with an image: one video question made 4,264 hidden tokens and took 247 s. With the instruct tag, JSON answers went from 63 s to 15 s on the M2 | DECISIONS D11 |
+| `qwen2.5-coder:7b` on `full` | `qwen2.5-coder:3b` | On our CSV demo (G6) the 3b passed about half the time, the 7b 3 of 3 | `config/profiles/full.yaml` |
+| No `gemma4:e4b` / `gemma4:e2b` | — | Not benchmarked: 9.5 GB and 7.5 GB on disk break the 11 GB (`full`) and 8 GB (`lite`) budgets next to Whisper and CLAP | sizes above |
+| No `qwen3-vl:4b` | — | Not benchmarked on the pack | — |
+
+The text verifier threshold stays at 92 (`partial_ratio`, quotes of 8+ words). We did not sweep other values.
 
 ## Final choices (one line each)
-- **Brain (full):** _TBD after bake-off_
-- **Brain (lite):** _TBD_
-- **Coder:** _TBD_
-- **ASR:** _TBD_
+- **Brain (full):** `qwen3-vl:8b-instruct`. Best OCR and counting we could fit with Whisper and CLAP under 11 GB, without the thinking delay.
+- **Brain (lite):** `qwen3-vl:2b-instruct`. Fits 8 GB next to Whisper small and CLAP; 75/100 overall on the pack.
+- **Coder:** `qwen2.5-coder:7b` on `full`, `qwen2.5-coder:3b` on `lite`, each swapped in with the brain unloaded.
+- **ASR:** `whisper-large-v3-turbo` for files on `full`, `whisper-small.en` for live mic and everything on `lite`.
 - **Sound ID:** CLAP htsat-unfused, zero-shot over AudioSet-derived vocabulary + appliance labels.
 - **Embeddings:** bge-small-en-v1.5, only for manuals longer than the full-doc limit.
