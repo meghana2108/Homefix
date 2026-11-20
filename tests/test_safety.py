@@ -123,12 +123,61 @@ def test_benign_cannot_hide_danger(text, category):
     assert hit is not None and hit.category == category
 
 
+def _rules():
+    with open(ROOT / "config/safety_rules.yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
 def test_refusal_message_verbatim():
     r = refusal_for(check("I smell gas"))
-    with open(ROOT / "config/safety_rules.yaml", encoding="utf-8") as f:
-        assert r.message == yaml.safe_load(f)["message"]
+    assert r.message == _rules()["messages"]["gas"]
     assert r.reason == "safety"
     assert r.category == "gas"
+
+
+def test_every_category_has_its_own_message():
+    rules = _rules()
+    cats = set(rules["patterns"]) | set(rules["alarm_active"])
+    assert cats <= set(rules["messages"]), cats - set(rules["messages"])
+    for cat, msg in rules["messages"].items():
+        assert msg.startswith("⚠️ This could be dangerous. "), cat  # the UI card drops this opening line
+        assert msg.endswith("HomeFix won't give repair steps for this situation."), cat
+
+
+def _first_step(message):
+    return message.lower().removeprefix("⚠️ this could be dangerous. ").split(". ")[0]
+
+
+def test_gas_says_leave_and_never_touch_switches():
+    msg = refusal_for(check("I smell gas in the kitchen")).message.lower()
+    first = _first_step(msg)
+    assert "switch" in first and ("don't" in first or "do not" in first)  # no switches is the first thing said
+    assert "unplug" not in msg and "switch it off" not in msg and "turn off its breaker" not in msg
+    assert "leave" in msg and "from outside" in msg
+
+
+def test_co_alarm_sound_gets_the_gas_message():
+    hit = check_sound(_labels("carbon monoxide alarm", 0.8), 0.5)
+    assert hit is not None and hit.category == "gas"
+    assert "carbon monoxide" in refusal_for(hit).message.lower()
+
+
+@pytest.mark.parametrize("text,must", [
+    ("smoke is coming out of the toaster", ["911", "get everyone out"]),
+    ("sparks came out of the outlet", ["don't touch", "breaker"]),
+    ("there are exposed wires behind the fridge", ["don't touch", "breaker"]),
+    ("water is leaking onto the outlet", ["don't touch", "breaker"]),
+    ("I got a shock from the toaster", ["don't touch", "911"]),
+])
+def test_category_messages_fit_the_danger(text, must):
+    msg = refusal_for(check(text)).message.lower()
+    for word in must:
+        assert word in msg, (text, word)
+
+
+def test_unknown_category_falls_back_to_default():
+    from app.safety import SafetyHit
+    assert refusal_for(SafetyHit("something_new", "x")).message == _rules()["message"]
 
 
 def _labels(top, score):

@@ -40,6 +40,40 @@ message: >-
   If you smell gas: do not use switches, flames, or your phone indoors; leave the building and call your gas utility's emergency line or 911 from outside.
   If there is smoke or fire, leave and call 911.
   Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.
+# One message per danger, so the first thing said fits it (gas: never touch a switch). Each starts with
+# "⚠️ This could be dangerous. " (the UI card uses it as the title) and ends with the no-repair line.
+# `message` above is the fallback for a category that has none here.
+messages:
+  gas: >-
+    ⚠️ This could be dangerous. Don't touch any light switch, plug, flame or lighter, and don't use your phone inside.
+    Leave the building now and get everyone out, leaving the door open behind you.
+    From outside, call your gas utility's emergency line or 911. This applies to a gas smell and to a sounding carbon monoxide alarm.
+    Then contact your landlord. HomeFix won't give repair steps for this situation.
+  smoke_fire: >-
+    ⚠️ This could be dangerous. If you see smoke or fire, get everyone out and call 911 from outside.
+    If it's only a burning smell and it's safe to do so, turn off the appliance's breaker and don't use it again.
+    Don't throw water on an electrical fire.
+    Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.
+  sparks: >-
+    ⚠️ This could be dangerous. Don't touch the outlet, plug or appliance.
+    If it's safe to do so, turn off its breaker at the panel. Don't use it again until it has been checked.
+    If there is smoke or fire, leave and call 911.
+    Then contact your landlord or a licensed electrician. HomeFix won't give repair steps for this situation.
+  exposed_wires: >-
+    ⚠️ This could be dangerous. Don't touch the wires or anything they touch.
+    If it's safe to do so, turn off the breaker for that room at the panel. Keep children and pets away.
+    If there is smoke or sparks, leave and call 911.
+    Then contact your landlord or a licensed electrician. HomeFix won't give repair steps for this situation.
+  water_electric: >-
+    ⚠️ This could be dangerous. Don't touch the water or anything plugged in near it.
+    If you can reach the breaker panel without stepping in water, turn off the breaker for that area. If you can't, stay out of the room.
+    If there is smoke or sparks, leave and call 911.
+    Then call your landlord's emergency line. HomeFix won't give repair steps for this situation.
+  shock: >-
+    ⚠️ This could be dangerous. Don't touch the appliance or outlet again.
+    If someone is hurt, burned or feels unwell, call 911.
+    If it's safe to do so, turn off its breaker at the panel and don't use it until it has been checked.
+    Then contact your landlord or a licensed electrician. HomeFix won't give repair steps for this situation.
 # A sounding alarm is checked first, on the original text, so benign phrases can't hide it.
 alarm_active:
   smoke_fire:

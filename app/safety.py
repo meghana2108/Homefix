@@ -12,7 +12,8 @@ from app.settings import ROOT
 with open(ROOT / "config/safety_rules.yaml", encoding="utf-8") as _f:
     _RULES = yaml.safe_load(_f)
 
-SAFETY_MESSAGE: str = _RULES["message"]
+SAFETY_MESSAGE: str = _RULES["message"]  # fallback for a category with no message of its own
+_MESSAGES: dict[str, str] = _RULES.get("messages", {})
 ALARM_LABELS: frozenset[str] = frozenset({
     "smoke alarm beeping loudly",
     "carbon monoxide alarm",
@@ -56,8 +57,13 @@ def check(text: str) -> SafetyHit | None:
     return None
 
 
+def message_for(category: str) -> str:
+    """The fixed message for one kind of danger (gas never says to touch a switch), else the general one."""
+    return _MESSAGES.get(category, SAFETY_MESSAGE)
+
+
 def refusal_for(hit: SafetyHit) -> Refusal:
-    return Refusal(reason="safety", message=SAFETY_MESSAGE, category=hit.category)
+    return Refusal(reason="safety", message=message_for(hit.category), category=hit.category)
 
 
 def check_sound(labels: list[SoundLabel], min_score: float) -> SafetyHit | None:
@@ -65,5 +71,5 @@ def check_sound(labels: list[SoundLabel], min_score: float) -> SafetyHit | None:
         return None
     top = labels[0]
     if top.label in ALARM_LABELS and top.score >= min_score:
-        return SafetyHit("smoke_fire", top.label)
+        return SafetyHit("gas" if top.label == "carbon monoxide alarm" else "smoke_fire", top.label)
     return None

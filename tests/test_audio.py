@@ -20,7 +20,7 @@ from app.contracts import (
 )
 from app.models.whisper import TranscriptResult
 from app.pipelines import audio
-from app.safety import SAFETY_MESSAGE
+from app.safety import message_for
 
 WAV = Attachment(path=Path("/tmp/note.wav"), kind="audio", original_name="note.m4a")
 BEEPS = [SoundLabel(label="washing machine beeping", score=0.71), SoundLabel(label="beep", score=0.12),
@@ -97,7 +97,7 @@ def test_spoken_gas_is_safety_before_brain(ctx_lite, heard, fake_brain):
     fake_brain()
     ev = run(ctx_lite, "what should I do?", "speech")
     assert of(ev, Transcript)
-    assert ev[-2] == Refusal(reason="safety", message=SAFETY_MESSAGE, category="gas")
+    assert ev[-2] == Refusal(reason="safety", message=message_for("gas"), category="gas")
     assert isinstance(ev[-1], Final) and ev[-1].answer == ""
     assert fake_brain.calls == [] and of(ev, Token) == []
 
