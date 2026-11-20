@@ -106,7 +106,8 @@ export interface Health {
 /** The header's words while models load: null when ready (or the server is too old to say). */
 export function warmingText(h: Health | null): string | null {
   const w = h?.warm;
-  if (!w || !w.steps.length) return null;
+  if (!w) return null;
+  if (!w.steps.length) return w.done ? null : "Getting ready";
   const failed = w.steps.filter((s) => s.state === "failed");
   if (w.done) return failed.length ? `Couldn't load: ${failed.map((s) => s.label).join(", ")}` : null;
   const ready = w.steps.filter((s) => s.state === "ready").length;

@@ -50,6 +50,19 @@ def test_before_it_runs_everything_is_waiting(ctx_full, steps):
     assert st["ready"] is False and st["done"] is False
 
 
+def test_the_steps_are_listed_the_moment_it_starts(ctx_full, monkeypatch):
+    """Found in the browser: in the first instant the step list was empty and the app took that for "ready"."""
+    gate = threading.Event()
+    monkeypatch.setattr(warmup, "steps", lambda ctx: [("brain", "Vision model", lambda c: gate.wait(5))])
+    monkeypatch.setenv("HOMEFIX_WARMUP", "on")
+    warmup.reset()
+    t = warmup.start(ctx_full)
+    st = warmup.status()
+    gate.set()
+    t.join(5)
+    assert st["done"] is False and [s["name"] for s in st["steps"]] == ["brain"]
+
+
 def test_warmup_is_off_in_tests_and_can_be_turned_off(ctx_full, steps, monkeypatch):
     monkeypatch.setenv("HOMEFIX_WARMUP", "off")
     assert warmup.start(ctx_full) is None

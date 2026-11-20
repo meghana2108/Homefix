@@ -84,12 +84,16 @@ def reset() -> None:
         _order.clear()
 
 
-def run(ctx: Ctx) -> None:
-    todo = steps(ctx)
+def _list(todo: list[Step]) -> None:
     with _lock:
         _order[:] = [(name, label) for name, label, _ in todo]
         for name, _, _ in todo:
             _state[name] = {"state": "waiting", "ms": None}
+
+
+def run(ctx: Ctx, todo: list[Step] | None = None) -> None:
+    todo = steps(ctx) if todo is None else todo
+    _list(todo)
     for name, _, fn in todo:
         with _lock:
             _state[name] = {"state": "loading", "ms": None}
@@ -106,7 +110,9 @@ def run(ctx: Ctx) -> None:
 def start(ctx: Ctx) -> threading.Thread | None:
     if os.environ.get("HOMEFIX_WARMUP") == "off":
         return None
-    t = threading.Thread(target=run, args=(ctx,), name="warmup", daemon=True)
+    todo = steps(ctx)
+    _list(todo)  # listed before the thread starts, so /api/health never shows an empty, "ready" warm-up
+    t = threading.Thread(target=run, args=(ctx, todo), name="warmup", daemon=True)
     t.start()
     return t
 
