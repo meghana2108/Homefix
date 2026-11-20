@@ -18,6 +18,7 @@ import argparse
 import csv
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -60,7 +61,38 @@ COMMONS = [
     Commons("real_microwave.jpg", "SilverCrest SMW 800 D4-2370.jpg", "photo", "Raimond Spekking", "CC BY-SA 4.0"),
     Commons("real_water_heater_label.jpg", "Water heater dial - Easy Set Thermostat, gas powered.jpg", "photo",
             "Jason Woodhead", "CC BY 2.0"),
+    # Added for the #/demo walk-through (see DEMO_MEDIA).
+    Commons("real_leaking_pipe.jpg", "Leaking pipe by Saltash Field - geograph.org.uk - 7324720.jpg", "photo",
+            "Mr Ignavy", "CC BY-SA 2.0"),
+    Commons("real_smoke_detector.jpg", "Smoke detector (1).JPG", "photo", "Georg Pik", "Public domain"),
+    Commons("real_smoke_alarm_chirp.wav", "Smoke detector alarm battery beep.webm", "sound", "JoBrodie",
+            "CC BY-SA 4.0", start=0.0, seconds=10.0),
 ]
+
+ALLOWED_LICENSES = ("CC0", "Public domain", "CC BY ", "CC BY-SA ")
+_NAME = re.compile(r"^[a-z0-9_]+\.(jpg|png|wav|mp4)$")
+_KIND_EXT = {"photo": ("jpg", "png"), "sound": ("wav",), "video": ("mp4",)}
+
+# The five files the #/demo scenes show and play; served at /samples/<name>.
+DEMO_MEDIA = ("real_breaker_panel.jpg", "real_leaking_pipe.jpg", "real_thermostat_66.jpg",
+              "real_smoke_detector.jpg", "real_smoke_alarm_chirp.wav")
+
+
+def check_list(items: list[Commons]) -> list[str]:
+    """Problems with the pinned Commons list: non-free license, duplicate or odd file name, kind vs extension."""
+    problems: list[str] = []
+    seen: set[str] = set()
+    for c in items:
+        if not (c.license.startswith(ALLOWED_LICENSES) or c.license in ("CC BY", "CC BY-SA")):
+            problems.append(f"{c.out}: license {c.license!r} is not free (CC0, public domain, CC BY, CC BY-SA)")
+        if c.out in seen:
+            problems.append(f"{c.out}: listed twice")
+        seen.add(c.out)
+        if not _NAME.match(c.out):
+            problems.append(f"{c.out}: name must match {_NAME.pattern}")
+        elif c.out.rsplit(".", 1)[1] not in _KIND_EXT.get(c.kind, ()):
+            problems.append(f"{c.out}: kind {c.kind!r} does not match the extension")
+    return problems
 
 
 @dataclass(frozen=True)
@@ -183,6 +215,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--from", dest="src", type=Path, help="copy from another Mac's samples folder instead")
     a = ap.parse_args()
+    problems = check_list(COMMONS)
+    if problems:
+        raise SystemExit("Pinned list problems:\n  " + "\n  ".join(problems))
     if shutil.which("ffmpeg") is None:
         raise SystemExit("Needs ffmpeg (brew install ffmpeg).")
     SAMPLES.mkdir(parents=True, exist_ok=True)
