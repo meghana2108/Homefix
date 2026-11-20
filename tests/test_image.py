@@ -42,14 +42,14 @@ def test_count_prompt_names_thing(ctx_full, fake_brain, tmp_path):
 
 
 def test_images_sent(ctx_full, fake_brain, tmp_path):
-    fake_brain("A desk.")
+    fake_brain("I can't tell.", "A desk.")  # no question: read first (no display here), then describe
     list(image.run(req(tmp_path, "", "describe", n=2), ctx_full))
-    assert len(fake_brain.calls[0]["images"]) == 2
+    assert [len(c["images"]) for c in fake_brain.calls] == [2, 2]
 
 
 def test_tokens_streamed(ctx_full, fake_brain, tmp_path):
     fake_brain("A tidy desk with a lamp.")
-    ev = list(image.run(req(tmp_path, "", "describe"), ctx_full))
+    ev = list(image.run(req(tmp_path, "Describe the photo.", "describe"), ctx_full))
     idx = [i for i, e in enumerate(ev) if isinstance(e, Token)]
     assert len(idx) >= 2 and idx[-1] < len(ev) - 1
 
@@ -64,7 +64,7 @@ def test_tokens_stream_live(ctx_full, tmp_path, monkeypatch):
         progress["done"] = True
         yield "is tidy."
     monkeypatch.setattr(ollama_client, "chat_stream", slow_brain)
-    for ev in image.run(req(tmp_path, "", "describe"), ctx_full):
+    for ev in image.run(req(tmp_path, "Describe the photo.", "describe"), ctx_full):
         if isinstance(ev, Token):
             assert progress["done"] is False
             break
@@ -86,7 +86,7 @@ def test_refusal_then_empty_final(ctx_full, tmp_path, monkeypatch):
 def test_read_and_describe_prompts(ctx_full, fake_brain, tmp_path):
     fake_brain("EXIT", "A room.")
     list(image.run(req(tmp_path, "what does it say", "read"), ctx_full))
-    list(image.run(req(tmp_path, "", "describe"), ctx_full))
+    list(image.run(req(tmp_path, "Describe the photo.", "describe"), ctx_full))
     assert fake_brain.calls[0]["messages"][-1]["content"] == prompts.READ_PROMPT
     assert fake_brain.calls[1]["messages"][-1]["content"] == prompts.DESCRIBE_PROMPT
 

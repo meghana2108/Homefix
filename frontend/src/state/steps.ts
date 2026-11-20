@@ -81,6 +81,7 @@ function resultFor(stage: Stage, turn: Turn, detail: string | null, ms: number |
       return citation ? `Searched ${citation.source}.` : done ? "Searched the document." : null;
     case "generating":
       if (detail && /^found\s/i.test(detail)) return `Read ${detail.replace(/^found\s+/i, "")} from the photo.`;
+      if (turn.clarify && turn.final) return "Asked you instead of guessing.";
       return done && turn.final?.model ? `Answered by ${turn.final.model}, on this laptop.` : null;
     case "verifying":
       if (citation) return citation.page != null ? `Found word for word on page ${citation.page}.` : "Found word for word.";
@@ -122,7 +123,7 @@ export function stepsOf(turn: Turn): Step[] {
   return steps;
 }
 
-export type OutcomeKind = "answered" | "notfound" | "danger" | "info" | "working";
+export type OutcomeKind = "answered" | "notfound" | "danger" | "info" | "ask" | "working";
 export interface Outcome { kind: OutcomeKind; label: string; icon: string }
 
 /** The one-glance verdict on a turn, shown as a stamp above the answer. */
@@ -131,6 +132,7 @@ export function outcomeOf(turn: Turn): Outcome {
   if (refusal?.reason === "safety") return { kind: "danger", label: "Stop: this could be dangerous", icon: "danger" };
   if (!final) return { kind: "working", label: "Working on it", icon: "working" };
   if (error) return { kind: "danger", label: "Something went wrong", icon: "error" };
+  if (turn.clarify) return { kind: "ask", label: "HomeFix needs to know more", icon: "ask" };
   if (refusal?.reason === "not_in_document") return { kind: "notfound", label: "Not in the document", icon: "notfound" };
   if (refusal) return { kind: "notfound", label: "Couldn't answer this one", icon: "notfound" };
   if (citation) {

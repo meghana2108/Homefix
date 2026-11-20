@@ -212,6 +212,7 @@ a { color: var(--pen); }
 .stamp--notfound { color: var(--notfound); background: var(--notfound-tint); border-color: var(--notfound); }
 .stamp--danger { color: var(--danger); background: var(--danger-tint); border-color: var(--danger); }
 .stamp--info { color: var(--pen-deep); background: var(--pen-tint); border-color: var(--pen); }
+.stamp--ask { color: var(--pen-deep); background: var(--sheet); border-color: var(--pen); border-style: dashed; }
 .stamp--working { color: var(--ink-soft); background: var(--wash); border-color: var(--rule-strong); }
 
 /* ---------- workspace ---------- */
@@ -325,6 +326,20 @@ a { color: var(--pen); }
   font-size: 0.75rem; padding: 1px 6px; border-radius: 4px; background: var(--ink); color: var(--sheet); }
 .framestrip figcaption { font-size: 0.85rem; }
 
+/* HomeFix asks instead of guessing */
+.clarify { display: flex; flex-direction: column; gap: 0.75rem; }
+.clarify__q { margin: 0; font-size: 1.05rem; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+.card--seen { border-left: 3px solid var(--pen); border-radius: 0 var(--r-control) var(--r-control) 0; background: var(--sheet); }
+.seen { margin: 0; font-family: var(--font-serif); font-size: 1.05rem; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.clarify__opts { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.clarify__opt { min-height: 44px; text-align: left; color: var(--pen-deep); border-color: var(--pen); background: var(--paper); }
+.clarify__opt:hover:not(:disabled) { background: var(--pen-tint); }
+.clarify__hint { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
+.replying { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; font-size: 0.88rem; color: var(--pen-deep);
+  padding: 0.35rem 0.6rem; background: var(--pen-tint); border-radius: var(--r-control); }
+.replying .icon { color: var(--pen); }
+.replying__x { min-height: 32px; margin-left: auto; font-size: 0.85rem; }
+@media (max-width: 640px) { .replying { font-size: 0.8rem; padding: 0.25rem 0.5rem; } .replying__x { min-height: 28px; margin-left: 0; } }
 .card--code { display: flex; flex-direction: column; gap: 0.6rem; background: var(--sheet); }
 .code__head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0; }
 .code { margin: 0; padding: 0.8rem 1rem; border-radius: var(--r-control); background: #14171c; color: #e6e6e6; font-family: var(--font-mono);

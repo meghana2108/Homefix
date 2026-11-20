@@ -12,6 +12,8 @@ from pathlib import PurePath
 from app.contracts import (
     MESSAGES,
     Citation,
+    Clarify,
+    ClarifyOption,
     CodeResult,
     Error,
     Event,
@@ -225,6 +227,18 @@ def image(message: str, files: list[str], manual_id: str | None) -> list[Step]:
     return _final(steps, "image", "count", answer, BRAIN)
 
 
+def clarify(message: str, files: list[str], manual_id: str | None) -> list[Step]:
+    seen = "8:32 COOKTOP ON Oven Light Start | Cancel Lock Control Hold 3 Sec"
+    c = Clarify(question="I don't see an error code. What would you like to know? Tell me which appliance this is "
+                         "and what you noticed, or pick one below.", seen=seen,
+                options=[ClarifyOption(label="What does “COOKTOP ON” mean?",
+                                       message='What does "COOKTOP ON" mean?'),
+                         ClarifyOption(label="Read everything on it", message="What does the display say?"),
+                         ClarifyOption(label="Describe the photo", message="Describe the photo.")])
+    steps = [*_front("routing"), (0.8, Status(stage="generating", detail=BRAIN)), (0.1, c)]
+    return _final(steps, "image", "describe", c.question, BRAIN)
+
+
 def no_document(message: str, files: list[str], manual_id: str | None) -> list[Step]:
     steps = [*_front("routing"),
              (0.1, Refusal(reason="no_document", message=MESSAGES["no_document"]))]
@@ -235,7 +249,7 @@ SCENARIOS: dict[str, Scenario] = {
     "safety": safety, "unsupported": unsupported, "empty": empty, "crash": crash,
     "code_fail": code_fail, "code_pass": code_pass, "speech": speech, "sound": sound,
     "video": video, "not_in_document": not_in_document, "citation": citation,
-    "image": image, "no_document": no_document,
+    "image": image, "clarify": clarify, "no_document": no_document,
 }
 
 
@@ -263,7 +277,7 @@ def _pick(message: str, files: list[str], manual_id: str | None) -> str:
     if ".pdf" in exts or manual_id:
         return "citation"
     if exts & IMAGE_EXT:
-        return "image"
+        return "image" if "how many" in m else "clarify"
     return "no_document"
 
 

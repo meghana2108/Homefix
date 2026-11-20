@@ -1,5 +1,6 @@
 import type {
   CitationEvent,
+  ClarifyEvent,
   CodeResultEvent,
   ErrorEvent,
   FinalEvent,
@@ -48,6 +49,8 @@ export interface Turn {
   frames: FramesEvent | null;
   citation: CitationEvent | null;
   codeResult: CodeResultEvent | null;
+  /** HomeFix asked a question back instead of guessing. */
+  clarify: ClarifyEvent | null;
   refusal: RefusalEvent | null;
   error: ErrorEvent | null;
   final: FinalEvent | null;
@@ -69,6 +72,7 @@ export function newTurn(userText: string, fileNames: string[], sentFiles?: SentF
     frames: null,
     citation: null,
     codeResult: null,
+    clarify: null,
     refusal: null,
     error: null,
     final: null,
@@ -100,6 +104,8 @@ export function reduce(turn: Turn, ev: HomeFixEvent | { type: string }): Turn {
       return { ...turn, citation: e };
     case "code_result":
       return { ...turn, codeResult: e };
+    case "clarify":
+      return { ...turn, clarify: e };
     case "refusal":
       return { ...turn, refusal: e };
     case "error":

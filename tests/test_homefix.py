@@ -1,9 +1,9 @@
 import pymupdf
 
 from app.contracts import (
-    MESSAGES,
     Attachment,
     Citation,
+    Clarify,
     Final,
     PipelineRequest,
     Refusal,
@@ -48,11 +48,13 @@ def test_code_then_manual_citation(fake_brain, ctx_full, tmp_path, monkeypatch):
     assert ev[-1].question_type == "manual_lookup"
 
 
-def test_cant_read_code(fake_brain, ctx_full, tmp_path, monkeypatch):
+def test_cant_read_code_asks_instead_of_blaming_the_photo(fake_brain, ctx_full, tmp_path, monkeypatch):
     make(tmp_path, monkeypatch)
     fake_brain("I can't tell.")
     ev = list(homefix.run(req(tmp_path), ctx_full))
-    assert ev[-1].answer == MESSAGES["no_display_code"] and ev[-1].modality == "homefix"
+    c = next(e for e in ev if isinstance(e, Clarify))
+    assert c.seen is None and "couldn't read" in c.question
+    assert ev[-1].answer == c.question and ev[-1].modality == "homefix"  # nothing read, so just the question
 
 
 def test_no_tokens_from_display_read(fake_brain, ctx_full, tmp_path, monkeypatch):

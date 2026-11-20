@@ -280,6 +280,9 @@ def main() -> None:
         "68", seed=11, buttons=("Mode", "Fan", "Down", "Up"), knob=("Off", "Heat", "Cool", "Auto", "Fan"),
         units=("°F", "SET"), body=(238, 236, 230))), SAMPLES / "thermostat_68.jpg"))
     out.append(small_jpg(stove_photo(), SAMPLES / "stove_two_on.jpg"))
+    out.append(small_jpg(closeup(demo.display_photo(
+        "832", seed=5, buttons=("Light", "Start", "Cancel", "Lock"), knob=("Bake", "Broil", "Warm", "Clean", "Off"),
+        units=("", ""), body=(196, 198, 200), status="COOKTOP ON")), SAMPLES / "cooktop_clock.jpg"))
 
     # sounds and voice notes
     sf.write(SAMPLES / "washer_done_beeps.wav", demo.washer_beep(), SR)

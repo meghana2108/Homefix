@@ -1,7 +1,7 @@
 import { Lock, Plus, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { API_LABEL, IS_MOCK, getHealth, getManuals, streamChat } from "../api/client";
-import type { Health, HomeFixEvent, Manual } from "../contract";
+import type { ClarifyOption, Health, HomeFixEvent, Manual } from "../contract";
 import { kindOf, newTurn, reduce, type SentFile, type Turn } from "../state/reduce";
 import { stepsOf } from "../state/steps";
 import type { Example } from "../examples";
@@ -102,6 +102,7 @@ export function Workspace() {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const online = useOnline();
   const sent = useRef(new Map<string, Sent>());
+  const [notReplying, setNotReplying] = useState<string | null>(null);
 
   // Health every 5 s drives the "can't reach" banner; manuals reload whenever the backend comes back.
   useEffect(() => {
@@ -173,12 +174,27 @@ export function Workspace() {
     }
   }, [health?.profile]);
 
+  // The last answer asked a question back: what's typed next answers it, with the same files.
+  const last = turns[turns.length - 1];
+  const asking = last?.clarify && last.final && last.id !== notReplying ? last : null;
+  const askedWith = asking ? sent.current.get(asking.id) : undefined;
+  const replying = asking && askedWith && files.length === 0 ? askedWith : null;
+
   const send = () => {
     if (busy) return;
-    const req = { text: text.trim(), files, manualId: manuals.length > 0 ? manualId : null };
+    const typed = text.trim();
+    const req = replying && typed
+      ? { text: replying.text ? `${replying.text}\n${typed}` : typed, files: replying.files, manualId: replying.manualId }
+      : { text: typed, files, manualId: manuals.length > 0 ? manualId : null };
     setText("");
     setFiles([]);
     void run(req);
+  };
+
+  const reply = (id: string, o: ClarifyOption) => {
+    const req = sent.current.get(id);
+    if (!req || busy) return;
+    void run({ text: o.message, files: req.files, manualId: o.manual_id ?? req.manualId });
   };
 
   const retry = (id: string) => {
@@ -241,9 +257,11 @@ export function Workspace() {
         <Rail turn={selected} />
         <main className="main" id="content">
           {turns.length === 0 ? <StartScreen onTry={(ex) => void tryExample(ex)} busy={busy} manuals={manuals} />
-            : <MessageList turns={turns} onRetry={retry} selectedId={selected?.id ?? null} onSelect={setSelectedId} />}
+            : <MessageList turns={turns} onRetry={retry} selectedId={selected?.id ?? null} onSelect={setSelectedId}
+                onReply={reply} busy={busy} />}
           <Composer text={text} onText={setText} files={files} onFiles={setFiles} onSend={send} busy={busy} note={note}
-            manuals={manuals} manualId={manualId} onManual={setManualId} inputRef={fileInput} />
+            manuals={manuals} manualId={manualId} onManual={setManualId} inputRef={fileInput}
+            replying={replying ? { files: replying.files.length, onCancel: () => setNotReplying(asking!.id) } : null} />
         </main>
       </div>
       {dragging && <div className="dropzone" aria-hidden="true">Drop to attach</div>}

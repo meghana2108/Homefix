@@ -1,6 +1,6 @@
 import {
   AlertTriangle, BookOpenCheck, Camera, CircleAlert, CircleCheck, CircleHelp, CircleX, Code2, Ear, Film, Loader2,
-  Mic, OctagonAlert, type LucideIcon,
+  MessageCircleQuestion, Mic, OctagonAlert, type LucideIcon,
 } from "lucide-react";
 
 /** One icon set for the whole app (lucide, one stroke weight). Decorative icons are aria-hidden. */
@@ -14,6 +14,7 @@ export const OUTCOME_ICON: Record<string, LucideIcon> = {
   voice: Mic,
   video: Film,
   photo: Camera,
+  ask: MessageCircleQuestion,
   working: Loader2,
 };
 

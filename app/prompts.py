@@ -25,6 +25,15 @@ def qa_prompt(message: str) -> str:
             f"If the image doesn't show it, reply exactly: {MESSAGES['cant_tell']}")
 
 
+def display_prompt(reading: str, message: str) -> str:
+    """Answer a question about a display from its words alone, no image. Given the photo too, the 2B model
+    guesses ("the digital timer shows 8:32" for a clock); given only the words, it says "I can't tell"."""
+    return (f"The display in this photo reads:\n{reading.strip()}\n\nQuestion: {message}\n"
+            "Answer in one or two sentences using only what is written on the display. Button names (like Start, "
+            "Cancel or Oven Light) are not messages. Don't add anything the words don't say. "
+            f"If the words don't answer the question, reply exactly: {MESSAGES['cant_tell']}")
+
+
 def force_number_first(answer: str) -> str:
     text = answer.strip()
     if not text or text[0].isdigit() or text.lower().startswith(MESSAGES["cant_tell"].lower().rstrip(".")):

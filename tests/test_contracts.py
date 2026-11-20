@@ -7,6 +7,8 @@ from app.contracts import (
     EVENT_TYPES,
     MESSAGES,
     Citation,
+    Clarify,
+    ClarifyOption,
     CodeResult,
     Error,
     Event,
@@ -25,7 +27,7 @@ from app.contracts import (
 
 def test_event_types_tuple():
     assert EVENT_TYPES == ("status", "token", "transcript", "sound_labels", "frames", "citation",
-                           "code_result", "refusal", "error", "final")
+                           "code_result", "clarify", "refusal", "error", "final")
 
 
 def test_event_round_trip():
@@ -37,6 +39,7 @@ def test_event_round_trip():
         Frames(timestamps=[0.0, 1.9]),
         Citation(quote="q", page=None, source="m.pdf", score=100.0),
         CodeResult(code="def f(): pass", passed=True, tests_run=1, failures=0, output_tail="", attempts=1),
+        Clarify(question="q?", seen="8:32", options=[ClarifyOption(label="l", message="m", manual_id=None)]),
         Refusal(reason="safety", message="m", category="gas"),
         Error(stage="generating", message="m", retryable=True),
         Final(answer="a", modality="image", question_type="count", latency_ms=5, profile="full", model="m"),
@@ -59,7 +62,7 @@ def test_messages_complete():
         "empty_input", "empty_doc_question", "too_many_files", "too_large", "unsupported_ext",
         "empty_file", "no_document", "not_in_document", "ollama_down", "model_missing", "timeout",
         "pipeline_crash", "stub", "first_file_only", "video_trimmed", "no_code_block", "no_examples",
-        "code_timeout", "function_missing", "no_display_code", "cant_tell",
+        "code_timeout", "function_missing", "code_in_no_manual", "cant_tell",
     }
     assert len(MESSAGES) == 21
     assert MESSAGES["not_in_document"] == "The document doesn't contain the answer."

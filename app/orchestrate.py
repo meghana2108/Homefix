@@ -92,13 +92,41 @@ def _words(text: str) -> set[str]:
     return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in _FILLER and len(w) > 1}
 
 
-def resolve_manual(manual_id: str | None, message: str, attachments: list[Attachment]) -> str | None:
-    """manual_id as given, or for "auto": the manual that fits the question, or None.
+def _stems(words: set[str]) -> set[str]:
+    return {w[:-1] if len(w) > 3 and w.endswith("s") else w for w in words}
 
-    auto uses a manual for a single photo whose question is about a problem (an error, a code, what to do), and for a
-    question with no attachment (which would otherwise be refused). Never for sound, video or an attached
-    document. With several manuals, the one whose name shares the most words with the question (filler
-    words don't count), else the first.
+
+def manual_candidates(message: str, manuals: list[dict]) -> list[dict]:
+    """The manuals that best fit a question with no file: by name first, then by what their pages say.
+    One manual when there is a clear winner; several when they tie; all of them when none fits."""
+    words = _words(message)
+    by_name = [(len(words & _words(f"{m['id'].replace('_', ' ')} {m['title']}")), m) for m in manuals]
+    top = max(n for n, _ in by_name)
+    if top:
+        return [m for n, m in by_name if n == top]
+    from app.pipelines import text
+
+    stems = _stems(words)
+    by_text = []
+    for m in manuals:
+        try:
+            _, pages = text.load_manual(m["id"])
+        except (OSError, RuntimeError, ValueError):
+            pages = []
+        by_text.append((len(stems & _stems(_words(" ".join(pages)))), m))
+    top = max(n for n, _ in by_text)
+    return [m for n, m in by_text if n == top] if top else list(manuals)
+
+
+def resolve_manual(manual_id: str | None, message: str, attachments: list[Attachment]) -> str | None:
+    """manual_id as given, or for "auto": the manual that fits the question, "auto" when HomeFix can't tell
+    yet, or None.
+
+    auto uses a manual for a single photo whose question is about a problem (an error, a code, what to do), and
+    for a question with no attachment (which would otherwise be refused). Never for sound, video or an attached
+    document. A manual named in the question wins (filler words don't count). Otherwise a photo stays "auto"
+    and the code on its display picks the manual (pipelines/homefix.py), and a text question goes to the manual
+    whose pages mention it, or stays "auto" so HomeFix asks which appliance it is. Never a silent first pick.
     """
     if manual_id != AUTO_MANUAL:
         return manual_id
@@ -110,13 +138,14 @@ def resolve_manual(manual_id: str | None, message: str, attachments: list[Attach
     if attachments and (len(attachments) != 1 or attachments[0].kind != "image"
                         or not _PROBLEM_Q.search(message)):
         return None
-    words = _words(message)
-    best, best_n = manuals[0]["id"], 0
-    for m in manuals:
-        n = len(words & _words(f"{m['id'].replace('_', ' ')} {m['title']}"))
-        if n > best_n:
-            best, best_n = m["id"], n
-    return best
+    if len(manuals) == 1:
+        return manuals[0]["id"]
+    if attachments:
+        words = _words(message)
+        named = [m for m in manuals if words & _words(f"{m['id'].replace('_', ' ')} {m['title']}")]
+        return manual_candidates(message, named)[0]["id"] if named else AUTO_MANUAL
+    fits = manual_candidates(message, manuals)
+    return fits[0]["id"] if len(fits) == 1 else AUTO_MANUAL
 
 
 def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, names: list[str],
@@ -145,7 +174,17 @@ def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, name
     asked_auto = manual_id == AUTO_MANUAL
     manual_id = resolve_manual(manual_id, text, attachments)
     r = route(text, attachments, manual_id)
-    if asked_auto and manual_id and r.modality in ("text", "homefix"):  # say so only when the answer uses it
+    if manual_id == AUTO_MANUAL and not attachments and r.modality == "text":  # several manuals fit: ask
+        from app.clarify import manual_clarify
+        from app.pipelines.homefix import list_manuals
+
+        fits = manual_candidates(text, list_manuals())
+        c = manual_clarify(text, fits)
+        yield c
+        yield final_for(ctx, "text", "doc_qa", c.question)
+        return
+    if asked_auto and manual_id and manual_id != AUTO_MANUAL and r.modality in ("text", "homefix"):
+        # say so only when the answer uses it; for "auto" the homefix pipeline says which manual the code picked
         from app.pipelines.homefix import list_manuals
 
         title = next((m["title"] for m in list_manuals() if m["id"] == manual_id), manual_id)

@@ -76,6 +76,20 @@ class CodeResult(BaseModel):
     attempts: int                   # 1, or 2 after one retry
 
 
+class ClarifyOption(BaseModel):
+    label: str                      # button text, e.g. "What does “COOKTOP ON” mean?"
+    message: str                    # the question sent when it's clicked (same files go with it)
+    manual_id: str | None = None    # set when the reply picks a manual
+
+
+class Clarify(BaseModel):
+    """HomeFix asks instead of guessing. Final.answer repeats `question`."""
+    type: Literal["clarify"] = "clarify"
+    question: str                   # what HomeFix needs to know, one or two sentences
+    seen: str | None                # what it could read in the photo, verbatim; None if nothing
+    options: list[ClarifyOption]    # one-click replies; the user can also type one
+
+
 class Refusal(BaseModel):
     type: Literal["refusal"] = "refusal"
     reason: RefusalReason
@@ -100,11 +114,12 @@ class Final(BaseModel):
     model: str | None = None        # main model used; None if none ran
 
 
-Event = Annotated[Status | Token | Transcript | SoundLabels | Frames | Citation | CodeResult | Refusal | Error | Final, Field(discriminator="type")]
+Event = Annotated[Status | Token | Transcript | SoundLabels | Frames | Citation | CodeResult | Clarify | Refusal
+                  | Error | Final, Field(discriminator="type")]
 
 EVENT_TYPES: tuple[str, ...] = tuple(
     cls.model_fields["type"].default
-    for cls in (Status, Token, Transcript, SoundLabels, Frames, Citation, CodeResult,
+    for cls in (Status, Token, Transcript, SoundLabels, Frames, Citation, CodeResult, Clarify,
                 Refusal, Error, Final)
 )
 
@@ -128,7 +143,7 @@ MESSAGES: dict[str, str] = {
     "no_examples": "No examples to check.",
     "code_timeout": "Timed out after {s} s.",
     "function_missing": "Function {name} not found.",
-    "no_display_code": "I couldn't read a code on the display. Try a sharper photo, straight on.",
+    "code_in_no_manual": "None of the manuals HomeFix has mention {code}. Pick the right manual, or add it to data/manuals/.",
     "cant_tell": "I can't tell.",
 }
 

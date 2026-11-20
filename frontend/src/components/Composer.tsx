@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from "react";
-import { Camera, FileText, Film, Paperclip, Send, Volume2, X } from "lucide-react";
+import { Camera, CornerDownRight, FileText, Film, Paperclip, Send, Volume2, X } from "lucide-react";
 import type { Manual } from "../contract";
 import { kindOf } from "../state/reduce";
 import { ManualPicker } from "./ManualPicker";
@@ -25,7 +25,7 @@ function usePreviews(files: File[]): (string | null)[] {
 }
 
 export function Composer({ text, onText, files, onFiles, onSend, busy, note, manuals = [], manualId = null,
-  onManual, inputRef }: {
+  onManual, inputRef, replying = null }: {
   text: string;
   onText: (t: string) => void;
   files: File[];
@@ -37,6 +37,8 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
   manualId?: string | null;
   onManual?: (id: string | null) => void;
   inputRef?: MutableRefObject<HTMLInputElement | null>;
+  /** HomeFix asked a question back; what's typed answers it, with the files sent before. */
+  replying?: { files: number; onCancel: () => void } | null;
 }) {
   const ownInput = useRef<HTMLInputElement | null>(null);
   const input = inputRef ?? ownInput;
@@ -58,6 +60,13 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
         {partial && (
           <div className="mic-partial" aria-live="polite"><span className="sr-only">Hearing: </span><span>{partial}</span></div>
         )}
+        {replying && (
+          <div className="replying">
+            <Icon as={CornerDownRight} size={16} />
+            <span>Answering HomeFix's question{replying.files > 0 ? `, with your ${replying.files === 1 ? "file" : "files"}` : ""}</span>
+            <button type="button" className="linkbtn replying__x" onClick={replying.onCancel}>Ask something new instead</button>
+          </div>
+        )}
         {(files.length > 0 || note) && (
           <div className="composer__files">
             {files.map((f, i) => (
@@ -73,7 +82,9 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
             {note && <span className="muted">{note}</span>}
           </div>
         )}
-        <textarea className="composer__text" rows={2} placeholder="Ask about something at home, or drop a photo, sound, video or file…"
+        <textarea className="composer__text" rows={2}
+          placeholder={replying ? "Type your answer, like “It's the clock on my cooktop”…"
+            : "Ask about something at home, or drop a photo, sound, video or file…"}
           value={text} aria-label="Question" onChange={(e) => onText(e.target.value)} onKeyDown={onKey} />
         <div className="composer__row">
           <button type="button" className="btn btn--icon" aria-label="Attach files" title="Attach a photo, sound, video or file"

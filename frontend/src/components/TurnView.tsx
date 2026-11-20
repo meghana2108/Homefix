@@ -1,7 +1,9 @@
+import type { ClarifyOption } from "../contract";
 import type { Turn } from "../state/reduce";
 import { outcomeOf, stepsOf, STEP_TEXT } from "../state/steps";
 import { AnswerText } from "./AnswerText";
 import { CitationCard } from "./CitationCard";
+import { ClarifyCard } from "./ClarifyCard";
 import { CodeResultPanel } from "./CodeResultPanel";
 import { ErrorCard } from "./ErrorCard";
 import { FrameStrip } from "./FrameStrip";
@@ -13,8 +15,9 @@ import { Stamp } from "./Stamp";
 import { StepList } from "./StepList";
 import { TranscriptBlock } from "./TranscriptBlock";
 
-export function TurnView({ turn, onRetry, selected = false, onSelect }: {
+export function TurnView({ turn, onRetry, selected = false, onSelect, onReply, canReply = false }: {
   turn: Turn; onRetry?: () => void; selected?: boolean; onSelect?: () => void;
+  onReply?: (o: ClarifyOption) => void; canReply?: boolean;
 }) {
   const { final, refusal } = turn;
   const safety = refusal?.reason === "safety";
@@ -46,7 +49,9 @@ export function TurnView({ turn, onRetry, selected = false, onSelect }: {
           ) : (
             <>
               {turn.transcript && <TranscriptBlock transcript={turn.transcript} />}
-              {turn.answer && <AnswerText text={turn.answer} streaming={streaming} />}
+              {turn.clarify
+                ? <ClarifyCard clarify={turn.clarify} onReply={onReply} canReply={canReply && !streaming} />
+                : turn.answer && <AnswerText text={turn.answer} streaming={streaming} />}
               {turn.frames && <FrameStrip timestamps={turn.frames.timestamps} />}
               {turn.soundLabels && <SoundBars labels={turn.soundLabels.labels} />}
               {turn.citation && <CitationCard citation={turn.citation} />}

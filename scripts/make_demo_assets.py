@@ -80,7 +80,7 @@ WASHER_KNOB = ("Cottons", "Synthetics", "Wool", "Quick 20'", "Spin")
 
 
 def display_photo(code: str, seed: int = 3, buttons=WASHER_BUTTONS, knob=WASHER_KNOB,
-                  units=("°C", "rpm"), body=(205, 207, 210)) -> Image.Image:
+                  units=("°C", "rpm"), body=(205, 207, 210), status: str | None = None) -> Image.Image:
     rng = np.random.default_rng(seed)
     W, H = 1600, 1000
     img = Image.new("RGB", (W, H), body)  # white-grey appliance front
@@ -114,11 +114,14 @@ def display_photo(code: str, seed: int = 3, buttons=WASHER_BUTTONS, knob=WASHER_
         polys = _segment_polys(x + k * (cw + gap), y, cw, ch, thick)
         for name, poly in polys.items():
             d.polygon(poly, fill=lit if name in SEGMENTS.get(ch_.upper(), "") else dim)
+    if status:  # a lit status word under the digits, e.g. "COOKTOP ON"
+        tw = d.textlength(status, font=font)
+        d.text(((dx0 + dx1 - tw) / 2, dy1 + 8), status, fill=(240, 40, 40), font=font)
     # buttons and labels
-    for i, label in enumerate(buttons):
+    for i, name in enumerate(buttons):
         bx = 780 + i * 160
         d.rounded_rectangle((bx, 610, bx + 130, 680), radius=12, fill=(80, 84, 90))
-        d.text((bx + 12, 625), label, fill=(230, 230, 230), font=small)
+        d.text((bx + 12, 625), name, fill=(230, 230, 230), font=small)
     d.text((1300, 360), units[0], fill=(200, 200, 200), font=font)
     d.text((1300, 470), units[1], fill=(200, 200, 200), font=font)
     # look like a phone photo: glow, slight tilt, crop, uneven light, blur, sensor noise

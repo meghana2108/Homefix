@@ -24,6 +24,14 @@ sounds", "Transcript").
 | amber "Not in the document" / "Couldn't answer this one" | a refusal: say why and what to try next |
 | red "Stop: this could be dangerous" | the safety filter matched; only the safety card shows |
 | blue "Answered from your photo", "Sound identified", ... | a direct answer from a photo, clip or sound |
+| dashed blue "HomeFix needs to know more" | a `clarify` event: HomeFix asks instead of guessing |
+
+## Asking instead of guessing
+A vague question about a photo ("What is this?", or none), a photo question the model can't answer, a code
+that isn't on the display, or a question two manuals could answer gets a question back, never a guess
+(`app/clarify.py`). The card shows the question, "What HomeFix could read" (the display's own words, serif),
+and one-click replies. Clicking one asks again with the same files; typing below answers it too (the composer
+says "Answering HomeFix's question", with a way out: "Ask something new instead").
 
 ## Voices
 | Voice | Font | Use |

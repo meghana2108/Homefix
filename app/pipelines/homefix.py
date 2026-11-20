@@ -17,12 +17,9 @@ from app.contracts import (
     PipelineRequest,
     Refusal,
     Status,
-    Token,
     final_for,
 )
 from app.pipelines import text
-from app.pipelines.common import collect, stream_brain
-from app.prompts import READ_PROMPT
 
 MAX_IMAGES = 4
 _CODE = re.compile(r"\b[A-Z]{1,3}-?\d{1,3}\b")
@@ -74,23 +71,61 @@ def list_manuals() -> list[dict]:
     return out
 
 
+def manuals_mentioning(code: str) -> list[dict]:
+    """The manuals on the shelf whose text has this code as a word (E21 matches "E21" and "E-21")."""
+    m = re.fullmatch(r"([A-Za-z]+)-?(\d+)", code)
+    pat = re.compile(rf"\b{m.group(1)}-?{m.group(2)}\b", re.IGNORECASE) if m else re.compile(re.escape(code))
+    out = []
+    for m in list_manuals():
+        try:
+            _, pages = text.load_manual(m["id"])
+        except (OSError, RuntimeError, ValueError):
+            continue
+        if any(pat.search(p) for p in pages):
+            out.append(m)
+    return out
+
+
 def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
-    images = [a.path for a in req.attachments if a.kind == "image" and a.path][:MAX_IMAGES]
+    from app.clarify import code_clarify, is_vague, manual_clarify, mentions_a_code, photo_clarify
+    from app.orchestrate import AUTO_MANUAL
+    from app.pipelines import image
+
     parts: list[str] = []
-    for ev in collect(stream_brain(ctx, [{"role": "user", "content": READ_PROMPT}], images), parts):
-        if not isinstance(ev, Token):
-            yield ev
+    for ev in image.read_quietly(ctx, image.images_of(req), parts):
+        yield ev
         if isinstance(ev, Refusal):
             yield final_for(ctx, "homefix", "manual_lookup")
             return
-    code = read_display_code("".join(parts))
+    reading = "".join(parts)
+    # The photo's code first; else one the person typed (a reply like "It says E24" to "Which code?").
+    code = read_display_code(reading) or read_display_code(req.message)
     if code is None:
-        yield final_for(ctx, "homefix", "manual_lookup", MESSAGES["no_display_code"],
-                        model=ctx.memory.tag("brain"))
+        if mentions_a_code(req.message):  # they say there's a code and we can't see one: ask for it
+            yield from image.ask_back(ctx, req, code_clarify(reading), "homefix")
+            return
+        if is_vague(req.message):  # "What does this mean?" with no code on it: ask, don't guess
+            yield from image.ask_back(ctx, req, photo_clarify(reading), "homefix")
+            return
+        # A specific question ("What does COOKTOP ON mean?"): answer it from the photo, without guessing.
+        yield from image.answer_question(PipelineRequest(req.message, req.attachments, "qa", None), ctx, reading)
         return
     yield Status(stage="generating", detail=f"found {code}")
+    manual_id = req.manual_id
+    if manual_id == AUTO_MANUAL:  # the question named no appliance: the code picks the manual
+        having = manuals_mentioning(code)
+        if not having:
+            msg = MESSAGES["code_in_no_manual"].format(code=code)
+            yield Refusal(reason="not_in_document", message=msg)
+            yield final_for(ctx, "homefix", "manual_lookup", model=ctx.memory.tag("brain"))
+            return
+        if len(having) > 1:
+            yield from image.ask_back(ctx, req, manual_clarify(req.message, having, code), "homefix")
+            return
+        manual_id = having[0]["id"]
+        yield Status(stage="routing", detail=f"Using the manual: {having[0]['title']}")
     q = PipelineRequest(f"What does error code {code} mean and what should I do?", [],
-                        "doc_qa", req.manual_id)
+                        "doc_qa", manual_id)
     for ev in text.run(q, ctx):
         if isinstance(ev, Final):
             ev = ev.model_copy(update={"modality": "homefix", "question_type": "manual_lookup"})

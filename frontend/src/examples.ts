@@ -20,7 +20,7 @@ export interface Example {
 
 export const EXAMPLE_KINDS: { id: ExampleKind; label: string; icon: LucideIcon; what: string }[] = [
   { id: "photo", label: "Photo", icon: Camera,
-    what: "A photo of a display, a panel or a stove. HomeFix reads codes and numbers, counts things, and looks error codes up in the manual." },
+    what: "A photo of a display, a panel or a stove. HomeFix reads codes and numbers, counts things, and looks error codes up in the manual. When a question is vague or the photo doesn't show the answer, it asks instead of guessing." },
   { id: "sound", label: "Sound", icon: Volume2,
     what: "A recording of a beep, a chirp or a drip. HomeFix names the closest household sounds and says what to do next." },
   { id: "voice", label: "Voice note", icon: Mic,
@@ -28,7 +28,7 @@ export const EXAMPLE_KINDS: { id: ExampleKind; label: string; icon: LucideIcon; 
   { id: "document", label: "Document", icon: FileText,
     what: "A lease or any PDF, Word or text file. Answers come with the exact words and the page, or HomeFix says the document doesn't say." },
   { id: "manual", label: "Manual", icon: BookOpen,
-    what: "Ask a question with no file. HomeFix picks the right manual from the shelf by itself and quotes the page." },
+    what: "Ask a question with no file. HomeFix picks the right manual from the shelf by itself and quotes the page. If more than one could fit, it asks which appliance you mean." },
   { id: "video", label: "Video", icon: Film,
     what: "A short clip. HomeFix watches it frame by frame and says which way things move or how many there are." },
   { id: "code", label: "Code", icon: Code2,
@@ -50,6 +50,9 @@ export const EXAMPLES: Example[] = [
   { id: "P4", kind: "photo", file: "stove_two_on.jpg", mime: "image/jpeg", preview: "image", fileLabel: "Cooktop from above",
     question: "How many burners are on?",
     see: "Counts the glowing burners: 2." },
+  { id: "P5", kind: "photo", file: "cooktop_clock.jpg", mime: "image/jpeg", preview: "image", fileLabel: "Stove panel: 832 and COOKTOP ON",
+    question: "What does this mean?",
+    see: "Doesn't guess. It shows what it read (832, COOKTOP ON), says there's no error code, and asks what you want to know, with one-click replies." },
 
   { id: "S1", kind: "sound", file: "washer_done_beeps.wav", mime: "audio/wav", preview: "audio", fileLabel: "Five beeps",
     question: "What is this sound?",
@@ -86,6 +89,8 @@ export const EXAMPLES: Example[] = [
     see: "Picks the thermostat guide: the batteries are low, replace both AA within two weeks." },
   { id: "M4", kind: "manual", mime: "", question: "What should I do if a breaker trips?",
     see: "Picks the Unit 4B guide and quotes the breaker steps on page 4." },
+  { id: "M5", kind: "manual", mime: "", question: "How often should I clean the filter?",
+    see: "Two manuals talk about a filter, so it asks which appliance instead of picking one. Click the dishwasher and it quotes: once a month." },
 
   { id: "X1", kind: "video", file: "pipe_dripping.mp4", mime: "video/mp4", preview: "video", fileLabel: "A drip from a pipe",
     question: "Which way is the water moving?",

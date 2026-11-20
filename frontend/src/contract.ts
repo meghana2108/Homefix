@@ -5,7 +5,7 @@ export const STAGES = ["converting", "safety_check", "routing", "loading_model",
 export const REFUSAL_REASONS = ["safety", "unsupported_file", "empty_input", "too_large",
   "no_document", "not_in_document", "model_unavailable", "timeout"] as const;
 export const EVENT_TYPES = ["status", "token", "transcript", "sound_labels", "frames", "citation",
-  "code_result", "refusal", "error", "final"] as const;
+  "code_result", "clarify", "refusal", "error", "final"] as const;
 export type Stage = typeof STAGES[number];
 export type RefusalReason = typeof REFUSAL_REASONS[number];
 export type Modality = "image" | "audio" | "text" | "code" | "video" | "homefix" | "none";
@@ -55,6 +55,16 @@ export interface CodeResultEvent {
   output_tail: string;
   attempts: number;
 }
+export interface ClarifyOption { label: string; message: string; manual_id: string | null }
+
+/** HomeFix asks instead of guessing. final.answer repeats `question`. */
+export interface ClarifyEvent {
+  type: "clarify";
+  question: string;
+  seen: string | null;
+  options: ClarifyOption[];
+}
+
 export interface RefusalEvent {
   type: "refusal";
   reason: RefusalReason;
@@ -77,7 +87,7 @@ export interface FinalEvent {
   model: string | null;
 }
 export type HomeFixEvent = StatusEvent | TokenEvent | TranscriptEvent | SoundLabelsEvent |
-  FramesEvent | CitationEvent | CodeResultEvent | RefusalEvent | ErrorEvent | FinalEvent;
+  FramesEvent | CitationEvent | CodeResultEvent | ClarifyEvent | RefusalEvent | ErrorEvent | FinalEvent;
 
 export interface Manual { id: string; title: string; pages: number }
 export interface Health {
