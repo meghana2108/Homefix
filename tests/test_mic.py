@@ -70,7 +70,7 @@ def test_plan_protocol(client, monkeypatch):
         ws.send_json({"type": "stop"})
         final = ws.receive_json()
     assert [p1["type"], p2["type"]] == ["partial", "partial"]
-    assert final == {"type": "final", "text": "testing one two"}
+    assert final == {"type": "final", "text": "testing one two", "speech": True}
 
 
 def test_unreadable_chunk_keeps_last_partial(client, monkeypatch):
@@ -81,13 +81,13 @@ def test_unreadable_chunk_keeps_last_partial(client, monkeypatch):
         ws.send_bytes(b"x")
         assert ws.receive_json() == {"type": "partial", "text": ""}
         ws.send_json({"type": "stop"})
-        assert ws.receive_json() == {"type": "final", "text": ""}
+        assert ws.receive_json() == {"type": "final", "text": "", "speech": False}
 
 
 def test_stop_without_audio(client, fake_asr):
     with client.websocket_connect("/api/mic") as ws:
         ws.send_json({"type": "stop"})
-        assert ws.receive_json() == {"type": "final", "text": ""}
+        assert ws.receive_json() == {"type": "final", "text": "", "speech": False}
     assert fake_asr == []
 
 
@@ -144,3 +144,27 @@ def test_real_conversion_of_webm_chunks(tmp_path):
                            "csv=p=0", str(out)], capture_output=True, text=True, check=True).stdout.strip()
     assert info == "16000,1"
     assert mic._to_wav(tmp_path / "missing.webm", out) is False
+
+
+def test_a_sound_is_not_speech_so_no_words_go_in_the_box(client, monkeypatch):
+    """An alarm: Whisper hears "beep beep beep beep" with a high no-speech probability (measured 0.82 on our
+    chirp). The final says speech=False and carries no text; the UI attaches the recording instead."""
+    monkeypatch.setattr(mic, "_to_wav", lambda src, dst: dst.write_bytes(b"RIFF") or True)
+    monkeypatch.setattr(mic, "transcribe", lambda path, repo: TranscriptResult(
+        text="beep beep beep beep", seconds=4.0, mean_no_speech_prob=0.82))
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"chunk1")
+        ws.receive_json()
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json() == {"type": "final", "text": "", "speech": False}
+
+
+def test_silence_is_not_speech(client, monkeypatch):
+    monkeypatch.setattr(mic, "_to_wav", lambda src, dst: dst.write_bytes(b"RIFF") or True)
+    monkeypatch.setattr(mic, "transcribe", lambda path, repo: TranscriptResult(text="", seconds=2.0,
+                                                                              mean_no_speech_prob=1.0))
+    with client.websocket_connect("/api/mic") as ws:
+        ws.send_bytes(b"chunk1")
+        ws.receive_json()
+        ws.send_json({"type": "stop"})
+        assert ws.receive_json() == {"type": "final", "text": "", "speech": False}

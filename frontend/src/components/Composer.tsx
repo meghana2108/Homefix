@@ -43,6 +43,13 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
   const ownInput = useRef<HTMLInputElement | null>(null);
   const input = inputRef ?? ownInput;
   const [partial, setPartial] = useState("");
+  const [micNote, setMicNote] = useState<string | null>(null);
+  useEffect(() => { if (busy) setMicNote(null); }, [busy]);
+  const onMicSound = (f: File) => {
+    onFiles([...files, f]);
+    if (!text.trim()) onText("What is this sound?");
+    setMicNote("That wasn't speech, so the recording is attached as a sound. Press Ask to find out what it is.");
+  };
   const previews = usePreviews(files);
   const onMicFinal = (spoken: string) => {
     const said = spoken.trim();
@@ -67,6 +74,7 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
             <button type="button" className="linkbtn replying__x" onClick={replying.onCancel}>Ask something new instead</button>
           </div>
         )}
+        {micNote && <p className="mic-note" role="status">{micNote}</p>}
         {(files.length > 0 || note) && (
           <div className="composer__files">
             {files.map((f, i) => (
@@ -97,7 +105,8 @@ export function Composer({ text, onText, files, onFiles, onSend, busy, note, man
               e.target.value = "";
               e.target.accept = ACCEPT;
             }} />
-          <MicButton onPartial={setPartial} onFinal={onMicFinal} disabled={busy} />
+          <MicButton onPartial={setPartial} onFinal={(t) => { setMicNote(null); onMicFinal(t); }} onSound={onMicSound}
+            disabled={busy} />
           {onManual && <ManualPicker manuals={manuals} value={manualId} onChange={onManual} />}
           <span className="composer__spacer" />
           <button type="submit" className="btn btn--primary" disabled={busy}>

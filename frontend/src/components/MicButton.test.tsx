@@ -72,6 +72,32 @@ describe("MicButton", () => {
     expect(screen.getByRole("button", { name: "Start the mic" })).toBeEnabled();
   });
 
+  it("a sound that isn't speech (an alarm) is handed over as a recording, not as words", async () => {
+    const onFinal = vi.fn();
+    const onSound = vi.fn();
+    render(<MicButton onPartial={() => {}} onFinal={onFinal} onSound={onSound} />);
+    await startRecording();
+    act(() => FakeRecorder.last.chunk("beep1"));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Stop the mic" })); });
+    act(() => FakeWS.last.server({ type: "final", text: "", speech: false }));
+    expect(onFinal).not.toHaveBeenCalled();
+    const file = onSound.mock.calls[0][0] as File;
+    expect(file.name).toMatch(/^mic-sound-.*\.webm$/);
+    expect(file.type).toBe("audio/webm");
+    expect(file.size).toBe("beep1last".length);  // every chunk, the last one too
+  });
+
+  it("speech still goes in as words", async () => {
+    const onFinal = vi.fn();
+    const onSound = vi.fn();
+    render(<MicButton onPartial={() => {}} onFinal={onFinal} onSound={onSound} />);
+    await startRecording();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Stop the mic" })); });
+    act(() => FakeWS.last.server({ type: "final", text: "my washer beeps", speech: true }));
+    expect(onFinal).toHaveBeenCalledWith("my washer beeps");
+    expect(onSound).not.toHaveBeenCalled();
+  });
+
   it("explains a denied permission", async () => {
     getUserMedia.mockRejectedValue(new DOMException("denied", "NotAllowedError"));
     render(<MicButton onPartial={() => {}} onFinal={() => {}} />);
@@ -126,5 +152,30 @@ describe("Composer with the mic", () => {
     expect(onText).toHaveBeenCalledWith("My washer: shows error E21");
     expect(onSend).not.toHaveBeenCalled();
     expect(screen.queryByText("shows error")).toBeNull();
+  });
+
+  it("an alarm recorded with the mic is attached with a question, ready to Ask", async () => {
+    const onText = vi.fn();
+    const onFiles = vi.fn();
+    const onSend = vi.fn();
+    render(<Composer text="" onText={onText} files={[]} onFiles={onFiles} onSend={onSend} busy={false} note={null} />);
+    await startRecording();
+    act(() => FakeRecorder.last.chunk("beep"));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Stop the mic" })); });
+    act(() => FakeWS.last.server({ type: "final", text: "", speech: false }));
+    expect((onFiles.mock.calls[0][0] as File[])[0].name).toMatch(/^mic-sound-/);
+    expect(onText).toHaveBeenCalledWith("What is this sound?");
+    expect(screen.getByText(/That wasn't speech, so the recording is attached/)).toBeInTheDocument();
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it("keeps a typed question when a sound is attached", async () => {
+    const onText = vi.fn();
+    render(<Composer text="Is this my smoke alarm?" onText={onText} files={[]} onFiles={() => {}} onSend={() => {}} busy={false} note={null} />);
+    await startRecording();
+    act(() => FakeRecorder.last.chunk("beep"));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Stop the mic" })); });
+    act(() => FakeWS.last.server({ type: "final", text: "", speech: false }));
+    expect(onText).not.toHaveBeenCalled();
   });
 });

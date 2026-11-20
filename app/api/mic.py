@@ -3,7 +3,9 @@
 Client: binary audio chunks (MediaRecorder webm/opus, every 3 s), then text {"type":"stop"}.
 Server: chunks are appended to one file per connection; after each chunk the whole file is
 converted to 16 kHz WAV and transcribed with models.whisper_live -> {"type":"partial","text":...}.
-On stop, one pass with models.whisper_file -> {"type":"final","text":...}, then the socket closes.
+On stop, one pass with models.whisper_file -> {"type":"final","text":...,"speech":bool}, then the socket
+closes. speech is the audio pipeline's own test (is_speech: >= 3 words and a low no-speech probability).
+When it's False (an alarm, a beep, a drip) text is "" and the UI attaches the recording as a sound to name.
 A missing Whisper model -> {"type":"error","message":...}. The UI only puts the final text in the
 text box; sending it is the user's choice, and the safety filter runs then, as for typed text.
 """
@@ -20,7 +22,8 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
 
 from app.contracts import ModelUnavailable
-from app.models.whisper import transcribe
+from app.models.whisper import TranscriptResult, transcribe
+from app.pipelines.audio import is_speech
 
 router = APIRouter()
 MAX_BYTES = 20 * 1024 * 1024    # opus at ~32 kbit/s: well over an hour; stops a runaway client
@@ -42,9 +45,14 @@ def _to_wav(src: Path, dst: Path) -> bool:
 
 def _text(rec: Path, wav: Path, repo: str) -> str | None:
     """Transcript of the whole recording so far, or None if it can't be decoded yet."""
+    tr = _transcript(rec, wav, repo)
+    return tr.text if tr is not None else None
+
+
+def _transcript(rec: Path, wav: Path, repo: str) -> TranscriptResult | None:
     if not _to_wav(rec, wav):
         return None
-    return transcribe(wav, repo).text
+    return transcribe(wav, repo)
 
 
 @router.websocket("/api/mic")
@@ -52,17 +60,20 @@ async def mic(ws: WebSocket) -> None:
     from app.api.main import get_ctx
 
     await ws.accept()
-    models = get_ctx(ws).profile.models
+    profile = get_ctx(ws).profile
+    models, max_no_speech = profile.models, profile.audio.speech_max_no_speech_prob
     tmp = Path(tempfile.mkdtemp(prefix="homefix_mic_"))
     rec, wav = tmp / "recording.webm", tmp / "recording.wav"
     size, last = 0, ""
 
     async def finish() -> None:
-        text = last
+        text, speech = last, bool(last.strip())
         if size:
-            final = await run_in_threadpool(_text, rec, wav, models.whisper_file)
-            text = final if final is not None else last
-        await ws.send_json({"type": "final", "text": text})
+            tr = await run_in_threadpool(_transcript, rec, wav, models.whisper_file)
+            if tr is not None:
+                speech = is_speech("none", tr, max_no_speech)
+                text = tr.text.strip() if speech else ""
+        await ws.send_json({"type": "final", "text": text, "speech": speech})
 
     try:
         while True:

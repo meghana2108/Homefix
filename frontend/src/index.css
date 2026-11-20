@@ -335,6 +335,7 @@ a { color: var(--pen); }
 .clarify__opt { min-height: 44px; text-align: left; color: var(--pen-deep); border-color: var(--pen); background: var(--paper); }
 .clarify__opt:hover:not(:disabled) { background: var(--pen-tint); }
 .clarify__hint { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
+.mic-note { margin: 0; font-size: 0.85rem; color: var(--pen-deep); background: var(--pen-tint); padding: 0.35rem 0.6rem; border-radius: var(--r-control); }
 .replying { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; font-size: 0.88rem; color: var(--pen-deep);
   padding: 0.35rem 0.6rem; background: var(--pen-tint); border-radius: var(--r-control); }
 .replying .icon { color: var(--pen); }

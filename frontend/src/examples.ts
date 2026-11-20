@@ -36,7 +36,7 @@ export const EXAMPLE_KINDS: { id: ExampleKind; label: string; icon: LucideIcon; 
   { id: "photo", label: "Photo", icon: Camera,
     what: "A photo of a display, a panel or a stove. HomeFix reads codes and numbers, counts things, and looks error codes up in the manual. When a question is vague or the photo doesn't show the answer, it asks instead of guessing." },
   { id: "sound", label: "Sound", icon: Volume2,
-    what: "A recording of a beep, a chirp or a drip. HomeFix names the closest household sounds and says what to do next." },
+    what: "A recording of a beep, a chirp or a drip: attach a file, or hold your laptop near it and press the mic. If what the mic hears isn't speech, it's sent as a sound. HomeFix names the closest household sounds and says what to do next." },
   { id: "voice", label: "Voice note", icon: Mic,
     what: "A voicemail or a spoken question. HomeFix writes out the words, then answers from them." },
   { id: "document", label: "Document", icon: FileText,

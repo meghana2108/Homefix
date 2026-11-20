@@ -4,7 +4,8 @@ import { wsUrl } from "../api/client";
 import { Icon } from "./Icons";
 
 /** WS /api/mic messages (app/api/mic.py). Not part of the shared SSE contract. */
-type MicMessage = { type: "partial"; text: string } | { type: "final"; text: string } | { type: "error"; message: string };
+type MicMessage = { type: "partial"; text: string } | { type: "final"; text: string; speech?: boolean }
+  | { type: "error"; message: string };
 
 export const MIC_URL = wsUrl("/api/mic");
 const CHUNK_MS = 3000;
@@ -16,13 +17,23 @@ export function micSupported(): boolean {
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+/** The recording as a file the chat can take: "audio/webm;codecs=opus" -> mic-sound-<time>.webm, audio/webm. */
+function soundFile(chunks: Blob[], mime: string): File {
+  const type = (mime || "audio/webm").split(";")[0];
+  const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+  const t = new Date().toTimeString().slice(0, 8).replace(/:/g, "");
+  return new File(chunks, `mic-sound-${t}.${ext}`, { type });
+}
+
 /**
  * 🎤 button: records in 3 s chunks, streams them to /api/mic, reports partial transcripts, and
- * hands over the final text. It never sends a chat message itself.
+ * hands over the final text. When the server says it wasn't speech (an alarm, a beep, a drip), it hands
+ * over the recording itself instead, so it can be sent as a sound. It never sends a chat message itself.
  */
-export function MicButton({ onPartial, onFinal, disabled = false }: {
+export function MicButton({ onPartial, onFinal, onSound, disabled = false }: {
   onPartial: (text: string) => void;
   onFinal: (text: string) => void;
+  onSound?: (file: File) => void;
   disabled?: boolean;
 }) {
   const [state, setState] = useState<"idle" | "starting" | "recording" | "finishing">("idle");
@@ -32,10 +43,12 @@ export function MicButton({ onPartial, onFinal, disabled = false }: {
   const rec = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const done = useRef(false);
+  const chunks = useRef<Blob[]>([]);
+  const mime = useRef("");
   const timers = useRef<number[]>([]);
   // latest callbacks, so text typed while recording isn't lost when the final arrives
-  const cb = useRef({ onPartial, onFinal });
-  cb.current = { onPartial, onFinal };
+  const cb = useRef({ onPartial, onFinal, onSound });
+  cb.current = { onPartial, onFinal, onSound };
 
   const cleanup = () => {
     timers.current.forEach((t) => window.clearInterval(t));
@@ -90,7 +103,9 @@ export function MicButton({ onPartial, onFinal, disabled = false }: {
       else if (msg.type === "final") {
         done.current = true;
         cb.current.onPartial("");
-        cb.current.onFinal(msg.text);
+        const recorded = chunks.current.reduce((n, c) => n + c.size, 0) > 0;
+        if (msg.speech === false && recorded && cb.current.onSound) cb.current.onSound(soundFile(chunks.current, mime.current));
+        else cb.current.onFinal(msg.text);
         cleanup();
       } else if (msg.type === "error") fail(msg.message);
     };
@@ -100,7 +115,12 @@ export function MicButton({ onPartial, onFinal, disabled = false }: {
       const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported?.(t));
       const r = new MediaRecorder(media, type ? { mimeType: type } : undefined);
       rec.current = r;
-      r.ondataavailable = (ev) => { if (ev.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(ev.data); };
+      chunks.current = [];
+      mime.current = r.mimeType || type || "";
+      r.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chunks.current.push(ev.data);  // kept, in case it turns out to be a sound
+        if (ev.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(ev.data);
+      };
       r.onstop = () => { if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "stop" })); };
       r.start(CHUNK_MS);
       setSeconds(0);
@@ -135,7 +155,7 @@ export function MicButton({ onPartial, onFinal, disabled = false }: {
           <span className="spinner" aria-hidden="true" />
         </button>
       ) : (
-        <button type="button" className="btn btn--icon" aria-label="Start the mic" title="Speak your question"
+        <button type="button" className="btn btn--icon" aria-label="Start the mic" title="Speak your question, or record a sound (an alarm, a beep, a drip)"
           disabled={disabled} onClick={() => void start()}>
           <Icon as={Mic} />
         </button>
