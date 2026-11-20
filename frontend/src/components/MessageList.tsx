@@ -3,9 +3,9 @@ import type { ClarifyOption } from "../contract";
 import type { Turn } from "../state/reduce";
 import { TurnView } from "./TurnView";
 
-export function MessageList({ turns, onRetry, selectedId = null, onSelect, onReply, busy = false }: {
+export function MessageList({ turns, onRetry, selectedId = null, onSelect, onReply, busy = false, onEvidence }: {
   turns: Turn[]; onRetry: (id: string) => void; selectedId?: string | null; onSelect?: (id: string) => void;
-  onReply?: (id: string, o: ClarifyOption) => void; busy?: boolean;
+  onReply?: (id: string, o: ClarifyOption) => void; busy?: boolean; onEvidence?: (id: string) => void;
 }) {
   const end = useRef<HTMLDivElement>(null);
   const last = turns[turns.length - 1];
@@ -18,7 +18,8 @@ export function MessageList({ turns, onRetry, selectedId = null, onSelect, onRep
         {turns.map((t) => (
           <TurnView key={t.id} turn={t} onRetry={() => onRetry(t.id)} selected={t.id === selectedId}
             onSelect={onSelect ? () => onSelect(t.id) : undefined}
-            onReply={onReply ? (o) => onReply(t.id, o) : undefined} canReply={!busy && t === last} />
+            onReply={onReply ? (o) => onReply(t.id, o) : undefined} canReply={!busy && t === last}
+            onEvidence={onEvidence ? () => onEvidence(t.id) : undefined} />
         ))}
       </div>
       <div ref={end} />

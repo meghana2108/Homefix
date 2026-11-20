@@ -1,5 +1,5 @@
 import { Lock, Plus, ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { API_LABEL, IS_MOCK, getHealth, getManuals, streamChat } from "../api/client";
 import type { ClarifyOption, Health, HomeFixEvent, Manual } from "../contract";
 import { kindOf, newTurn, reduce, type SentFile, type Turn } from "../state/reduce";
@@ -7,6 +7,7 @@ import { stepsOf } from "../state/steps";
 import type { Example } from "../examples";
 import { BackendBanner } from "./BackendBanner";
 import { Composer, MAX_FILES } from "./Composer";
+import { EvidencePack } from "./EvidencePack";
 import { ExampleGallery } from "./ExampleGallery";
 import { Icon } from "./Icons";
 import { AUTO } from "./ManualPicker";
@@ -103,6 +104,7 @@ export function Workspace() {
   const online = useOnline();
   const sent = useRef(new Map<string, Sent>());
   const [notReplying, setNotReplying] = useState<string | null>(null);
+  const [evidenceFor, setEvidenceFor] = useState<string | null>(null);
 
   // Health every 5 s drives the "can't reach" banner; manuals reload whenever the backend comes back.
   useEffect(() => {
@@ -226,6 +228,9 @@ export function Workspace() {
   };
 
   const selected = turns.find((t) => t.id === selectedId) ?? turns[turns.length - 1] ?? null;
+  const evidenceTurn = evidenceFor ? turns.find((t) => t.id === evidenceFor) ?? null : null;
+  const evidenceFiles = useMemo(() => (evidenceFor ? sent.current.get(evidenceFor)?.files ?? [] : []), [evidenceFor]);
+  const closeEvidence = useCallback(() => setEvidenceFor(null), []);
 
   return (
     <div className="ws" onDragOver={onDragOver} onDragLeave={(e) => {
@@ -259,13 +264,16 @@ export function Workspace() {
         <main className="main" id="content">
           {turns.length === 0 ? <StartScreen onTry={(ex) => void tryExample(ex)} busy={busy} manuals={manuals} />
             : <MessageList turns={turns} onRetry={retry} selectedId={selected?.id ?? null} onSelect={setSelectedId}
-                onReply={reply} busy={busy} />}
+                onReply={reply} busy={busy} onEvidence={setEvidenceFor} />}
           <Composer text={text} onText={setText} files={files} onFiles={setFiles} onSend={send} busy={busy} note={note}
             manuals={manuals} manualId={manualId} onManual={setManualId} inputRef={fileInput}
             replying={replying ? { files: replying.files.length, onCancel: () => setNotReplying(asking!.id) } : null} />
         </main>
       </div>
       {dragging && <div className="dropzone" aria-hidden="true">Drop to attach</div>}
+      {evidenceTurn && (
+        <EvidencePack turn={evidenceTurn} files={evidenceFiles} onClose={closeEvidence} />
+      )}
     </div>
   );
 }

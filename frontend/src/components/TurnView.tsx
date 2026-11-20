@@ -1,3 +1,4 @@
+import { ClipboardCheck } from "lucide-react";
 import type { ClarifyOption } from "../contract";
 import type { Turn } from "../state/reduce";
 import { outcomeOf, stepsOf, STEP_TEXT } from "../state/steps";
@@ -6,6 +7,7 @@ import { CitationCard } from "./CitationCard";
 import { ClarifyCard } from "./ClarifyCard";
 import { CodeResultPanel } from "./CodeResultPanel";
 import { ErrorCard } from "./ErrorCard";
+import { Icon } from "./Icons";
 import { FrameStrip } from "./FrameStrip";
 import { LatencyBadge } from "./LatencyBadge";
 import { RefusalCard } from "./RefusalCard";
@@ -15,9 +17,11 @@ import { Stamp } from "./Stamp";
 import { StepList } from "./StepList";
 import { TranscriptBlock } from "./TranscriptBlock";
 
-export function TurnView({ turn, onRetry, selected = false, onSelect, onReply, canReply = false }: {
+export function TurnView({ turn, onRetry, selected = false, onSelect, onReply, canReply = false, onEvidence }: {
   turn: Turn; onRetry?: () => void; selected?: boolean; onSelect?: () => void;
   onReply?: (o: ClarifyOption) => void; canReply?: boolean;
+  /** Open the repair request for this answer. */
+  onEvidence?: () => void;
 }) {
   const { final, refusal } = turn;
   const safety = refusal?.reason === "safety";
@@ -59,6 +63,12 @@ export function TurnView({ turn, onRetry, selected = false, onSelect, onReply, c
               {refusal && <RefusalCard refusal={refusal} />}
               {turn.error && <ErrorCard error={turn.error} onRetry={onRetry} />}
             </>
+          )}
+          {final && !turn.error && onEvidence && (
+            <button type="button" className="btn btn--small btn--quiet evidence-btn"
+              onClick={(e) => { e.stopPropagation(); onEvidence(); }}>
+              <Icon as={ClipboardCheck} size={16} />Make a repair request
+            </button>
           )}
           {steps.length > 0 && (
             <details className="turn__steps">

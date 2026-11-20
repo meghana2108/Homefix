@@ -33,6 +33,13 @@ that isn't on the display, or a question two manuals could answer gets a questio
 and one-click replies. Clicking one asks again with the same files; typing below answers it too (the composer
 says "Answering HomeFix's question", with a way out: "Ask something new instead").
 
+## Repair request (evidence pack)
+Under every finished answer: "Make a repair request". It opens a printable sheet (`components/EvidencePack.tsx`,
+`state/evidence.ts`): the date, each file with its SHA-256 fingerprint (Web Crypto, in the browser), what
+HomeFix found, the verified quote and page, the danger check, an editable letter to the landlord, and a
+fingerprint of the whole pack that changes when anything in it does. "Print or save as PDF" prints only the
+sheet. Nothing is uploaded. Over plain http on another device there is no Web Crypto; the sheet says so.
+
 ## Voices
 | Voice | Font | Use |
 |---|---|---|
