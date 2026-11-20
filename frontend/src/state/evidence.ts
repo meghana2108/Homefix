@@ -132,5 +132,7 @@ export function escalation(turn: Turn): Escalation {
   if (!turn.final || turn.error || turn.clarify || turn.codeResult) return "none";
   if (turn.refusal?.reason === "safety") return "suggest";
   if (NEEDS_HELP.test(`${turn.answer} ${turn.citation?.quote ?? ""}`)) return "suggest";
-  return PROBLEM.test(turn.userText) ? "optional" : "none";
+  // the server judges by meaning too (app/intent.py); the word list is the fallback (mock server, older API)
+  const problem = turn.final.intent ? turn.final.intent === "problem" : PROBLEM.test(turn.userText);
+  return problem ? "optional" : "none";
 }

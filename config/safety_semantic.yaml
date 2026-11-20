@@ -1,0 +1,126 @@
+# Meaning-based danger net (app/safety_semantic.py). Runs AFTER the regex in safety_rules.yaml, and only ever
+# ADDS a stop: a question that is closer to a hazard example than to any safe example, by at least `margin`,
+# gets the same safety card. It can never remove a regex stop.
+# Tuned on tests/data/safety_dev.yaml; reported on tests/data/safety_test.yaml (never used for tuning).
+# All phrases are ours.
+margin: 0.05          # hazard similarity minus safe similarity (chosen on the dev set)
+min_hazard: 0.70      # and the closest hazard example must be at least this close
+
+hazard:
+  gas:
+    - I smell gas in the kitchen
+    - there is a rotten egg smell near the stove
+    - the stove is hissing and the burner is off
+    - sulfur smell coming from the oven
+    - the furnace smells like sulfur
+    - it smells like gas near the water heater
+    - the gas line is hissing behind the dryer
+    - the pilot light went out and there's a strong smell
+    - my carbon monoxide detector is going off
+    - I feel dizzy and have a headache when the heater is on
+    - the boiler smells like something rotten
+  sparks:
+    - sparks came out of the outlet
+    - the outlet crackles and pops when I plug something in
+    - the plug flashed blue when I pulled it out
+    - the light switch is crackling and buzzing
+    - I saw a flash inside the outlet
+    - the breaker panel is buzzing loudly
+    - the outlet makes a sizzling sound
+    - there's a popping noise from the wall socket
+  smoke_fire:
+    - there is smoke coming from the dryer
+    - the outlet is hot and smells like burning plastic
+    - the cord melted
+    - the microwave caught fire
+    - the extension cord is hot and soft
+    - the plug is too hot to touch
+    - the dryer smells like something is melting
+    - there's a burning smell from the light fixture
+    - the outlet cover is brown and warm
+    - the power strip is melting
+    - the heater is giving off a burning plastic smell
+  exposed_wires:
+    - there are bare wires sticking out of the wall
+    - the cord is frayed and the copper is showing
+    - the light switch cover is broken and I can see wires
+    - the toaster cord is cracked and I can see the metal inside
+    - the ceiling light is hanging by its wires
+    - a wire is hanging out of the outlet
+  water_electric:
+    - water is dripping onto the breaker panel
+    - the outlet got wet from a leak
+    - the ceiling light is filling with water
+    - there's water near the electrical outlet
+    - water is leaking into the light fixture
+    - the ceiling is dripping right onto the outlet
+    - the basement is flooded near the electrical panel
+    - water is coming through the light switch
+  shock:
+    - I got a shock from the faucet
+    - the washer gives me a tingle when I touch it
+    - the light switch zapped me
+    - I felt a tingle touching the fridge door
+    - the shower handle shocks me
+    - the metal lamp gave me a jolt
+
+safe:
+  - How do I clean the dishwasher filter?
+  - My gas stove won't light
+  - How do I light the gas oven pilot?
+  - What temperature should the fridge be?
+  - How do I reset the breaker after it trips?
+  - The outlet doesn't work
+  - My outlet stopped working after I unplugged the toaster
+  - Is it normal for the dryer to be warm?
+  - My washer shows error E21
+  - How do I unclog the sink?
+  - The smoke alarm chirps every 30 seconds
+  - The smoke alarm battery is low
+  - Can I have a cat?
+  - The light bulb burned out
+  - The oven light is out
+  - How do I bleed the radiator?
+  - The water heater makes a popping noise
+  - How hot should the water heater be set?
+  - The kettle whistles loudly
+  - The fridge is making a humming noise
+  - The bathroom fan is loud
+  - The dishwasher leaves water at the bottom
+  - The sink is dripping slowly
+  - The tap drips all night
+  - The heater smells dusty when I first turn it on
+  - How do I change the furnace filter?
+  - The stove takes a while to heat up
+  - What does the red light on the dryer mean?
+  - The microwave beeps when it's done
+  - The washing machine is shaking during the spin
+  - The toilet keeps running
+  - There's mold on the bathroom ceiling
+  - The window won't close all the way
+  - The thermostat is flashing LO
+  - The garbage disposal hums but doesn't spin
+  - How do I turn off the water to the toilet?
+  - The ceiling has a brown water stain
+  - The shower drain is slow
+  - The oven door doesn't seal
+  - How often should I replace the air filter?
+  # generic and informational questions: they share topic words with hazards but report nothing dangerous
+  - What is this sound?
+  - What's that noise?
+  - What sound is this?
+  - Which way is the water moving?
+  - How many burners are on?
+  - Is this burner on?
+  - What does the display say?
+  - Describe the photo.
+  - What are the symptoms of carbon monoxide poisoning?
+  - Where should I put a carbon monoxide alarm?
+  - How do I test my smoke alarm?
+  - How often should I replace the smoke alarm battery?
+  - What does a gas leak smell like?
+  - What should I do if a breaker trips?
+  - How do I stop mold growing in my bathroom?
+  - What causes condensation on windows?
+  - Who do I call if the heat goes out?
+

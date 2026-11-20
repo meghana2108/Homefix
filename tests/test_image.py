@@ -42,9 +42,9 @@ def test_count_prompt_names_thing(ctx_full, fake_brain, tmp_path):
 
 
 def test_images_sent(ctx_full, fake_brain, tmp_path):
-    fake_brain("I can't tell.", "A desk.")  # no question: read first (no display here), then describe
+    fake_brain("None", "None", "I can't tell.", "A desk.")  # no question: 2 danger looks, read, describe
     list(image.run(req(tmp_path, "", "describe", n=2), ctx_full))
-    assert [len(c["images"]) for c in fake_brain.calls] == [2, 2]
+    assert [len(c["images"]) for c in fake_brain.calls] == [2, 2, 2, 2]
 
 
 def test_tokens_streamed(ctx_full, fake_brain, tmp_path):

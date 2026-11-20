@@ -110,11 +110,12 @@ def test_loud_smoke_alarm_labels_then_safety(ctx_lite, heard, fake_brain):
     assert ev[-1].answer == ""
 
 
-def test_quiet_smoke_alarm_is_just_labels(ctx_lite, heard):
+def test_quiet_smoke_alarm_asks_whats_on_and_keeps_the_warning(ctx_lite, heard):
+    """Not confident enough to stop, too likely to ignore: ask (tests/test_sound_hazard.py has the replies)."""
     heard("", no_speech=0.9, labels=[SoundLabel(label="smoke alarm beeping loudly", score=0.32), *BEEPS[1:]])
     ev = run(ctx_lite, "", "none")
     assert of(ev, Refusal) == []
-    assert ev[-1].answer.startswith("Most likely **smoke alarm beeping loudly** (32%).")
+    assert ev[-1].answer.startswith("This could be a smoke alarm beeping loudly (32%)")
     assert "leave and call 911" in ev[-1].answer  # a quiet alarm still gets the don't-wait line
 
 

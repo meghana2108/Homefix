@@ -57,9 +57,12 @@ function resultFor(stage: Stage, turn: Turn, detail: string | null, ms: number |
   switch (stage) {
     case "converting":
       return done ? kinds(turn) : null;
-    case "safety_check":
-      if (refusal?.reason === "safety") return "Signs of danger, so HomeFix stops here.";
-      return done ? "Nothing dangerous in your words." : null;
+    case "safety_check": {
+      const photo = detail?.startsWith("Seen in the photo") ? detail : null;
+      if (refusal?.reason === "safety") return photo ? `${photo}. HomeFix stops here.` : "Signs of danger, so HomeFix stops here.";
+      if (!done) return detail;
+      return detail?.includes("photo") ? "Nothing dangerous in your words or the photo." : "Nothing dangerous in your words.";
+    }
     case "routing":
       if (detail) return `${detail}.`;
       if (refusal && ROUTE_REFUSALS.has(refusal.reason)) return refusal.message;

@@ -43,6 +43,17 @@ describe("steps: what happened, in words, from the real events", () => {
     expect(outcomeOf(t)).toMatchObject({ kind: "answered", label: "From the manual, page 2" });
   });
 
+  it("danger seen in a photo says what was seen; a clean look says the photo was checked too", () => {
+    const seen = turnOf([st("safety_check"), st("routing"), st("safety_check", "Looking for signs of danger in the photo"),
+      st("safety_check", "Seen in the photo: exposed wires"),
+      { type: "refusal", reason: "safety", message: "Stop.", category: "exposed_wires" }, fin("image", "")], ["p.jpg"]);
+    expect(stepsOf(seen).find((x) => x.stage === "safety_check")).toMatchObject(
+      { state: "stopped", result: "Seen in the photo: exposed wires. HomeFix stops here." });
+    const clean = turnOf([st("safety_check"), st("routing"), st("safety_check", "Looking for signs of danger in the photo"),
+      st("generating", "m"), fin("image", "A desk.")], ["p.jpg"]);
+    expect(stepsOf(clean).find((x) => x.stage === "safety_check")?.result).toBe("Nothing dangerous in your words or the photo.");
+  });
+
   it("danger stops at the check, in red", () => {
     const t = turnOf([st("converting"), st("safety_check"),
       { type: "refusal", reason: "safety", message: "Leave.", category: "fire" }, fin("none", "")]);

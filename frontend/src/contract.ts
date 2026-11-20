@@ -85,6 +85,8 @@ export interface FinalEvent {
   latency_ms: number;
   profile: ProfileName;
   model: string | null;
+  /** "problem": the question is about something wrong (app/intent.py). */
+  intent?: "problem" | "question" | null;
 }
 export type HomeFixEvent = StatusEvent | TokenEvent | TranscriptEvent | SoundLabelsEvent |
   FramesEvent | CitationEvent | CodeResultEvent | ClarifyEvent | RefusalEvent | ErrorEvent | FinalEvent;

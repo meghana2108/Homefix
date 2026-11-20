@@ -79,36 +79,36 @@ def img_req(tmp_path, message, qtype="qa", manual_id=None):
 
 
 def test_image_vague_question_asks_instead_of_guessing(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING)
+    fake_brain("None", "None", COOKTOP_READING)  # two clean danger looks, then the reading
     ev = list(image.run(img_req(tmp_path, "What is this?", "describe"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert c.seen == COOKTOP_READING
-    assert len(fake_brain.calls) == 1 and "Read the text" in fake_brain.calls[0]["messages"][-1]["content"]
+    assert len(fake_brain.calls) == 3 and "Read the text" in fake_brain.calls[2]["messages"][-1]["content"]
     assert isinstance(ev[-1], Final) and ev[-1].answer.startswith(c.question)
     assert ev[-1].answer.endswith("What I could read: 8:32 COOKTOP ON Oven Light Start | Cancel Lock Control Hold 3 Sec.")
 
 
 def test_image_vague_question_about_a_scene_is_described_not_asked(ctx_full, fake_brain, tmp_path):
     """No display in the photo (nothing with numbers to misread): "What is this?" wants a description."""
-    fake_brain("I can't tell.", "A kitchen counter with two mugs.")
+    fake_brain("None", "None", "I can't tell.", "A kitchen counter with two mugs.")
     ev = list(image.run(img_req(tmp_path, "What's in this photo?", "describe"), ctx_full))
     assert not any(isinstance(e, Clarify) for e in ev)
     assert ev[-1].answer == "A kitchen counter with two mugs."
-    assert fake_brain.calls[1]["messages"][-1]["content"] == prompts.DESCRIBE_PROMPT
+    assert fake_brain.calls[3]["messages"][-1]["content"] == prompts.DESCRIBE_PROMPT
 
 
 def test_image_empty_message_asks_too(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING)
+    fake_brain("None", "None", COOKTOP_READING)
     ev = list(image.run(img_req(tmp_path, "", "describe"), ctx_full))
     assert any(isinstance(e, Clarify) for e in ev)
 
 
 def test_image_display_question_is_answered_from_its_words_only(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING, "COOKTOP ON means the cooktop is turned on.")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, "COOKTOP ON means the cooktop is turned on.")  # 2 reads agree
     ev = list(image.run(img_req(tmp_path, 'What does "COOKTOP ON" mean?'), ctx_full))
     assert not any(isinstance(e, Clarify) for e in ev)
     assert ev[-1].answer == "COOKTOP ON means the cooktop is turned on."
-    second = fake_brain.calls[1]
+    second = fake_brain.calls[2]
     assert second["images"] is None  # words only: with the photo the model guesses "a timer"
     assert COOKTOP_READING in second["messages"][-1]["content"]
 
@@ -121,7 +121,7 @@ def test_image_non_display_question_still_sees_the_photo(ctx_full, fake_brain, t
 
 
 def test_image_cant_tell_becomes_a_question_back(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING, "I can't tell.")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, "I can't tell.")
     ev = list(image.run(img_req(tmp_path, "How long is left on the timer?"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert c.question.startswith("I can't tell that from the photo alone.")
@@ -130,19 +130,19 @@ def test_image_cant_tell_becomes_a_question_back(ctx_full, fake_brain, tmp_path)
 
 
 def test_an_answer_that_only_repeats_the_display_is_not_an_answer(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING, "8:32\nCOOKTOP ON\nOven Light\nStart | Cancel\nLock Control\nHold 3 Sec")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, "8:32\nCOOKTOP ON\nOven Light\nStart | Cancel\nLock Control\nHold 3 Sec")
     ev = list(image.run(img_req(tmp_path, 'What does "COOKTOP ON" mean?'), ctx_full))
     assert any(isinstance(e, Clarify) for e in ev)
 
 
 def test_a_short_answer_from_the_display_is_kept(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING, "8:32")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, "8:32")
     ev = list(image.run(img_req(tmp_path, "What time does it show?"), ctx_full))
     assert ev[-1].answer == "8:32"
 
 
 def test_an_answer_that_ends_in_cant_tell_is_not_shown_as_an_answer(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING, "The oven is on. I can't tell.")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, "The oven is on. I can't tell.")
     ev = list(image.run(img_req(tmp_path, "Is the oven on?"), ctx_full))
     assert any(isinstance(e, Clarify) for e in ev)
 
@@ -172,7 +172,7 @@ def shelf(tmp_path, monkeypatch, manuals: dict[str, list[str]]):
 
 def test_manual_photo_without_a_code_asks_when_vague(ctx_full, fake_brain, tmp_path, monkeypatch):
     shelf(tmp_path, monkeypatch, {"w1": ["E21 means the washer cannot drain."]})
-    fake_brain(COOKTOP_READING)
+    fake_brain("None", "None", COOKTOP_READING, COOKTOP_READING)
     ev = list(homefix.run(img_req(tmp_path, "What does this mean?", "manual_lookup", "w1"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert c.seen == COOKTOP_READING
@@ -182,7 +182,7 @@ def test_manual_photo_without_a_code_asks_when_vague(ctx_full, fake_brain, tmp_p
 def test_manual_photo_without_a_code_answers_a_specific_question_from_the_photo(ctx_full, fake_brain, tmp_path,
                                                                                     monkeypatch):
     shelf(tmp_path, monkeypatch, {"w1": ["E21 means the washer cannot drain."]})
-    fake_brain(COOKTOP_READING, "The display says COOKTOP ON, so a cooktop burner is on.")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, "The display says COOKTOP ON, so a cooktop burner is on.")
     ev = list(homefix.run(img_req(tmp_path, 'What does "COOKTOP ON" mean?', "manual_lookup", "w1"), ctx_full))
     assert not any(isinstance(e, Clarify | Citation) for e in ev)
     assert ev[-1].answer.startswith("The display says COOKTOP ON")
@@ -191,7 +191,7 @@ def test_manual_photo_without_a_code_answers_a_specific_question_from_the_photo(
 
 def test_question_says_there_is_a_code_but_none_is_read_asks_for_it(ctx_full, fake_brain, tmp_path, monkeypatch):
     shelf(tmp_path, monkeypatch, {"w1": ["E24 means the dishwasher cannot drain."]})
-    fake_brain("624 h min Eco Auto Rinse Start")
+    fake_brain("624 h min Eco Auto Rinse Start", "624 h min Eco Auto Rinse Start")
     ev = list(homefix.run(img_req(tmp_path, "My dishwasher shows this code. What should I do?", "manual_lookup",
                                   "w1"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
@@ -210,7 +210,7 @@ def test_a_code_typed_in_the_reply_is_used_when_the_photo_has_none(ctx_full, fak
 def test_auto_manual_photo_finds_the_manual_by_its_code(ctx_full, fake_brain, tmp_path, monkeypatch):
     shelf(tmp_path, monkeypatch, {"guide_a": ["Heating: call the office."],
                                   "guide_b": ["E24 means the dishwasher cannot drain. Clean the filter."]})
-    fake_brain("E24", '{"answer":"It cannot drain.","quote":"E24 means the dishwasher cannot drain","page":1}')
+    fake_brain("E24", "E24", '{"answer":"It cannot drain.","quote":"E24 means the dishwasher cannot drain","page":1}')
     ev = list(homefix.run(img_req(tmp_path, "What does this code mean?", "manual_lookup", "auto"), ctx_full))
     assert any(isinstance(e, Status) and (e.detail or "").startswith("Using the manual: Guide B") for e in ev)
     assert next(e for e in ev if isinstance(e, Citation)).source == "guide_b.pdf"
@@ -220,7 +220,7 @@ def test_auto_manual_photo_asks_which_appliance_when_two_manuals_have_the_code(c
                                                                                  monkeypatch):
     shelf(tmp_path, monkeypatch, {"washer_a": ["E21 means the washer cannot drain."],
                                   "oven_b": ["E21 means the oven sensor failed."]})
-    fake_brain("E21")
+    fake_brain("E21", "E21")
     ev = list(homefix.run(img_req(tmp_path, "What does this code mean?", "manual_lookup", "auto"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert "E21" in c.question
@@ -231,7 +231,7 @@ def test_auto_manual_photo_asks_which_appliance_when_two_manuals_have_the_code(c
 def test_auto_manual_photo_code_in_no_manual_says_so(ctx_full, fake_brain, tmp_path, monkeypatch):
     shelf(tmp_path, monkeypatch, {"washer_a": ["E21 means the washer cannot drain."],
                                   "oven_b": ["F3 means the oven sensor failed."]})
-    fake_brain("E99")
+    fake_brain("E99", "E99")
     ev = list(homefix.run(img_req(tmp_path, "What does this code mean?", "manual_lookup", "auto"), ctx_full))
     r = next(e for e in ev if isinstance(e, Refusal))
     assert r.reason == "not_in_document" and "E99" in r.message

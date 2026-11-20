@@ -10,6 +10,10 @@ from app.numbers import first_int
 _THING = re.compile(r"\bhow many\s+(.+?)(?:\s+(?:are|is|do|does|did|can|could|were|was|in|on|at|there|you)\b|[?.!,]|$)",
                     re.IGNORECASE)
 READ_PROMPT = "Read the text exactly as written. If you can't read it, reply exactly: I can't tell."
+# A second, differently worded read for the self-consistency check (app/clarify.py numbers()): the model samples
+# (temperature 1), so two reads of a clear display agree on its numbers and two reads of an unclear one often don't.
+READ_PROMPT_2 = ("List every word and number shown, exactly as written, one per line. "
+                 "If you can't read it, reply exactly: I can't tell.")
 DESCRIBE_PROMPT = "Describe the image in one paragraph of at most 80 words."
 
 

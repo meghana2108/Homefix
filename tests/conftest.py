@@ -17,6 +17,17 @@ def pack_dir() -> Path:
     return Path(raw)
 
 
+@pytest.fixture(autouse=True)
+def _no_meaning_net_by_default(request, monkeypatch):
+    """The meaning-based danger net loads an embedding model (~9 s). Unit tests get a neutral score unless they
+    ask for the real one (tests marked `model`) or set their own scores (tests/test_safety_semantic.py)."""
+    if request.node.get_closest_marker("model"):
+        return
+    from app import intent, safety_semantic
+    monkeypatch.setattr(safety_semantic, "scores", lambda text: (0.0, 0.0, "none"))
+    monkeypatch.setattr(intent, "lean", lambda text, side, other: -1.0)  # word rules only
+
+
 @pytest.fixture
 def profile_full():
     return load_profile("full")

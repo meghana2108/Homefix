@@ -1,0 +1,33 @@
+# Tuning set for config/intent_examples.yaml. Our own phrases; none are in the examples.
+problem:
+  - the freezer is covered in ice
+  - my AC blows warm air
+  - water is pooling under the fridge
+  - the bathroom fan rattles
+  - the stove burner won't light
+  - the radiator is cold
+  - the front door sticks
+  - the dishwasher smells bad
+question:
+  - what does the snowflake icon mean?
+  - is the AC on cool or fan?
+  - can I paint my bedroom?
+  - what is the quick wash setting?
+  - how do I change the clock on the oven?
+  - what day is trash pickup?
+  - how many people can live here?
+  - what is the max temperature on the dial?
+vague:
+  - what is that?
+  - what's happening?
+  - tell me about this
+  - is this ok?
+  - what do I do?
+  - so what is it
+specific:
+  - what number is on the dial?
+  - is the light green or red?
+  - what does the snowflake mean?
+  - how many knobs are there?
+  - what brand is the washer?
+  - is the switch up or down?

@@ -20,6 +20,7 @@ from app.contracts import (
     final_for,
 )
 from app.pipelines import text
+from app.prompts import READ_PROMPT, READ_PROMPT_2
 
 MAX_IMAGES = 4
 _CODE = re.compile(r"\b[A-Z]{1,3}-?\d{1,3}\b")
@@ -87,24 +88,49 @@ def manuals_mentioning(code: str) -> list[dict]:
 
 
 def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
-    from app.clarify import code_clarify, is_vague, manual_clarify, mentions_a_code, photo_clarify
+    from app.clarify import (
+        code_clarify,
+        manual_clarify,
+        mentions_a_code,
+        photo_clarify,
+        two_codes_clarify,
+    )
+    from app.intent import is_vague as intent_is_vague
     from app.orchestrate import AUTO_MANUAL
     from app.pipelines import image
 
-    parts: list[str] = []
-    for ev in image.read_quietly(ctx, image.images_of(req), parts):
-        yield ev
-        if isinstance(ev, Refusal):
-            yield final_for(ctx, "homefix", "manual_lookup")
+    if image.needs_danger_look(req.message):  # "What's wrong with it?": look for danger before the manual
+        found: list = []
+        yield from image.look_for_danger(ctx, image.images_of(req), found)
+        if found:
+            yield from image.stop_for_danger(ctx, req, found[0], "homefix")
             return
-    reading = "".join(parts)
-    # The photo's code first; else one the person typed (a reply like "It says E24" to "Which code?").
-    code = read_display_code(reading) or read_display_code(req.message)
+    typed = read_display_code(req.message)  # a code the person typed ("It shows E24") wins over the photo
+    reading = ""
+    code = typed
+    if typed is None:
+        images = image.images_of(req)
+        reads: list[str] = []
+        for prompt in (READ_PROMPT, READ_PROMPT_2):  # two reads, worded differently: they must agree on the code
+            parts: list[str] = []
+            for ev in image.read_quietly(ctx, images, parts, prompt):
+                yield ev
+                if isinstance(ev, Refusal):
+                    yield final_for(ctx, "homefix", "manual_lookup")
+                    return
+            reads.append("".join(parts))
+        reading = reads[0]
+        codes = [read_display_code(r) for r in reads]
+        if codes[0] != codes[1]:
+            found = [c for c in dict.fromkeys(codes) if c]
+            yield from image.ask_back(ctx, req, two_codes_clarify(req.message, reads[0], reads[1], found), "homefix")
+            return
+        code = codes[0]
     if code is None:
         if mentions_a_code(req.message):  # they say there's a code and we can't see one: ask for it
             yield from image.ask_back(ctx, req, code_clarify(reading), "homefix")
             return
-        if is_vague(req.message):  # "What does this mean?" with no code on it: ask, don't guess
+        if intent_is_vague(req.message):  # "What does this mean?" with no code on it: ask, don't guess
             yield from image.ask_back(ctx, req, photo_clarify(reading), "homefix")
             return
         # A specific question ("What does COOKTOP ON mean?"): answer it from the photo, without guessing.

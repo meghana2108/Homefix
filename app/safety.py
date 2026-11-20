@@ -30,6 +30,7 @@ def _compile(section: dict) -> list[tuple[str, list[tuple[str, re.Pattern]]]]:
 
 _ALARM_ACTIVE = _compile(_RULES.get("alarm_active", {}))
 _DANGER = _compile(_RULES["patterns"])
+_OBSERVED = _compile(_RULES.get("observed", {}))
 _DEVICE_NAMES = [re.compile(p, re.IGNORECASE) for p in _RULES.get("device_names", [])]
 _BENIGN = [re.compile(p, re.IGNORECASE) for p in _RULES.get("benign", [])]
 
@@ -60,6 +61,15 @@ def check(text: str) -> SafetyHit | None:
 def message_for(category: str) -> str:
     """The fixed message for one kind of danger (gas never says to touch a switch), else the general one."""
     return _MESSAGES.get(category, SAFETY_MESSAGE)
+
+
+def check_observation(text: str) -> SafetyHit | None:
+    """Danger the vision model says it sees ("burn marks", "exposed wiring", "water near the outlet")."""
+    for cat, pats in _OBSERVED:
+        for raw, rx in pats:
+            if rx.search(text):
+                return SafetyHit(cat, raw)
+    return None
 
 
 def refusal_for(hit: SafetyHit) -> Refusal:
