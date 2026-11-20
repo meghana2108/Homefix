@@ -1,0 +1,40 @@
+{
+ "scene": "danger",
+ "recorded_at": "2026-11-20T11:28:19",
+ "profile": "full",
+ "request": {
+  "message": "I smell burning from the outlet behind the fridge",
+  "files": [],
+  "manual_id": null
+ },
+ "events": [
+  {
+   "type": "status",
+   "stage": "converting",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "safety_check",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "refusal",
+   "reason": "safety",
+   "message": "⚠️ This could be dangerous. If a smoke alarm is sounding or you see smoke or fire, get everyone out, don't go back in, and call 911 from outside. Don't try to put it out with water: water makes electrical and grease fires worse. If it's only a burning smell and it's safe to do so, turn off the appliance's breaker and don't use it again. Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.",
+   "category": "smoke_fire"
+  },
+  {
+   "type": "final",
+   "answer": "",
+   "modality": "none",
+   "question_type": "none",
+   "latency_ms": 1,
+   "profile": "full",
+   "model": null,
+   "intent": null
+  }
+ ]
+}

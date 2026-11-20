@@ -1,0 +1,97 @@
+{
+ "scene": "photo",
+ "recorded_at": "2026-11-20T11:28:17",
+ "profile": "full",
+ "request": {
+  "message": "What should I do?",
+  "files": [
+   "/samples/washer_display_e21.jpg"
+  ],
+  "manual_id": "apartment_guide_unit_4b"
+ },
+ "events": [
+  {
+   "type": "status",
+   "stage": "converting",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "safety_check",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "routing",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "safety_check",
+   "detail": "Looking for signs of danger in the photo",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": "qwen3-vl:8b-instruct",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": "qwen3-vl:8b-instruct",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": "qwen3-vl:8b-instruct",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": "qwen3-vl:8b-instruct",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": "found E21",
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "verifying",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "citation",
+   "quote": "E21 - The washer cannot drain the water. Turn the washer off and unplug it. Clean the drain pump filter behind the small door at the bottom right (see page 3). Then check that the drain hose is not kinked. If E21 comes back after cleaning the filter, call the maintenance line.",
+   "page": 2,
+   "source": "apartment_guide_unit_4b.pdf",
+   "score": 100.0
+  },
+  {
+   "type": "final",
+   "answer": "Error code E21 means the washer cannot drain the water. Turn the washer off and unplug it. Clean the drain pump filter behind the small door at the bottom right (see page 3). Then check that the drain hose is not kinked. If E21 comes back after cleaning the filter, call the maintenance line.",
+   "modality": "homefix",
+   "question_type": "manual_lookup",
+   "latency_ms": 15365,
+   "profile": "full",
+   "model": "qwen3-vl:8b-instruct",
+   "intent": "question"
+  }
+ ]
+}

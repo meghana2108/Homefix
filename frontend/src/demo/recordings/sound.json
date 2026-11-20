@@ -1,0 +1,66 @@
+{
+ "scene": "sound",
+ "recorded_at": "2026-11-20T11:28:17",
+ "profile": "full",
+ "request": {
+  "message": "What is this sound?",
+  "files": [
+   "/samples/real_smoke_alarm_chirp.wav"
+  ],
+  "manual_id": null
+ },
+ "events": [
+  {
+   "type": "status",
+   "stage": "converting",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "safety_check",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "routing",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "labeling_sounds",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "sound_labels",
+   "labels": [
+    {
+     "label": "smoke alarm chirp",
+     "score": 0.1261463612318039
+    },
+    {
+     "label": "silence",
+     "score": 0.07572850584983826
+    },
+    {
+     "label": "background noise",
+     "score": 0.05414947494864464
+    }
+   ],
+   "is_speech": false
+  },
+  {
+   "type": "final",
+   "answer": "Most likely **smoke alarm chirp** (13%). Also possible: silence, background noise.\n\nIf this could be a smoke or carbon monoxide alarm, don't wait: leave and call 911.",
+   "modality": "audio",
+   "question_type": "sound",
+   "latency_ms": 597,
+   "profile": "full",
+   "model": "laion/clap-htsat-unfused",
+   "intent": "question"
+  }
+ ]
+}

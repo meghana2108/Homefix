@@ -1,0 +1,52 @@
+{
+ "scene": "honesty",
+ "recorded_at": "2026-11-20T11:28:19",
+ "profile": "full",
+ "request": {
+  "message": "Is there a warranty on the washer?",
+  "files": [],
+  "manual_id": "apartment_guide_unit_4b"
+ },
+ "events": [
+  {
+   "type": "status",
+   "stage": "converting",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "safety_check",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "routing",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "status",
+   "stage": "generating",
+   "detail": null,
+   "ms": null
+  },
+  {
+   "type": "refusal",
+   "reason": "not_in_document",
+   "message": "The document doesn't contain the answer.",
+   "category": null
+  },
+  {
+   "type": "final",
+   "answer": "",
+   "modality": "text",
+   "question_type": "doc_qa",
+   "latency_ms": 1379,
+   "profile": "full",
+   "model": null,
+   "intent": "question"
+  }
+ ]
+}
