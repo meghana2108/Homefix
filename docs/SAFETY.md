@@ -21,7 +21,7 @@ describing a photo, comparing meanings), and our code makes the decisions.
 | 2 | Danger by meaning | `app/safety_semantic.py`, `config/safety_semantic.yaml` | Paraphrases the regex misses: "there's a weird sulfur smell by the oven" | AI (embeddings), can only add a stop |
 | 3 | Danger seen in a photo | `app/pipelines/image.py` (`look_for_danger`), `safety.check_observation` | A vague or safety question ("What is this?", "Is this okay to use?") gets two focused looks for burn marks, melting, smoke, sparks, exposed wires, water near electrics; every description is scanned for those words | AI look + fixed scan, can only add a stop |
 | 4 | Sound that might be an alarm | `app/pipelines/audio.py` (`_possible_alarm`) | An alarm label that isn't confidently first: asks "is anything like a kettle on?" and keeps "if unsure, treat it as an alarm" | Fixed rule on AI labels |
-| 5 | Read twice | `app/clarify.py` (`reads_agree`), `image.answer_question`, `homefix.run` | A display read two ways (80 vs 60, E24 vs 624): shows both and asks | Fixed rule on two AI reads |
+| 5 | Read twice, then majority of three | `app/clarify.py` (`reads_agree`), `image.answer_question`, `homefix.run` | A display read two ways (80 vs 60, E24 vs 624) is read a third time; two of three decide; no majority: shows the reads and asks | Fixed rule on AI reads |
 | 6 | Ask instead of guessing | `app/clarify.py` | Vague question about a display, a code that can't be read, two manuals that fit | Fixed rules |
 | 7 | Intent by meaning | `app/intent.py`, `config/intent_examples.yaml` | "Is this a problem?" (escalation link) and "is this vague?" by meaning as well as words | Word rule OR AI, can only add |
 | 8 | No verified quote, no answer | `app/text/verify.py` | A manual or lease answer whose quote isn't in the document (fuzzy match < 92) | Fixed |
@@ -50,7 +50,7 @@ cold look alone missed 3 of 4 hazards, which is why it looks twice. Practice pac
 in 1 of 12 runs (`p_img_024`), 0 of the last 8. Cost: about 2 to 25 s more for vague or safety questions (the
 first look at a new photo is the slow one).
 
-**Read twice (layer 5).** Our clear displays (thermostat 68, washer E21, cooktop clock) answered 4/4 runs. One
+**Read twice, majority of three (layer 5).** Dishwasher E24 sample: 2 of 4 runs asked back with two reads; 5 of 6 answered with a third read deciding; 6 of 6 after the sample was redrawn with an ERROR label (2026-11-20). Earlier: Our clear displays (thermostat 68, washer E21, cooktop clock) answered 4/4 runs. One
 practice photo (`p_img_021`) now asks in 3 of 4 runs: its reads give 390, 391, 598, 389 for the same digit, so the
 model really can't read it. That costs the item; we keep it.
 

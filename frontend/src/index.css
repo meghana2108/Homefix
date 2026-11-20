@@ -121,6 +121,9 @@ a { color: var(--pen); }
 .status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--ink-soft); }
 .status__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--answered); }
 .status--down .status__dot { background: var(--danger); }
+.status--warming .status__dot { background: var(--notfound); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .status--warming .status__dot { animation: none; } }
 .badge { font-family: var(--font-mono); font-size: 0.75rem; padding: 0.1rem 0.45rem; border: 1px solid var(--rule);
   border-radius: var(--r-stamp); color: var(--ink-faint); }
 .badge--mock { color: #fff; background: var(--mock); border-color: var(--mock); font-family: var(--font-sans); font-weight: 600; }

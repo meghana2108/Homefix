@@ -5,13 +5,12 @@
 
 from __future__ import annotations
 
-import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import safety_semantic
+from app import warmup
 from app.api import chat, manuals, mic
 from app.contracts import Ctx
 from app.models import ollama_client
@@ -22,8 +21,8 @@ from app.orchestrate import build_ctx
 async def lifespan(app: FastAPI):
     if not hasattr(app.state, "ctx"):
         app.state.ctx = build_ctx()
-    # load the meaning-based danger net in the background, so the first question doesn't wait for it
-    threading.Thread(target=safety_semantic.warm, name="warm-safety", daemon=True).start()
+    # load every model in the background (app/warmup.py), so the first question isn't cold
+    warmup.start(app.state.ctx)
     yield
 
 
@@ -59,4 +58,4 @@ def health(request: Request) -> dict:
             loaded = []
     return {"profile": ctx.profile.name, "ollama": up,
             "models": {"brain": ctx.profile.models.brain, "coder": ctx.profile.models.coder},
-            "loaded": loaded}
+            "loaded": loaded, "warm": warmup.status()}

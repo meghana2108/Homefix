@@ -64,6 +64,20 @@ class MemoryManager:
             ms = int((time.perf_counter() - t0) * 1000)
         yield Status(stage="loading_model", detail=f"loading {tag}", ms=ms)
 
+    def restore(self, role: Role) -> threading.Thread:
+        """Load `role` again in the background (unloading the others when only one fits). After a code answer,
+        the brain comes back at once, so the next photo question doesn't wait for it."""
+        def work() -> None:
+            try:
+                for _ in self.ensure(role):
+                    pass
+            except Exception:  # noqa: BLE001, S110 - best effort; the real call reports errors
+                pass
+
+        t = threading.Thread(target=work, name=f"restore-{role}", daemon=True)
+        t.start()
+        return t
+
     def prefetch(self, role: Literal["coder"]) -> None:
         """full only: start loading in a background thread so the code answer starts sooner."""
         if self._one_at_a_time():

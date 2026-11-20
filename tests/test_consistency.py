@@ -38,15 +38,24 @@ def test_two_reads_that_agree_answer_as_before(ctx_full, fake_brain, tmp_path):
     assert prompts[0] == READ_PROMPT and prompts[1] == READ_PROMPT_2
 
 
-def test_two_reads_that_disagree_ask_which_is_right(ctx_full, fake_brain, tmp_path):
-    fake_brain("80 COOL", "60 COOL")
+def test_two_reads_that_disagree_get_a_third_and_the_majority_answers(ctx_full, fake_brain, tmp_path):
+    """E24 asked back about half the time with two reads; a third read settles most of those."""
+    fake_brain("80 COOL", "60 COOL", "80\nCOOL", "The thermostat is set to 80 and cooling.")
+    ev = list(image.run(req(tmp_path, "What temperature is it set to?"), ctx_full))
+    assert not any(isinstance(e, Clarify) for e in ev)
+    assert ev[-1].answer == "The thermostat is set to 80 and cooling."
+    assert "80 COOL" in fake_brain.calls[3]["messages"][-1]["content"]  # answered from the majority reading
+
+
+def test_three_reads_that_all_disagree_ask_which_is_right(ctx_full, fake_brain, tmp_path):
+    fake_brain("80 COOL", "60 COOL", "88 COOL")
     ev = list(image.run(req(tmp_path, "What temperature is it set to?"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert "two different ways" in c.question
     assert "80 COOL" in c.seen and "60 COOL" in c.seen
     assert [o.label for o in c.options] == ["It shows 80", "It shows 60"]
     assert c.options[0].message == "What temperature is it set to?\nThe display shows: 80 COOL"
-    assert len(fake_brain.calls) == 2  # no answer from a reading it isn't sure of
+    assert len(fake_brain.calls) == 3  # no answer from a reading it isn't sure of
 
 
 def test_a_reading_you_give_is_used_without_reading_the_photo(ctx_full, fake_brain, tmp_path):
@@ -72,14 +81,24 @@ def shelf(tmp_path, monkeypatch, pages):
     d.save(tmp_path / "w1.pdf")
 
 
-def test_two_reads_that_find_different_codes_ask_which_code(ctx_full, fake_brain, tmp_path, monkeypatch):
+def test_two_reads_that_find_different_codes_get_a_third_and_the_majority_code_is_used(ctx_full, fake_brain, tmp_path,
+                                                                                     monkeypatch):
     shelf(tmp_path, monkeypatch, ["E24 means the dishwasher cannot drain."])
-    fake_brain("E24 h min", "624 h min")
+    fake_brain("E24 h min", "624 h min", "E24", '{"answer":"It cannot drain.","quote":"E24 means the dishwasher cannot drain","page":1}')
+    ev = list(homefix.run(req(tmp_path, "My dishwasher shows this code. Help me fix it.", "manual_lookup", "w1"),
+                          ctx_full))
+    assert not any(isinstance(e, Clarify) for e in ev)
+    assert any(isinstance(e, Status) and e.detail == "found E24" for e in ev)
+
+
+def test_three_reads_with_no_majority_code_ask_which_code(ctx_full, fake_brain, tmp_path, monkeypatch):
+    shelf(tmp_path, monkeypatch, ["E24 means the dishwasher cannot drain."])
+    fake_brain("E24 h min", "624 h min", "E25")
     ev = list(homefix.run(req(tmp_path, "My dishwasher shows this code. Help me fix it.", "manual_lookup", "w1"),
                           ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert "two different ways" in c.question
-    assert [o.label for o in c.options] == ["It shows E24"]
+    assert [o.label for o in c.options] == ["It shows E24", "It shows E25"]
     assert c.options[0].message.endswith("It shows E24")
 
 

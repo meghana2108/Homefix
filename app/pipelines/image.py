@@ -167,9 +167,22 @@ def answer_question(req: PipelineRequest, ctx: Ctx, reading: str | None = None) 
                 if isinstance(ev, Refusal):
                     yield final_for(ctx, "image", "qa")
                     return
-            if not reads_agree(reading, "".join(again)):
-                yield from ask_back(ctx, req, reading_clarify(question, reading, "".join(again)))
-                return
+            second = "".join(again)
+            if not reads_agree(reading, second):  # a third read; the majority decides, none -> ask
+                third: list[str] = []
+                for ev in read_quietly(ctx, images, third):
+                    yield ev
+                    if isinstance(ev, Refusal):
+                        yield final_for(ctx, "image", "qa")
+                        return
+                tie = "".join(third)
+                if reads_agree(tie, reading):
+                    pass  # the first read had it right
+                elif reads_agree(tie, second):
+                    reading = second
+                else:
+                    yield from ask_back(ctx, req, reading_clarify(question, reading, second))
+                    return
     display = looks_like_display(reading)
     prompt = display_prompt(reading, question) if display else qa_prompt(question)
     parts = []

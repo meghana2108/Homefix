@@ -286,7 +286,7 @@ def main() -> None:
     out.append(one_pixel_edit(SAMPLES / "washer_display_e21.jpg", SAMPLES / "washer_display_e21_edited.jpg"))
     out.append(small_jpg(closeup(demo.display_photo(
         "E24", seed=8, buttons=("Eco", "Auto", "Rinse", "Start"), knob=("Eco", "Auto", "Glass", "Quick", "Rinse"),
-        units=("h", "min"), body=(225, 226, 228))), SAMPLES / "dishwasher_display_e24.jpg"))
+        units=("h", "min"), body=(225, 226, 228), status="ERROR")), SAMPLES / "dishwasher_display_e24.jpg"))
     out.append(small_jpg(closeup(demo.display_photo(
         "68", seed=11, buttons=("Mode", "Fan", "Down", "Up"), knob=("Off", "Heat", "Cool", "Auto", "Fan"),
         units=("°F", "SET"), body=(238, 236, 230))), SAMPLES / "thermostat_68.jpg"))

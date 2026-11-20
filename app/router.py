@@ -15,7 +15,7 @@ READ = re.compile(r"\b(read|say|says|written|text|code|display|label|sign|error)
 DESCRIBE = re.compile(r"\bdescribe|what('s| is) (in|this)\b", _F)
 MOTION = re.compile(r"\b(direction|moving|move|moves|turn|turning|spin|spinning|left|right|toward|away)\b", _F)
 SPEECH = re.compile(r"\b(say|said|says|transcribe|transcript|words|talking)\b", _F)
-SOUND = re.compile(r"\b(sound|noise|beep|beeping|hear|hearing)\b", _F)
+SOUND = re.compile(r"\b(sound\w*|noise\w*|beep\w*|hear|hearing|chirp\w*|drip\w*|buzz\w*|hum|humming|hums|whistl\w*|click\w*|rattl\w*|hiss\w*|squeal\w*|bang\w*|ring\w*|alarm\w*)\b", _F)
 
 Rule = Callable[[str, list[Attachment], "str | None"], "Route | None"]
 

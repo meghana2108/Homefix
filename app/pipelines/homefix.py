@@ -120,13 +120,23 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
                     yield final_for(ctx, "homefix", "manual_lookup")
                     return
             reads.append("".join(parts))
-        reading = reads[0]
         codes = [read_display_code(r) for r in reads]
-        if codes[0] != codes[1]:
-            found = [c for c in dict.fromkeys(codes) if c]
-            yield from image.ask_back(ctx, req, two_codes_clarify(req.message, reads[0], reads[1], found), "homefix")
-            return
-        code = codes[0]
+        if codes[0] != codes[1]:  # a third read; two out of three decide, no majority -> ask which code
+            parts = []
+            for ev in image.read_quietly(ctx, images, parts):
+                yield ev
+                if isinstance(ev, Refusal):
+                    yield final_for(ctx, "homefix", "manual_lookup")
+                    return
+            reads.append("".join(parts))
+            codes.append(read_display_code(reads[2]))
+            if codes[2] not in codes[:2]:
+                found = [c for c in dict.fromkeys(codes) if c]
+                yield from image.ask_back(ctx, req, two_codes_clarify(req.message, reads[0], reads[1], found),
+                                          "homefix")
+                return
+        code = max(set(codes), key=codes.count)
+        reading = reads[codes.index(code)]
     if code is None:
         if mentions_a_code(req.message):  # they say there's a code and we can't see one: ask for it
             yield from image.ask_back(ctx, req, code_clarify(reading), "homefix")

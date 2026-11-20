@@ -8,6 +8,9 @@ from app.contracts import MESSAGES, Ctx, ModelUnavailable
 from app.models.memory import MemoryManager
 from app.settings import load_profile
 
+# The API warms every model at startup (app/warmup.py). Tests never load real models that way.
+os.environ.setdefault("HOMEFIX_WARMUP", "off")
+
 
 @pytest.fixture
 def pack_dir() -> Path:

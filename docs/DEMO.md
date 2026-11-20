@@ -33,6 +33,15 @@ Before judges arrive (Wi-Fi still on is fine for steps 1–3):
    one pixel changed. Run the E21 example, press "Make a repair request", then "Check a file against this
    request": the original says "Matches … not changed"; the edited copy says "Doesn't match", with both
    fingerprints side by side.
+Before judges arrive on the M4 (the demo laptop), with the API running:
+   `uv run python scripts/demo_check.py` waits until the header's "Getting ready" is done, asks one question of
+   each kind through the API (photo + manual, sound, voice note, document, manual, danger, code, a photo right
+   after code, video) and prints each one's seconds and OK / SLOW / FAIL. Run it twice: the second run is the
+   warm number the judges will see. If anything is SLOW, run `ollama stop qwen3-vl:8b-instruct`, restart the
+   API, and run it again (Ollama's memory grows over a long session).
+   Video on the M4 is the slowest step (38.8 s median, target 25 s). To try fewer frames without changing code:
+   `uv run python -m eval.run --profile full --modality video --set video.frames=12` and compare accuracy with
+   `results/summary_full.md` before changing `config/profiles/full.yaml`.
 1. Open Ollama (menu bar icon). Check: `ollama list` shows `qwen3-vl:2b-instruct` and `qwen2.5-coder:3b`.
 2. Terminal 1: `uv run uvicorn app.api.main:app --port 8000` (`PROFILE=lite` comes from `.env`).
 3. Terminal 2: `cd frontend && npm run dev`, then open http://localhost:5173. The header says `lite · M2`.

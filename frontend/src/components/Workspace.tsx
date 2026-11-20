@@ -1,7 +1,7 @@
 import { Lock, Plus, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { API_LABEL, IS_MOCK, getHealth, getManuals, streamChat } from "../api/client";
-import type { ClarifyOption, Health, HomeFixEvent, Manual } from "../contract";
+import { warmingText, type ClarifyOption, type Health, type HomeFixEvent, type Manual } from "../contract";
 import { kindOf, newTurn, reduce, type SentFile, type Turn } from "../state/reduce";
 import { stepsOf } from "../state/steps";
 import type { Example } from "../examples";
@@ -144,6 +144,7 @@ export function Workspace() {
   };
 
   const busy = turns.length > 0 && turns[turns.length - 1].final === null;
+  const warming = down ? null : warmingText(health);
 
   const run = useCallback(async (req: Sent) => {
     const turn = newTurn(req.text, req.files.map((f) => f.name), sentFiles(req.files));
@@ -240,11 +241,11 @@ export function Workspace() {
         <div className="bar__inner">
           <Wordmark />
           <div className="ws__right">
-            <span className={`status ${down ? "status--down" : ""}`}
-              title="Every model runs on this laptop. Nothing you send leaves it.">
+            <span className={`status ${down ? "status--down" : warming ? "status--warming" : ""}`} role="status"
+              title={warming ? "Loading the models once, so answers start fast." : "Every model runs on this laptop. Nothing you send leaves it."}>
               <span className="status__dot" aria-hidden="true" />
               <span className="status__text">
-                {down ? "HomeFix isn't running" : online ? "Private: runs on this laptop" : "Wi-Fi off, still working"}
+                {down ? "HomeFix isn't running" : warming ?? (online ? "Private: runs on this laptop" : "Wi-Fi off, still working")}
               </span>
             </span>
             {health && <span className="badge" title="Profile and machine">{health.profile} {MACHINE[health.profile] ?? ""}</span>}

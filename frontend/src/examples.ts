@@ -82,7 +82,7 @@ export const EXAMPLES: Example[] = [
     see: "Reads E21, picks the Unit 4B guide by itself, and quotes the E21 row on page 2.", source: DRAWN },
   { id: "P2", kind: "photo", role: "fix", file: "dishwasher_display_e24.jpg", mime: "image/jpeg", preview: "image", fileLabel: "Dishwasher display showing E24",
     question: "My dishwasher shows this code. What should I do?",
-    see: "Reads E24, picks the dishwasher guide by itself, and quotes it: it can't drain, clean the filter. If its two reads disagree (E24 or 624), it asks which code first.", source: DRAWN },
+    see: "Reads E24, picks the dishwasher guide by itself, and quotes it: it can't drain, clean the filter. It reads the display twice (three times if they disagree) and asks only if there's no majority.", source: DRAWN },
   { id: "P3", kind: "photo", role: "question", file: "thermostat_68.jpg", mime: "image/jpeg", preview: "image", fileLabel: "Thermostat showing 68",
     question: "What temperature is the thermostat set to?",
     see: "Reads 68°F off the display. A plain photo question, so no manual is used.", source: DRAWN },

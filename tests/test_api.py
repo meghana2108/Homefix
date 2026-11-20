@@ -83,7 +83,7 @@ def test_manual_id_passed(client, monkeypatch):
 def test_health_shape(client, monkeypatch):
     monkeypatch.setattr(ollama_client, "is_up", lambda: False)
     body = client.get("/api/health").json()
-    assert set(body) == {"profile", "ollama", "models", "loaded"}
+    assert set(body) == {"profile", "ollama", "models", "loaded", "warm"}  # warm: app/warmup.py progress
     assert body["profile"] == "full" and body["ollama"] is False and body["loaded"] == []
     assert body["models"]["brain"] == load_profile("full").models.brain
 

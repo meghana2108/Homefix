@@ -72,3 +72,27 @@ def test_data_anywhere_goes_to_code():
 def test_manual_with_two_images_is_not_manual_lookup():
     r = route("hi", [att("image"), att("image")], "washer")
     assert r.modality == "image"
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("q", ["Something in my hallway keeps chirping every minute. What's wrong?",
+                                "It keeps dripping, what is it?", "What's this buzzing?", "The kettle is whistling?",
+                                "Why is it humming?", "It clicks and rattles", "What's that hissing?"])
+def test_household_sound_words_skip_speech_to_text(q):
+    """Measured on the M2: "keeps chirping" was transcribed first (19.5 s) before being labelled as a sound."""
+    from pathlib import Path
+
+    from app.contracts import Attachment
+    from app.router import route
+    assert route(q, [Attachment(Path("a.wav"), "audio", "a.wav")], None).question_type == "sound"
+
+
+def test_a_question_about_what_someone_said_is_still_speech():
+    from pathlib import Path
+
+    from app.contracts import Attachment
+    from app.router import route
+    att = [Attachment(Path("v.wav"), "audio", "v.wav")]
+    assert route("What did the landlord say about the buzzing?", att, None).question_type == "speech"

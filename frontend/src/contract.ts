@@ -92,9 +92,24 @@ export type HomeFixEvent = StatusEvent | TokenEvent | TranscriptEvent | SoundLab
   FramesEvent | CitationEvent | CodeResultEvent | ClarifyEvent | RefusalEvent | ErrorEvent | FinalEvent;
 
 export interface Manual { id: string; title: string; pages: number }
+export interface WarmStep { name: string; label: string; state: "waiting" | "loading" | "ready" | "failed"; ms: number | null }
+
 export interface Health {
   profile: ProfileName;
   ollama: boolean;
   models: Record<string, string>;
   loaded: string[];
+  /** app/warmup.py: every model loads at API start; the app says "Getting ready" until done. */
+  warm?: { ready: boolean; done: boolean; steps: WarmStep[] };
+}
+
+/** The header's words while models load: null when ready (or the server is too old to say). */
+export function warmingText(h: Health | null): string | null {
+  const w = h?.warm;
+  if (!w || !w.steps.length) return null;
+  const failed = w.steps.filter((s) => s.state === "failed");
+  if (w.done) return failed.length ? `Couldn't load: ${failed.map((s) => s.label).join(", ")}` : null;
+  const ready = w.steps.filter((s) => s.state === "ready").length;
+  const now = w.steps.find((s) => s.state === "loading") ?? w.steps.find((s) => s.state === "waiting");
+  return `Getting ready: ${now?.label ?? "models"} (${ready + 1} of ${w.steps.length})`;
 }

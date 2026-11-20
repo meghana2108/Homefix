@@ -208,6 +208,8 @@ def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, name
     module = importlib.import_module(f"app.pipelines.{r.modality}")
     req = PipelineRequest(text, attachments, r.question_type, manual_id)
     yield from module.run(req, ctx)
+    if r.modality == "code" and ctx.profile.swap:  # the coder pushed the brain out: bring it back now
+        ctx.memory.restore("brain")
 
 
 def handle(message: str, files: list[Path], manual_id: str | None, ctx: Ctx,
