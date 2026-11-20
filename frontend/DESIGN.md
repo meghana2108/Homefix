@@ -1,7 +1,7 @@
 # HomeFix design system: "the repair card"
 
 The card taped inside a closet door that tells you what each beep and code means. Calm, plain, honest.
-Paper, ink, one blue pen, and three stamps. Not a SaaS dashboard and not a chat toy.
+Paper, ink, one orange pen, and three stamps. Not a SaaS dashboard and not a chat toy.
 
 ## Two places
 - **Front door** (`#/`, `components/landing/`): the question HomeFix answers ("Is it broken, or is it
@@ -23,8 +23,8 @@ sounds", "Transcript").
 | green "From the manual, page N" / "Code tested: passed N of N" | a verified quote, or code that passed |
 | amber "Not in the document" / "Couldn't answer this one" | a refusal: say why and what to try next |
 | red "Stop: this could be dangerous" | the safety filter matched; only the safety card shows |
-| blue "Answered from your photo", "Sound identified", ... | a direct answer from a photo, clip or sound |
-| dashed blue "HomeFix needs to know more" | a `clarify` event: HomeFix asks instead of guessing |
+| orange "Answered from your photo", "Sound identified", ... | a direct answer from a photo, clip or sound |
+| dashed orange "HomeFix needs to know more" | a `clarify` event: HomeFix asks instead of guessing |
 
 ## Asking instead of guessing
 A vague question about a photo ("What is this?", or none), a photo question the model can't answer, a code
@@ -53,9 +53,13 @@ sheet. Nothing is uploaded. Over plain http on another device there is no Web Cr
 Fonts are bundled with `@fontsource` (no network at runtime). Sentence case everywhere. No ALL-CAPS labels.
 
 ## Tokens (`src/index.css`)
+Theme name: "maintenance tag". Warm concrete surfaces, safety orange as the one action colour, and a
+hazard stripe only on the safety card (the `.hazard` element in `RefusalCard`, never elsewhere).
 paper / sheet / wash (surfaces), ink / ink-soft / ink-faint (text), rule / rule-strong (hairlines),
-pen / pen-deep / pen-tint (the one action colour), answered / notfound / danger with `-tint`.
-Never raw hex in components (the seven-segment display and code blocks are the only drawings).
+pen `#c2410c` / pen-deep / pen-tint (the one action colour, orange), answered / notfound / danger with
+`-tint` (outcomes, unchanged), panel / panel-ink / seg / seg-dim (the dark display panel and its lit and
+unlit segments), hazard (stripe yellow), code-bg / code-ink (code blocks), mock (the "mock" badge).
+No raw hex outside `:root` in `index.css` (`Theme.test.tsx` checks it), apart from `#fff` and `#000`.
 
 ## Rules
 - One primary action per screen: "Ask" in the workspace, "Ask about something at home" on the front door.

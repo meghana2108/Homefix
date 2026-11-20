@@ -31,6 +31,7 @@ export function RefusalCard({ refusal }: { refusal: RefusalEvent }) {
     const steps = safetySteps(refusal.message);
     return (
       <div className="card card--safety" role="alert">
+        <div className="hazard" aria-hidden="true" />
         <p className="card__title"><Icon as={OctagonAlert} />Stop: this could be dangerous</p>
         {steps.length > 1
           ? <ul className="safety__steps">{steps.map((x, i) => <li key={i}>{x}</li>)}</ul>

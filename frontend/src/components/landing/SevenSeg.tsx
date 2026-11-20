@@ -16,7 +16,7 @@ function Digit({ ch, x }: { ch: string; x: number }) {
   return (
     <g transform={`translate(${x} 0) skewX(-6)`}>
       {Object.entries(seg).map(([k, [sx, sy, sw, sh]]) => (
-        <rect key={k} x={sx} y={sy} width={sw} height={sh} rx={2.5} fill={on.includes(k) ? "#ff6a2b" : "#16181c"} />
+        <rect key={k} x={sx} y={sy} width={sw} height={sh} rx={2.5} fill={on.includes(k) ? "var(--seg)" : "var(--seg-dim)"} />
       ))}
     </g>
   );
@@ -27,12 +27,12 @@ export function SevenSeg({ text, label }: { text: string; label: string }) {
   const width = chars.length * 46 + 120;
   return (
     <svg viewBox={`0 0 ${width} 96`} role="img" aria-label={label}>
-      <rect x="0" y="0" width={width - 88} height="96" rx="8" fill="#0d0f12" />
+      <rect x="0" y="0" width={width - 88} height="96" rx="8" fill="var(--panel)" />
       <g transform="translate(18 17)">
         {chars.map((c, i) => <Digit key={i} ch={c} x={i * 46} />)}
       </g>
-      <text x={width - 74} y="34" fill="#8b929c" fontSize="13" fontFamily="IBM Plex Sans, sans-serif">°C</text>
-      <text x={width - 74} y="62" fill="#8b929c" fontSize="13" fontFamily="IBM Plex Sans, sans-serif">rpm</text>
+      <text x={width - 74} y="34" fill="var(--panel-ink)" fontSize="13" fontFamily="IBM Plex Sans, sans-serif">°C</text>
+      <text x={width - 74} y="62" fill="var(--panel-ink)" fontSize="13" fontFamily="IBM Plex Sans, sans-serif">rpm</text>
     </svg>
   );
 }
