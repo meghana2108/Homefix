@@ -1,4 +1,4 @@
-import { BookOpen, FileText, Play } from "lucide-react";
+import { BadgeCheck, BookOpen, FileText, PenLine, Play } from "lucide-react";
 import { useState } from "react";
 import type { Manual } from "../contract";
 import { EXAMPLE_KINDS, EXAMPLES, type Example, type ExampleKind } from "../examples";
@@ -24,7 +24,7 @@ export function ExampleGallery({ onTry, busy, manuals }: {
   return (
     <section className="gallery" aria-labelledby="gallery-h">
       <h2 id="gallery-h" className="gallery__h">Try an example</h2>
-      <p className="gallery__sub">Sample files we made, so you can see each kind of answer in one click.</p>
+      <p className="gallery__sub">Real photos, recordings and documents first, then a few we made. One click each.</p>
       <div className="tabs" role="tablist" aria-label="Kinds of question">
         {EXAMPLE_KINDS.map((k) => (
           <button key={k.id} type="button" role="tab" id={`tab-${k.id}`} aria-selected={k.id === kind}
@@ -39,6 +39,11 @@ export function ExampleGallery({ onTry, busy, manuals }: {
           {shown.map((ex) => (
             <li key={ex.id} className="ex">
               <Preview ex={ex} />
+              {ex.source && (
+                <p className={`ex__src ${ex.source.real ? "ex__src--real" : ""}`}>
+                  <Icon as={ex.source.real ? BadgeCheck : PenLine} size={14} />{ex.source.credit}
+                </p>
+              )}
               <p className="ex__q">“{ex.question}”</p>
               <p className="ex__see">{ex.see}</p>
               <button type="button" className="btn btn--small ex__try" disabled={busy} onClick={() => onTry(ex)}

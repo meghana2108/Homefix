@@ -38,6 +38,7 @@ def test_seen_items_picks_labels_and_codes_not_buttons():
     assert clarify.seen_items(COOKTOP_READING) == ["COOKTOP ON"]
     assert clarify.seen_items("E21 Spin Rinse") == ["E21"]
     assert clarify.seen_items("I can't tell.") == []
+    assert clarify.seen_items("TEMP\nCOOL\n80\nF\nHunter") == ["TEMP", "COOL"]  # a label never spans lines
 
 
 def test_photo_clarify_shows_what_it_read_and_offers_replies():
@@ -144,6 +145,12 @@ def test_an_answer_that_ends_in_cant_tell_is_not_shown_as_an_answer(ctx_full, fa
     fake_brain(COOKTOP_READING, "The oven is on. I can't tell.")
     ev = list(image.run(img_req(tmp_path, "Is the oven on?"), ctx_full))
     assert any(isinstance(e, Clarify) for e in ev)
+
+
+def test_a_reading_with_a_trailing_cant_tell_keeps_only_the_reading(ctx_full, fake_brain, tmp_path):
+    fake_brain("EASY SET Thermostat CAUTION: RISK OF SCALDING I can't tell.")
+    ev = list(image.run(img_req(tmp_path, "What does the label say?", "read"), ctx_full))
+    assert ev[-1].answer == "EASY SET Thermostat CAUTION: RISK OF SCALDING"
 
 
 def test_count_and_read_never_ask(ctx_full, fake_brain, tmp_path):

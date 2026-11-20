@@ -20,7 +20,7 @@ _EMPTY_WORDS = frozenset(["a", "an", "the", "and", "or", "to", "of", "for", "on"
 
 _CODE = re.compile(r"\b[A-Z]{1,3}-?\d{1,3}\b")
 # Upper-case labels of letters only, one or more words: "COOKTOP ON", "LOCKED", "SET".
-_LABEL = re.compile(r"\b[A-Z]{2,}(?:\s+[A-Z]{2,})*\b")
+_LABEL = re.compile(r"\b[A-Z]{2,}(?:[ \t]+[A-Z]{2,})*\b")
 MAX_LABELS = 2
 
 
@@ -34,8 +34,12 @@ _CANT = MESSAGES["cant_tell"].lower().rstrip(".")
 
 
 def clean_reading(reading: str) -> str:
-    """The reading without lines the model added about itself ("I can't tell.")."""
-    return "\n".join(ln for ln in reading.strip().splitlines() if _CANT not in ln.lower()).strip()
+    """The reading without what the model added about itself: an "I can't tell." line or ending."""
+    lines = []
+    for ln in reading.strip().splitlines():
+        cut = ln.lower().find(_CANT)
+        lines.append(ln if cut < 0 else ln[:cut].rstrip())
+    return "\n".join(ln for ln in lines if ln.strip()).strip()
 
 
 def _readable(reading: str) -> bool:

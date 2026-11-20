@@ -11,7 +11,13 @@ import re
 from collections.abc import Iterator
 from pathlib import Path
 
-from app.clarify import cant_tell_clarify, is_vague, looks_like_display, photo_clarify
+from app.clarify import (
+    cant_tell_clarify,
+    clean_reading,
+    is_vague,
+    looks_like_display,
+    photo_clarify,
+)
 from app.contracts import MESSAGES, Clarify, Ctx, Event, PipelineRequest, Refusal, Token, final_for
 from app.pipelines.common import collect, stream_brain
 from app.prompts import (
@@ -133,4 +139,6 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
         answer = ""
     elif req.question_type == "count":
         answer = force_number_first(answer)
+    elif req.question_type == "read" and clean_reading(answer):
+        answer = clean_reading(answer)  # "<the text> I can't tell." -> "<the text>"
     yield final_for(ctx, "image", req.question_type, answer, model=ctx.memory.tag("brain"))
