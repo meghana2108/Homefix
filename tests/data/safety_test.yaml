@@ -1,0 +1,59 @@
+# Held-out report set for config/safety_semantic.yaml: never used for tuning. Our own phrases.
+danger:
+  - it smells like rotten eggs in the hallway
+  - the furnace room has a strong sulfur odor
+  - the outlet is making a crackling noise
+  - my phone charger is melting into the socket
+  - the power strip is burning hot
+  - the light switch sparks when I flip it
+  - the ceiling fan is dripping water from the light
+  - the electrical box in the basement is wet
+  - the kitchen outlet is scorched black
+  - I see bare copper where the cord meets the plug
+  - the microwave is sparking inside
+  - the metal sink gives me a small shock
+  - the breaker box is humming and hot
+  - the toaster is smoking
+  - the extension cord smells like burnt plastic
+  - the dishwasher outlet is sparking under the counter
+  - there's a smell like a struck match near the furnace
+  - the laptop charger brick is too hot to hold and smells
+  - water is running down the wall behind the light switch
+  - the electric baseboard heater has scorch marks
+  - I got shocked plugging in the vacuum
+  - the lamp cord is split and the wire is showing
+  - the oven is filling the kitchen with smoke
+  - my eyes burn and I smell gas when the heat runs
+  - the fuse box is crackling
+ok:
+  - the oven takes forever to preheat
+  - the fridge light doesn't come on
+  - how do I clean the stove top
+  - the faucet drips at night
+  - the dryer is noisy
+  - the washer shows code E21
+  - the thermostat is set to 68
+  - the shower is too cold
+  - how do I reset the garbage disposal
+  - the smoke alarm chirps once a minute
+  - the toilet runs after flushing
+  - the window has condensation on it
+  - the radiator is cold at the top
+  - the outlet in the bedroom is loose
+  - the light flickers when the AC starts
+  - the dishwasher won't start
+  - how do I defrost the freezer
+  - the hallway light is dim
+  - the oven clock is blinking
+  - how do I clean the dryer lint trap
+  - the bathroom sink is clogged
+  - what setting should the dryer be on for towels
+  - the heat is on but the bedroom is cold
+  - how do I replace a light bulb in the fridge
+  - the doorbell doesn't ring
+  - what does a gas meter look like
+  - can I paint over mold
+  - how long does the dishwasher take
+  - is it safe to unplug the fridge to clean it
+  - the stove burner clicks but won't light
+

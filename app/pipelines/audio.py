@@ -29,7 +29,8 @@ from app.contracts import (
 from app.models.clap import classify, load_vocab
 from app.models.whisper import TranscriptResult, transcribe
 from app.pipelines.common import collect, stream_brain
-from app.safety import check, check_sound, refusal_for
+from app.safety import check_sound, refusal_for
+from app.safety_semantic import check_all
 
 MIN_SPEECH_WORDS = 3
 
@@ -57,7 +58,7 @@ def _prompt(tr: TranscriptResult, question: str) -> list[dict]:
 
 def _speech(req: PipelineRequest, ctx: Ctx, tr: TranscriptResult) -> Iterator[Event]:
     yield Transcript(text=tr.text, seconds=tr.seconds)
-    hit = check(tr.text)
+    hit = check_all(tr.text)
     if hit:
         yield refusal_for(hit)
         yield final_for(ctx, "audio", "speech")

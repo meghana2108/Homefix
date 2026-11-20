@@ -36,7 +36,8 @@ from app.media.convert import normalize
 from app.models.memory import MemoryManager
 from app.models.ollama_client import OllamaBackend
 from app.router import route
-from app.safety import check, refusal_for
+from app.safety import refusal_for
+from app.safety_semantic import check_all
 from app.settings import load_profile
 
 
@@ -165,7 +166,7 @@ def _flow(message: str, files: list[Path], manual_id: str | None, ctx: Ctx, name
 
     state["stage"] = "safety_check"
     yield Status(stage="safety_check")
-    hit = check(text)
+    hit = check_all(text)  # the regex, then the meaning net (it can only add a stop)
     if hit:
         raise _Stop(refusal_for(hit))
 

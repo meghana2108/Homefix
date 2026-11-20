@@ -79,26 +79,26 @@ def img_req(tmp_path, message, qtype="qa", manual_id=None):
 
 
 def test_image_vague_question_asks_instead_of_guessing(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING)
+    fake_brain("None", "None", COOKTOP_READING)  # two clean danger looks, then the reading
     ev = list(image.run(img_req(tmp_path, "What is this?", "describe"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert c.seen == COOKTOP_READING
-    assert len(fake_brain.calls) == 1 and "Read the text" in fake_brain.calls[0]["messages"][-1]["content"]
+    assert len(fake_brain.calls) == 3 and "Read the text" in fake_brain.calls[2]["messages"][-1]["content"]
     assert isinstance(ev[-1], Final) and ev[-1].answer.startswith(c.question)
     assert ev[-1].answer.endswith("What I could read: 8:32 COOKTOP ON Oven Light Start | Cancel Lock Control Hold 3 Sec.")
 
 
 def test_image_vague_question_about_a_scene_is_described_not_asked(ctx_full, fake_brain, tmp_path):
     """No display in the photo (nothing with numbers to misread): "What is this?" wants a description."""
-    fake_brain("I can't tell.", "A kitchen counter with two mugs.")
+    fake_brain("None", "None", "I can't tell.", "A kitchen counter with two mugs.")
     ev = list(image.run(img_req(tmp_path, "What's in this photo?", "describe"), ctx_full))
     assert not any(isinstance(e, Clarify) for e in ev)
     assert ev[-1].answer == "A kitchen counter with two mugs."
-    assert fake_brain.calls[1]["messages"][-1]["content"] == prompts.DESCRIBE_PROMPT
+    assert fake_brain.calls[3]["messages"][-1]["content"] == prompts.DESCRIBE_PROMPT
 
 
 def test_image_empty_message_asks_too(ctx_full, fake_brain, tmp_path):
-    fake_brain(COOKTOP_READING)
+    fake_brain("None", "None", COOKTOP_READING)
     ev = list(image.run(img_req(tmp_path, "", "describe"), ctx_full))
     assert any(isinstance(e, Clarify) for e in ev)
 
@@ -172,7 +172,7 @@ def shelf(tmp_path, monkeypatch, manuals: dict[str, list[str]]):
 
 def test_manual_photo_without_a_code_asks_when_vague(ctx_full, fake_brain, tmp_path, monkeypatch):
     shelf(tmp_path, monkeypatch, {"w1": ["E21 means the washer cannot drain."]})
-    fake_brain(COOKTOP_READING)
+    fake_brain("None", "None", COOKTOP_READING)
     ev = list(homefix.run(img_req(tmp_path, "What does this mean?", "manual_lookup", "w1"), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert c.seen == COOKTOP_READING

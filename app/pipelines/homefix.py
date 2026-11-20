@@ -91,6 +91,12 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
     from app.orchestrate import AUTO_MANUAL
     from app.pipelines import image
 
+    if image.needs_danger_look(req.message):  # "What's wrong with it?": look for danger before the manual
+        found: list = []
+        yield from image.look_for_danger(ctx, image.images_of(req), found)
+        if found:
+            yield from image.stop_for_danger(ctx, req, found[0], "homefix")
+            return
     parts: list[str] = []
     for ev in image.read_quietly(ctx, image.images_of(req), parts):
         yield ev

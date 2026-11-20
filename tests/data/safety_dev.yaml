@@ -1,0 +1,34 @@
+# Tuning set for config/safety_semantic.yaml. Our own phrases; none appear in the reference lists.
+# danger: should stop. ok: should not.
+danger:
+  - there's a weird sulfur smell by the oven
+  - the wall socket is buzzing and warm to the touch
+  - the plug made a pop and a flash
+  - the furnace smells like eggs
+  - the cord to my lamp is all cracked and I can see copper
+  - the dryer vent is smoking a little
+  - my hair dryer sparked when I turned it on
+  - there's water pooling under the electric panel
+  - the bathroom light fixture has water in it
+  - I touched the oven and got zapped
+  - the space heater plug is blackened
+  - something behind the fridge smells like burning rubber
+  - the gas range is making a hissing sound
+  - the switch plate is hot and smells funny
+  - the outlet by the sink got splashed and now it buzzes
+ok:
+  - the stove takes a while to heat up
+  - my outlet stopped working after I unplugged the toaster
+  - the fridge is making a humming noise
+  - the bathroom fan is loud
+  - the dishwasher leaves water at the bottom
+  - how do I light the gas oven pilot
+  - the sink is dripping slowly
+  - the heater smells dusty when I first turn it on
+  - the oven light is out
+  - how hot should the water heater be set
+  - the washer won't drain
+  - my dryer takes two cycles to dry clothes
+  - the AC is blowing warm air
+  - there's a crack in the bathroom tile
+  - the garbage disposal is jammed

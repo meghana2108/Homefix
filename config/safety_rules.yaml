@@ -62,3 +62,19 @@ benign:
   - '\bcopper pipes?\b'
   - '\bwire (hangers?|shel(f|ves)|racks?|baskets?|brush(es)?|whisks?)\b'
   - '\b(metal|rust|primer|wood) (is |are )?showing through (the )?paint\b'
+# What the vision model SAYS IT SEES in a photo (its description, reading or answer), checked with
+# safety.check_observation(). Separate from `patterns` because a description isn't a person's words: a lit gas
+# burner is "blue flames" and a stove ring "glows red", both normal, so flames and glowing are not here.
+observed:
+  smoke_fire:
+    - '\b(burnt|charred|scorch\w*|singe\w*|soot\w*|blacken\w*)\b'
+    - '\bburn(ed)? ?(marks?|spots?|damage|tip|edges?)\b'
+    - '\bmelt(ed|ing)\b'
+    - '\bsmok(e|ing)\b'
+  sparks:
+    - '\bspark(s|ing|ed)?\b'
+  exposed_wires:
+    - '\b(exposed|bare|frayed|stripped|loose)\b.{0,25}\b(wire|wires|wiring|copper|conductors?|cables?|cords?)\b'
+    - '\b(wire|wires|wiring|cable|cord)\b.{0,25}\b(exposed|showing|frayed|sticking out|hanging out)\b'
+  water_electric:
+    - '\b(water|wet|leak\w*|drip\w*|pool\w*|flood\w*)\b.{0,40}\b(outlet|socket|panel|breaker|wiring|electrical|light fixture|switch)\b'
