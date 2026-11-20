@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { expandBeats, firstBeatOf, turnAt, type Flat } from "../../demo/beats";
 import { RECORDINGS, SCENES, type Beat, type Recording, type Scene, type SceneId } from "../../demo/scenes";
-import { SCORES, SCORE_RUNS } from "../../demo/scores";
+import { OUR_TESTS, PACK_ITEMS, SCORES, SCORE_RUNS } from "../../demo/scores";
 import { LIMITS } from "../landing/Landing";
 import { TurnView } from "../TurnView";
 
@@ -70,19 +70,22 @@ function BeatView({ beat }: { beat: Beat }) {
       );
     case "scores":
       return (
-        <div className="demo__beat">
+        <div className="demo__beat demo__beat--scores">
           <table className="demo__scores">
-            <caption>Practice-set scores, from {SCORE_RUNS.full} and {SCORE_RUNS.lite}</caption>
-            <thead><tr><th scope="col">Test</th><th scope="col">Full (M4)</th><th scope="col">Lite (M2)</th></tr></thead>
+            <caption>{PACK_ITEMS} practice questions, one run on the M4 ({SCORE_RUNS.full})</caption>
+            <thead><tr><th scope="col">Test</th><th scope="col">Full (M4)</th></tr></thead>
             <tbody>
-              {SCORES.map((s) => <tr key={s.row}><th scope="row">{s.row}</th><td>{s.full}</td><td>{s.lite}</td></tr>)}
+              {SCORES.map((s) => <tr key={s.row}><th scope="row">{s.row}</th><td>{s.full}</td></tr>)}
             </tbody>
           </table>
+          <p className="demo__credit">
+            Our own automated tests: {OUR_TESTS.backend} backend and {OUR_TESTS.frontend} frontend, all passing on {OUR_TESTS.on}.
+          </p>
         </div>
       );
     case "limits":
       return (
-        <div className="demo__beat">
+        <div className="demo__beat demo__beat--limits">
           <ul className="demo__list">{DEMO_LIMITS.map((l) => <li key={l.lead}><strong>{l.lead}</strong> {l.text}</li>)}</ul>
           <p className="demo__credit">Photos and sounds: Wikimedia Commons, see ASSETS.md</p>
         </div>
@@ -211,7 +214,7 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
         ))}
       </nav>
 
-      <div className="demo__stage" key={cur.scene} ref={stageRef} aria-live="polite">
+      <div className="demo__stage" key={cur.scene} ref={stageRef} data-scene={scene.id} aria-live="polite">
         {upto.map(({ f, i }) => {
           if (f.kind === "missing") {
             return <p key={i} className="demo__missing" role="note">This scene hasn't been recorded. Run scripts/record_demo.py.</p>;

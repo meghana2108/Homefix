@@ -4,7 +4,7 @@ import type { HomeFixEvent, Stage } from "../contract";
 import { expandBeats, firstBeatOf, turnAt } from "./beats";
 import { cutPoints } from "./cuts";
 import { RECORDINGS, SCENES, type Recording } from "./scenes";
-import { SCORES } from "./scores";
+import { OUR_TESTS, PACK_ITEMS, SCORES } from "./scores";
 
 const st = (stage: Stage, detail: string | null = null): HomeFixEvent => ({ type: "status", stage, detail, ms: null });
 const tok: HomeFixEvent = { type: "token", text: "x" };
@@ -96,12 +96,18 @@ describe("SCENES", () => {
 });
 
 describe("SCORES", () => {
-  it("seven rows", () => {
-    expect(SCORES.map((s) => [s.row, s.full, s.lite])).toEqual([
-      ["Image count", "14/15", "14/15"], ["Sound top-1", "8/10", "8/10"],
-      ["Speech transcript", "8/10", "6/10"], ["Text answers", "15/15", "14/15"],
-      ["Text refusals", "3/5", "2/5"], ["Code pass@1", "20/20", "17/20"],
-      ["Video (all metrics)", "11/15", "5/15"],
+  it("rows cover every practice question once", () => {
+    expect(PACK_ITEMS).toBe(100);
+    expect(SCORES.reduce((n, s) => n + Number(s.full.split("/")[1]), 0)).toBe(PACK_ITEMS);
+  });
+  it("our own test counts", () => expect(OUR_TESTS).toEqual({ backend: 807, frontend: 170, on: "20 Nov 2026" }));
+  it("eight rows", () => {
+    expect(SCORES).toEqual([
+      { row: "Image count", full: "14/15" }, { row: "Image, other questions", full: "8/10" },
+      { row: "Sound top-1", full: "8/10" },
+      { row: "Speech answers", full: "8/10" }, { row: "Text answers", full: "15/15" },
+      { row: "Text refusals", full: "3/5" }, { row: "Code pass@1", full: "20/20" },
+      { row: "Video (all metrics)", full: "11/15" },
     ]);
   });
 });

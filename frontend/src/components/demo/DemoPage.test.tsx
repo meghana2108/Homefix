@@ -239,7 +239,13 @@ describe("scenes", () => {
     jump(8);
     press("ArrowRight");
     expect(screen.getByText("Photos and sounds: Wikimedia Commons, see ASSETS.md")).toBeTruthy();
-    expect(document.querySelectorAll(".demo__scores tbody tr")).toHaveLength(7);
+    expect(document.querySelectorAll(".demo__scores tbody tr")).toHaveLength(8);
+    expect(screen.getByText("100 practice questions, one run on the M4 (20261120-1009-full-all)")).toBeTruthy();
+    expect(screen.getByText("Our own automated tests: 807 backend and 170 frontend, all passing on 20 Nov 2026.")).toBeTruthy();
+    const table = document.querySelector(".demo__scores")!;
+    expect([...table.querySelectorAll("thead th")].map((th) => th.textContent)).toEqual(["Test", "Full (M4)"]);
+    expect(table.querySelectorAll("tbody tr td")).toHaveLength(8); // one score per row: M4 only
+    expect(table.textContent).not.toMatch(/M2|lite/i);
   });
 
   it("the last slide names the front page's limits", () => {
