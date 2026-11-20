@@ -53,4 +53,16 @@ describe("repair request", () => {
     await act(async () => { fireEvent.keyDown(window, { key: "Escape" }); });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("checks a file against the request: the same file matches, an edited one doesn't", async () => {
+    render(<EvidencePack turn={turn} files={[photo]} onClose={() => {}} />);
+    await waitFor(() => screen.getByText(`SHA-256 ${ABC}`));
+    const input = screen.getByLabelText("Check a file against this request");
+    await act(async () => { fireEvent.change(input, { target: { files: [new File(["abc"], "from-landlord.jpg")] } }); });
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Matches washer.jpg: not changed"));
+    await act(async () => { fireEvent.change(input, { target: { files: [new File(["abd"], "washer.jpg")] } }); });
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(
+      "Doesn't match any file in this request. It has been changed, or it's a different file."));
+    expect(screen.getByRole("status")).toHaveTextContent(/SHA-256 [0-9a-f]{64}/);
+  });
 });

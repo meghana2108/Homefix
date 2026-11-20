@@ -91,3 +91,15 @@ export async function buildEvidence(turn: Turn, files: File[], now = new Date())
   const fingerprint = await sha256(JSON.stringify({ ...base, letter }));
   return { ...base, letter, fingerprint };
 }
+
+export type FileCheck =
+  | { ok: true; name: string; sha256: string; match: EvidenceFile }
+  | { ok: false; name: string; sha256: string; sameName: EvidenceFile | null };
+
+/** Is this file one of the files in the request, byte for byte? */
+export async function checkFile(file: File, files: EvidenceFile[]): Promise<FileCheck> {
+  const hash = await sha256(file);
+  const match = files.find((f) => f.sha256 && f.sha256 === hash);
+  if (match) return { ok: true, name: file.name, sha256: hash, match };
+  return { ok: false, name: file.name, sha256: hash, sameName: files.find((f) => f.name === file.name) ?? null };
+}

@@ -134,6 +134,16 @@ def small_jpg(img: Image.Image, path: Path, width: int = 900) -> Path:
     return path
 
 
+def one_pixel_edit(src: Path, dst: Path) -> Path:
+    """For the repair-request demo: the same photo with one pixel changed. It looks identical; its SHA-256
+    fingerprint doesn't match, so "Check a file against this request" says it was changed."""
+    im = Image.open(src).convert("RGB")
+    r, g, b = im.getpixel((10, 10))
+    im.putpixel((10, 10), ((r + 40) % 256, g, b))
+    im.save(dst, quality=95)
+    return dst
+
+
 def closeup(img: Image.Image) -> Image.Image:
     return img.crop((640, 230, 1420, 700)).resize((1170, 705), Image.Resampling.LANCZOS)
 
@@ -273,6 +283,7 @@ def main() -> None:
 
     # photos
     out.append(small_jpg(closeup(demo.display_photo("E21")), SAMPLES / "washer_display_e21.jpg"))
+    out.append(one_pixel_edit(SAMPLES / "washer_display_e21.jpg", SAMPLES / "washer_display_e21_edited.jpg"))
     out.append(small_jpg(closeup(demo.display_photo(
         "E24", seed=8, buttons=("Eco", "Auto", "Rinse", "Start"), knob=("Eco", "Auto", "Glass", "Quick", "Rinse"),
         units=("h", "min"), body=(225, 226, 228))), SAMPLES / "dishwasher_display_e24.jpg"))

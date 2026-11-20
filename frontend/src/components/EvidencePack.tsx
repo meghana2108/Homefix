@@ -1,7 +1,7 @@
-import { ClipboardCheck, Copy, Printer, X } from "lucide-react";
+import { CircleCheck, CircleX, ClipboardCheck, Copy, FileSearch, Printer, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { buildEvidence, sha256, type Evidence } from "../state/evidence";
+import { buildEvidence, checkFile, sha256, type Evidence, type FileCheck } from "../state/evidence";
 import type { Turn } from "../state/reduce";
 import { Icon } from "./Icons";
 
@@ -14,6 +14,7 @@ export function EvidencePack({ turn, files, onClose }: { turn: Turn; files: File
   const [letter, setLetter] = useState("");
   const [fingerprint, setFingerprint] = useState("");
   const [copied, setCopied] = useState(false);
+  const [check, setCheck] = useState<FileCheck | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -94,6 +95,37 @@ export function EvidencePack({ turn, files, onClose }: { turn: Turn; files: File
                   })}
                 </ul>
                 <p className="faint evidence__note">A fingerprint changes if even one pixel or byte of the file changes, so anyone can check the file you send is this one.</p>
+              </section>
+            )}
+
+            {ev.files.length > 0 && (
+              <section className="evidence__sec no-print">
+                <h3>Check a file</h3>
+                <label className="btn btn--small evidence__pick">
+                  <Icon as={FileSearch} size={16} />Check a file against this request
+                  <input type="file" className="sr-only" aria-label="Check a file against this request"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (f) void checkFile(f, ev.files).then(setCheck);
+                    }} />
+                </label>
+                <p className="faint evidence__note">Pick the photo you sent, or one someone sends back. It's checked here, offline.</p>
+                {check && (
+                  <div role="status" className={`evidence__check ${check.ok ? "evidence__check--ok" : "evidence__check--bad"}`}>
+                    <p className="evidence__check-title">
+                      <Icon as={check.ok ? CircleCheck : CircleX} size={18} />
+                      {check.ok
+                        ? `Matches ${check.match.name}: not changed.`
+                        : "Doesn't match any file in this request. It has been changed, or it's a different file."}
+                    </p>
+                    {!check.ok && check.sameName && (
+                      <p>It has the same name as {check.sameName.name} in this request, but different contents.</p>
+                    )}
+                    <p className="mono evidence__hash">{check.name}: SHA-256 {check.sha256}</p>
+                    {!check.ok && check.sameName && <p className="mono evidence__hash">In this request: SHA-256 {check.sameName.sha256}</p>}
+                  </div>
+                )}
               </section>
             )}
 

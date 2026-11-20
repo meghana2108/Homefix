@@ -474,6 +474,12 @@ details summary { cursor: pointer; font-size: 0.875rem; color: var(--ink-soft); 
 .evidence__letter { width: 100%; box-sizing: border-box; font: inherit; line-height: 1.5; padding: 0.7rem; border: 1px solid var(--rule-strong);
   border-radius: var(--r-control); background: var(--paper); color: var(--ink); resize: vertical; }
 .evidence__letter-print { display: none; }
+.evidence__pick { cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; min-height: 44px; }
+.evidence__pick:focus-within { outline: 2px solid var(--pen); outline-offset: 2px; }
+.evidence__check { margin-top: 0.6rem; padding: 0.6rem 0.8rem; border-radius: var(--r-control); border: 1px solid; display: flex; flex-direction: column; gap: 0.25rem; }
+.evidence__check-title { display: flex; align-items: center; gap: 0.45rem; font-weight: 600; }
+.evidence__check--ok { color: var(--answered); background: var(--answered-tint); border-color: var(--answered); }
+.evidence__check--bad { color: var(--danger); background: var(--danger-tint); border-color: var(--danger); }
 .evidence__foot { border-top: 1px solid var(--rule); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
 .evidence__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
 @media print {

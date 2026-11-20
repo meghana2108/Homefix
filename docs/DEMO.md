@@ -29,6 +29,10 @@ Before judges arrive (Wi-Fi still on is fine for steps 1–3):
    `uv run python scripts/fetch_real_samples.py --from /path/to/other/frontend/public/samples`.
    None of these files are in git. The gallery then has 38 one-click examples, real ones first, each run
    on the 8 GB Mac on 2026-11-19. Sounds, voice notes and clips are still ones we made (see below).
+   For the repair-request demo, make_samples.py also writes `washer_display_e21_edited.jpg`: the E21 photo with
+   one pixel changed. Run the E21 example, press "Make a repair request", then "Check a file against this
+   request": the original says "Matches … not changed"; the edited copy says "Doesn't match", with both
+   fingerprints side by side.
 1. Open Ollama (menu bar icon). Check: `ollama list` shows `qwen3-vl:2b-instruct` and `qwen2.5-coder:3b`.
 2. Terminal 1: `uv run uvicorn app.api.main:app --port 8000` (`PROFILE=lite` comes from `.env`).
 3. Terminal 2: `cd frontend && npm run dev`, then open http://localhost:5173. The header says `lite · M2`.
