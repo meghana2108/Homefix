@@ -56,8 +56,8 @@ messages:
     Don't go back in until the fire department says it's safe, even if the alarm stops.
     Then contact your landlord. HomeFix won't give repair steps for this situation.
   smoke_fire: >-
-    ⚠️ This could be dangerous. If a smoke alarm is sounding or you see smoke or fire, get everyone out and call 911 from outside.
-    Don't go back in. Don't try to put it out with water: water makes electrical and grease fires worse.
+    ⚠️ This could be dangerous. If a smoke alarm is sounding or you see smoke or fire, get everyone out, don't go back in, and call 911 from outside.
+    Don't try to put it out with water: water makes electrical and grease fires worse.
     If it's only a burning smell and it's safe to do so, turn off the appliance's breaker and don't use it again.
     Then contact your landlord or a licensed professional. HomeFix won't give repair steps for this situation.
   sparks: >-
@@ -73,7 +73,7 @@ messages:
   water_electric: >-
     ⚠️ This could be dangerous. Don't touch the water or anything plugged in near it.
     Never touch a wet panel. If the breaker panel is dry and you can reach it without standing in water, turn off the breaker for that area.
-    If you can't, stay out of the room. If there is smoke or sparks, leave and call 911.
+    If the panel is wet or you can't reach it, stay out of the room. If there is smoke or sparks, leave and call 911.
     Then call your landlord's emergency line. HomeFix won't give repair steps for this situation.
   shock: >-
     ⚠️ This could be dangerous. Don't touch the appliance or outlet.
