@@ -138,7 +138,7 @@ describe("scenes", () => {
   });
 
   it("blocked audio shows a play button", async () => {
-    play.mockImplementation(() => Promise.reject(new DOMException("NotAllowedError")));
+    play.mockImplementation(() => Promise.reject(new DOMException("x", "NotAllowedError")));
     mount();
     await act(async () => { jump(3); });
     const btn = await screen.findByRole("button", { name: "Play the sound" });
@@ -153,5 +153,38 @@ describe("scenes", () => {
     pressN("ArrowRight", 2);
     expect(screen.getByText("Photos and sounds: Wikimedia Commons, see ASSETS.md")).toBeTruthy();
     expect(document.querySelectorAll(".demo__scores tbody tr")).toHaveLength(7);
+  });
+
+  it("the last slide names the front page's limits", () => {
+    mount();
+    jump(6);
+    pressN("ArrowRight", 2);
+    for (const lead of ["It answers only from what you give it.", "Real manuals print error codes as pictures.", "It is a hackathon prototype."]) {
+      expect(screen.getByText(lead)).toBeTruthy();
+    }
+  });
+
+  it("scrolls the newest step into view on advance", () => {
+    const fn = vi.fn();
+    (Element.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = fn;
+    mount();
+    fn.mockClear();
+    press("ArrowRight");
+    expect(fn).toHaveBeenCalled();
+    delete (Element.prototype as unknown as { scrollIntoView?: unknown }).scrollIntoView;
+  });
+
+  it("ignores key repeat", () => {
+    mount();
+    fireEvent.keyDown(window, { key: "ArrowRight", repeat: true });
+    expect(screen.queryAllByRole("img")).toHaveLength(0);
+  });
+
+  it("an audio file that fails for another reason shows the missing-media text, not the play button", async () => {
+    play.mockImplementation(() => Promise.reject(new DOMException("x", "NotSupportedError")));
+    mount();
+    await act(async () => { jump(3); });
+    expect(await screen.findByText(/Run scripts\/fetch_real_samples\.py/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Play the sound" })).toBeNull();
   });
 });

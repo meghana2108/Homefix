@@ -6,7 +6,7 @@ import { Workspace } from "./components/Workspace";
 /** "#/ask" is the workspace, "#/demo" the presenter-paced pitch demo (each with anything under it); everything else is the front door. */
 export function routeOf(hash: string): "landing" | "ask" | "demo" {
   if (/^#\/ask(\b|\/|$)/.test(hash)) return "ask";
-  return /^#\/demo(\/|$)/.test(hash) ? "demo" : "landing";
+  return /^#\/demo(\b|\/|$)/.test(hash) ? "demo" : "landing";
 }
 
 export default function App() {

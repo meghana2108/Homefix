@@ -69,7 +69,7 @@ const EXAMPLES = [
     a: "Stop using it, switch off the breaker if it's safe, and if there's smoke, leave and call 911. No repair steps." },
 ];
 
-const LIMITS = [
+export const LIMITS = [
   { lead: "It answers only from what you give it.", text: "A photo, a sound, a manual or a file. Ask about the washer with no manual loaded and it will ask for one." },
   { lead: "It is not a repair person.", text: "It tells you what a code means and what the manual says to do. Anything inside the machine is a job for maintenance." },
   { lead: "It can misread or miscount.", text: "The models are small enough to run on a laptop. The 8 GB MacBook Air gets about 3 in 4 practice questions right." },

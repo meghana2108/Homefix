@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { expandBeats, firstBeatOf, turnAt, type Flat } from "../../demo/beats";
 import { RECORDINGS, SCENES, type Beat, type Recording, type Scene, type SceneId } from "../../demo/scenes";
 import { SCORES, SCORE_RUNS } from "../../demo/scores";
+import { LIMITS } from "../landing/Landing";
 import { TurnView } from "../TurnView";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -18,7 +19,7 @@ const MISSING_MEDIA = "Run scripts/fetch_real_samples.py";
 function Photo({ src, caption }: { src: string; caption: string }) {
   const [failed, setFailed] = useState(false);
   return (
-    <figure className="demo__photo">
+    <figure className="demo__fig">
       {failed
         ? <div className="demo__missing" role="note">{caption}: this photo is missing. {MISSING_MEDIA}</div>
         : <img src={src} alt={caption} onError={() => setFailed(true)} />}
@@ -33,15 +34,11 @@ const PROMISES = [
   "If it sounds dangerous, it says stop first and gives no repair steps.",
 ];
 
-function limitsOf() {
-  const video = SCORES.find((s) => s.row.startsWith("Video"));
-  const refusals = SCORES.find((s) => s.row === "Text refusals");
-  return [
-    video && `Video is our weakest part: ${video.full} on the full profile, ${video.lite} on lite.`,
-    refusals && `Text refusals: ${refusals.full} on full, ${refusals.lite} on lite. It still answers sometimes when it should say it doesn't know.`,
-    "The error-display photo in scene 2 is drawn by us, because no openly licensed photo of one exists.",
-  ].filter((x): x is string => !!x);
-}
+const DEMO_LIMITS = [
+  "It answers only from what you give it.",
+  "Real manuals print error codes as pictures.",
+  "It is a hackathon prototype.",
+].map((lead) => LIMITS.find((l) => l.lead === lead)).filter((l): l is (typeof LIMITS)[number] => !!l);
 
 function BeatView({ beat }: { beat: Beat }) {
   switch (beat.kind) {
@@ -83,7 +80,7 @@ function BeatView({ beat }: { beat: Beat }) {
     case "limits":
       return (
         <div className="demo__beat">
-          <ul className="demo__list">{limitsOf().map((l) => <li key={l}>{l}</li>)}</ul>
+          <ul className="demo__list">{DEMO_LIMITS.map((l) => <li key={l.lead}><strong>{l.lead}</strong> {l.text}</li>)}</ul>
           <p className="demo__credit">Photos and sounds: Wikimedia Commons, see ASSETS.md</p>
         </div>
       );
@@ -101,6 +98,8 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
   const flat: Flat[] = useMemo(() => expandBeats(scenes, recordings), [scenes, recordings]);
   const [idx, setIdx] = useState(0);
   const [blocked, setBlocked] = useState(false);
+  const [audioMissing, setAudioMissing] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const last = flat.length - 1;
 
@@ -113,6 +112,8 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
     const on = (e: KeyboardEvent) => {
       if (typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key;
+      const step = k === "ArrowRight" || k === " " || k === "PageDown" || k === "ArrowLeft" || k === "PageUp";
+      if (step && e.repeat) { e.preventDefault(); return; }
       if (k === "ArrowRight" || k === " " || k === "PageDown") { e.preventDefault(); setIdx((i) => Math.min(last, i + 1)); }
       else if (k === "ArrowLeft" || k === "PageUp") { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)); }
       else if (k === "Escape") window.location.hash = "#/ask";
@@ -134,18 +135,25 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
   const clip = scene?.id === "sound" && rec ? rec.request.files[0] : undefined;
   const playing = !!clip && lastTurn?.i !== undefined && firstTurn >= 0 && idx >= firstTurn;
 
+  const start = useCallback(() => {
+    setBlocked(false);
+    const p = audioRef.current?.play?.();
+    p?.catch((err: unknown) => {
+      if ((err as { name?: string } | null)?.name === "NotAllowedError") setBlocked(true);
+      else setAudioMissing(true);
+    });
+  }, []);
+
   useEffect(() => {
     setBlocked(false);
-    if (!playing) return;
-    const p = audioRef.current?.play?.();
-    p?.catch(() => setBlocked(true));
-  }, [playing, clip]);
+    setAudioMissing(false);
+    if (playing) start();
+  }, [playing, clip, start]);
 
-  const replay = () => {
-    const p = audioRef.current?.play?.();
-    setBlocked(false);
-    p?.catch(() => setBlocked(true));
-  };
+  useEffect(() => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    endRef.current?.scrollIntoView?.({ block: "end", behavior: reduced ? "auto" : "smooth" });
+  }, [idx]);
 
   if (!cur || !scene) return <main className="demo"><p className="demo__missing">Nothing to show.</p></main>;
 
@@ -159,7 +167,7 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
         ))}
       </nav>
 
-      <div className="demo__stage" key={cur.scene}>
+      <div className="demo__stage" key={cur.scene} aria-live="polite">
         {upto.map(({ f, i }) => {
           if (f.kind === "missing") {
             return <p key={i} className="demo__missing" role="note">This scene hasn't been recorded. Run scripts/record_demo.py.</p>;
@@ -174,8 +182,10 @@ export function DemoPage({ scenes = SCENES, recordings = RECORDINGS }: {
           }
           return <BeatView key={i} beat={f.beat!} />;
         })}
-        {clip && playing && <audio ref={audioRef} src={clip} preload="auto" hidden />}
-        {blocked && <button type="button" className="btn demo__play" onClick={replay}>Play the sound</button>}
+        {clip && playing && <audio ref={audioRef} src={clip} preload="auto" hidden onError={() => setAudioMissing(true)} />}
+        {audioMissing && <p className="demo__missing" role="note">The sound file is missing. {MISSING_MEDIA}</p>}
+        {blocked && <button type="button" className="btn demo__play" onClick={start}>Play the sound</button>}
+        <div ref={endRef} aria-hidden="true" />
       </div>
 
       {scene.note && <p className="demo__note">{scene.note}</p>}
