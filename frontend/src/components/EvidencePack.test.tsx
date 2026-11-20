@@ -15,11 +15,33 @@ const photo = new File(["abc"], "washer.jpg", { type: "image/jpeg" });
 const ABC = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 
 describe("repair request", () => {
-  it("every finished answer offers one", () => {
+  it("suggests it when the manual says to call maintenance", () => {
     const onEvidence = vi.fn();
-    render(<TurnView turn={turn} onEvidence={onEvidence} />);
+    const t = ([
+      { type: "token", text: "If E21 comes back, call the maintenance line." }, FINAL,
+    ] as HomeFixEvent[]).reduce(reduce, newTurn("My washer shows E21", ["washer.jpg"]));
+    render(<TurnView turn={t} onEvidence={onEvidence} />);
+    expect(screen.getByText("This needs your landlord or a professional.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Make a repair request" }));
     expect(onEvidence).toHaveBeenCalled();
+  });
+
+  it("a plain answer only has a quiet link, for when you choose to escalate", () => {
+    const onEvidence = vi.fn();
+    const t = ([{ type: "token", text: "The thermostat is set to 68°F." }, FINAL] as HomeFixEvent[])
+      .reduce(reduce, newTurn("What is it set to?", ["t.jpg"]));
+    render(<TurnView turn={t} onEvidence={onEvidence} />);
+    expect(screen.queryByText("This needs your landlord or a professional.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Make a repair request" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Need it fixed? Escalate to your landlord" }));
+    expect(onEvidence).toHaveBeenCalled();
+  });
+
+  it("after a danger stop it says to get safe first", () => {
+    const t = ([{ type: "refusal", reason: "safety", message: "Leave now.", category: "gas" }, FINAL] as HomeFixEvent[])
+      .reduce(reduce, newTurn("I smell gas", []));
+    render(<TurnView turn={t} onEvidence={() => {}} />);
+    expect(screen.getByText(/Once you're safe/)).toBeInTheDocument();
   });
 
   it("shows the date, the file's fingerprint, the verified quote, the danger check and a letter", async () => {

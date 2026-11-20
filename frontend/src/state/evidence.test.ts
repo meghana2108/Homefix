@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HomeFixEvent } from "../contract";
-import { buildEvidence, sha256 } from "./evidence";
+import { buildEvidence, escalation, sha256 } from "./evidence";
 import { newTurn, reduce } from "./reduce";
 
 const turnOf = (q: string, files: string[], events: object[]) =>
@@ -56,5 +56,29 @@ describe("evidence pack", () => {
     const t = turnOf("What is this?", ["stove.jpg"], [
       { type: "clarify", question: "What would you like to know?", seen: "8:32\nCOOKTOP ON", options: [] }, FINAL]);
     expect((await buildEvidence(t, [], NOW)).found).toBe("HomeFix read: 8:32, COOKTOP ON.");
+  });
+
+  it("suggests escalating only when the answer says it needs your landlord or a professional", () => {
+    const ans = (text: string, extra: object[] = []) => turnOf("q", [], [{ type: "token", text }, ...extra, FINAL]);
+    expect(escalation(ans("If it trips again, leave it off and call the maintenance line."))).toBe("suggest");
+    expect(escalation(ans("The battery is low. Tell maintenance."))).toBe("suggest");
+    expect(escalation(ans("Have a licensed electrician check the outlet."))).toBe("suggest");
+    // the manual's quote can say it even when the short answer doesn't
+    expect(escalation(ans("Clean the filter.", [
+      { type: "citation", quote: "If E21 comes back after cleaning the filter, call the maintenance line.", page: 2, source: "g.pdf", score: 100 },
+    ]))).toBe("suggest");
+    expect(escalation(turnOf("I smell gas", [], [
+      { type: "refusal", reason: "safety", message: "Leave now.", category: "gas" }, FINAL]))).toBe("suggest");
+    // plain answers: only if you choose to
+    expect(escalation(ans("The thermostat is set to 68°F."))).toBe("optional");
+    expect(escalation(ans("You must give written notice at least 60 days before you move out."))).toBe("optional");
+  });
+
+  it("never offers it while answering, after an error, when HomeFix asked back, or for code", () => {
+    expect(escalation(newTurn("q", []))).toBe("none");
+    expect(escalation(turnOf("q", [], [{ type: "error", stage: "generating", message: "x", retryable: true }, FINAL]))).toBe("none");
+    expect(escalation(turnOf("q", [], [{ type: "clarify", question: "Which appliance?", seen: null, options: [] }, FINAL]))).toBe("none");
+    expect(escalation(turnOf("q", [], [{ type: "code_result", code: "def f(): pass", passed: true, tests_run: 1,
+      failures: 0, output_tail: "", attempts: 1 }, FINAL]))).toBe("none");
   });
 });

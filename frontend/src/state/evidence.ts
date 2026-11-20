@@ -103,3 +103,22 @@ export async function checkFile(file: File, files: EvidenceFile[]): Promise<File
   if (match) return { ok: true, name: file.name, sha256: hash, match };
   return { ok: false, name: file.name, sha256: hash, sameName: files.find((f) => f.name === file.name) ?? null };
 }
+
+/** Words that mean "this isn't yours to fix": the answer or the manual says to get the landlord or a pro. */
+const NEEDS_HELP = new RegExp(
+  "\\b(call|contact|tell|ask|notify|report (it )?to|have|get)\\b[^.]{0,60}\\b(maintenance|landlord|property manager|" +
+  "building manager|superintendent|super|plumber|electrician|technician|professional|repair (person|service)|" +
+  "service (center|technician)|gas company|utility)\\b|\\b(licensed|qualified) (electrician|plumber|technician|professional)\\b",
+  "i");
+
+export type Escalation = "suggest" | "optional" | "none";
+
+/** Whether to offer a repair request for this answer. Never by default: it's suggested only when the answer
+ *  (or the quoted manual) says to get the landlord or a professional, or after a danger stop; any other
+ *  answer gets a quiet link, so escalating is the renter's choice. */
+export function escalation(turn: Turn): Escalation {
+  if (!turn.final || turn.error || turn.clarify || turn.codeResult) return "none";
+  if (turn.refusal?.reason === "safety") return "suggest";
+  const said = `${turn.answer} ${turn.citation?.quote ?? ""}`;
+  return NEEDS_HELP.test(said) ? "suggest" : "optional";
+}

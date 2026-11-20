@@ -1,6 +1,7 @@
 import { ClipboardCheck } from "lucide-react";
 import type { ClarifyOption } from "../contract";
 import type { Turn } from "../state/reduce";
+import { escalation } from "../state/evidence";
 import { outcomeOf, stepsOf, STEP_TEXT } from "../state/steps";
 import { AnswerText } from "./AnswerText";
 import { CitationCard } from "./CitationCard";
@@ -27,6 +28,7 @@ export function TurnView({ turn, onRetry, selected = false, onSelect, onReply, c
   const safety = refusal?.reason === "safety";
   const streaming = !final;
   const steps = stepsOf(turn);
+  const escalate = escalation(turn);
   const current = streaming ? steps[steps.length - 1] : undefined;
   return (
     <article className="turn" aria-busy={streaming}>
@@ -64,10 +66,19 @@ export function TurnView({ turn, onRetry, selected = false, onSelect, onReply, c
               {turn.error && <ErrorCard error={turn.error} onRetry={onRetry} />}
             </>
           )}
-          {final && !turn.error && onEvidence && (
-            <button type="button" className="btn btn--small btn--quiet evidence-btn"
-              onClick={(e) => { e.stopPropagation(); onEvidence(); }}>
-              <Icon as={ClipboardCheck} size={16} />Make a repair request
+          {onEvidence && escalate === "suggest" && (
+            <div className="escalate" role="note">
+              <p className="escalate__title"><Icon as={ClipboardCheck} size={18} />
+                {safety ? "Once you're safe, tell your landlord." : "This needs your landlord or a professional."}</p>
+              <p className="escalate__text">HomeFix can put your photos, the manual's words and a letter into one repair request.</p>
+              <button type="button" className="btn btn--small" onClick={(e) => { e.stopPropagation(); onEvidence(); }}>
+                Make a repair request
+              </button>
+            </div>
+          )}
+          {onEvidence && escalate === "optional" && (
+            <button type="button" className="linkbtn escalate__link" onClick={(e) => { e.stopPropagation(); onEvidence(); }}>
+              Need it fixed? Escalate to your landlord
             </button>
           )}
           {steps.length > 0 && (
