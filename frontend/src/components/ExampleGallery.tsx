@@ -1,8 +1,15 @@
-import { BadgeCheck, BookOpen, FileText, PenLine, Play } from "lucide-react";
+import { BadgeCheck, BookOpen, FileText, HelpCircle, MessageCircleQuestion, OctagonAlert, PenLine, Play, Wrench } from "lucide-react";
 import { useState } from "react";
 import type { Manual } from "../contract";
-import { EXAMPLE_KINDS, EXAMPLES, type Example, type ExampleKind } from "../examples";
+import { EXAMPLE_KINDS, ordered, type Example, type ExampleKind } from "../examples";
 import { Icon } from "./Icons";
+
+const ROLE = {
+  fix: { label: "Problem → fix", icon: Wrench },
+  question: { label: "Question", icon: HelpCircle },
+  asks: { label: "Asks you back", icon: MessageCircleQuestion },
+  stop: { label: "Danger → stop", icon: OctagonAlert },
+} as const;
 
 /** A sample file, shown the way it will appear in the conversation. */
 function Preview({ ex }: { ex: Example }) {
@@ -19,12 +26,12 @@ export function ExampleGallery({ onTry, busy, manuals }: {
   onTry: (ex: Example) => void; busy: boolean; manuals: Manual[];
 }) {
   const [kind, setKind] = useState<ExampleKind>(EXAMPLE_KINDS[0].id);
-  const shown = EXAMPLES.filter((e) => e.kind === kind);
+  const shown = ordered(kind);
   const tab = EXAMPLE_KINDS.find((k) => k.id === kind)!;
   return (
     <section className="gallery" aria-labelledby="gallery-h">
       <h2 id="gallery-h" className="gallery__h">Try an example</h2>
-      <p className="gallery__sub">Real photos, recordings and documents first, then a few we made. One click each.</p>
+      <p className="gallery__sub">Problems and their fixes first, then plain questions, then ones where HomeFix asks you back. Real photos, recordings and documents before ones we made. One click each.</p>
       <div className="tabs" role="tablist" aria-label="Kinds of question">
         {EXAMPLE_KINDS.map((k) => (
           <button key={k.id} type="button" role="tab" id={`tab-${k.id}`} aria-selected={k.id === kind}
@@ -38,6 +45,7 @@ export function ExampleGallery({ onTry, busy, manuals }: {
         <ul className="examples-grid">
           {shown.map((ex) => (
             <li key={ex.id} className="ex">
+              <p className={`ex__role ex__role--${ex.role}`}><Icon as={ROLE[ex.role].icon} size={14} />{ROLE[ex.role].label}</p>
               <Preview ex={ex} />
               {ex.source && (
                 <p className={`ex__src ${ex.source.real ? "ex__src--real" : ""}`}>
