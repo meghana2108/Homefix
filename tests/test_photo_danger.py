@@ -88,6 +88,8 @@ def test_a_description_that_mentions_danger_stops_after_it(ctx_full, fake_brain,
     "A gray electrical panel with breakers numbered 1 to 13.",
     "The thermostat shows 80 and COOL.",
     "A dark stain on the ceiling tile.",
+    "A white smoke detector mounted on the ceiling.",          # a device name, not smoke
+    "The smoke alarm has a small red light.",
 ])
 def test_ordinary_descriptions_dont_stop(text):
     assert safety.check_observation(text) is None

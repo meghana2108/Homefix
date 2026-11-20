@@ -11,6 +11,7 @@ from pathlib import Path
 
 from app.contracts import (
     MESSAGES,
+    Citation,
     Ctx,
     Event,
     Final,
@@ -133,8 +134,10 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
         if intent_is_vague(req.message):  # "What does this mean?" with no code on it: ask, don't guess
             yield from image.ask_back(ctx, req, photo_clarify(reading), "homefix")
             return
-        # A specific question ("What does COOKTOP ON mean?"): answer it from the photo, without guessing.
-        yield from image.answer_question(PipelineRequest(req.message, req.attachments, "qa", None), ctx, reading)
+        # A specific question with no code ("My smoke alarm keeps chirping. What should I do?"): what to do is in
+        # a guide, not in the photo. Ask the manual with the person's own question (verified quote or nothing);
+        # if it doesn't say, answer from the photo without guessing ("What does COOKTOP ON mean?").
+        yield from _manual_or_photo(req, ctx, reading)
         return
     yield Status(stage="generating", detail=f"found {code}")
     manual_id = req.manual_id
@@ -156,3 +159,30 @@ def run(req: PipelineRequest, ctx: Ctx) -> Iterator[Event]:
         if isinstance(ev, Final):
             ev = ev.model_copy(update={"modality": "homefix", "question_type": "manual_lookup"})
         yield ev
+
+
+def _manual_or_photo(req: PipelineRequest, ctx: Ctx, reading: str) -> Iterator[Event]:
+    from app.orchestrate import AUTO_MANUAL, manual_candidates
+    from app.pipelines import image
+
+    manual_id = req.manual_id
+    if manual_id == AUTO_MANUAL:
+        fits = manual_candidates(req.message, list_manuals())
+        manual_id = fits[0]["id"] if len(fits) == 1 else None
+        if manual_id:
+            yield Status(stage="routing", detail=f"Using the manual: {fits[0]['title']}")
+    if manual_id:
+        held: list[Event] = []
+        answered = False
+        for ev in text.run(PipelineRequest(req.message, [], "doc_qa", manual_id), ctx):
+            if isinstance(ev, Final):
+                answered = any(isinstance(e, Citation) for e in held)
+                ev = ev.model_copy(update={"modality": "homefix", "question_type": "manual_lookup"})
+            held.append(ev)
+        if answered:  # a verified quote: that's the answer
+            yield from held
+            return
+        # the manual doesn't say: keep its steps out of the answer and look at the photo instead
+        yield from (e for e in held if isinstance(e, Status))
+    yield from image.answer_question(PipelineRequest(req.message, req.attachments, "qa", None), ctx, reading)
+

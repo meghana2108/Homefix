@@ -182,7 +182,8 @@ def test_manual_photo_without_a_code_asks_when_vague(ctx_full, fake_brain, tmp_p
 def test_manual_photo_without_a_code_answers_a_specific_question_from_the_photo(ctx_full, fake_brain, tmp_path,
                                                                                     monkeypatch):
     shelf(tmp_path, monkeypatch, {"w1": ["E21 means the washer cannot drain."]})
-    fake_brain(COOKTOP_READING, COOKTOP_READING, "The display says COOKTOP ON, so a cooktop burner is on.")
+    fake_brain(COOKTOP_READING, COOKTOP_READING, '{"answer":null,"quote":null,"page":null}',  # the manual: nothing
+               "The display says COOKTOP ON, so a cooktop burner is on.")
     ev = list(homefix.run(img_req(tmp_path, 'What does "COOKTOP ON" mean?', "manual_lookup", "w1"), ctx_full))
     assert not any(isinstance(e, Clarify | Citation) for e in ev)
     assert ev[-1].answer.startswith("The display says COOKTOP ON")
@@ -258,3 +259,38 @@ def test_handle_asks_which_manual_when_the_question_could_be_either(ctx_lite, tm
     c = next(e for e in ev if isinstance(e, Clarify))
     assert {o.manual_id for o in c.options} == {"washer_a", "dishwasher_b"}
     assert isinstance(ev[-1], Final) and ev[-1].answer == c.question
+
+
+# ---- a photo with a problem question but no code: the manual answers, with a quote ----
+
+def test_no_code_but_a_manual_that_answers_the_question_quotes_it(ctx_full, fake_brain, tmp_path, monkeypatch):
+    shelf(tmp_path, monkeypatch, {"alarm": ["One short chirp every 30 to 60 seconds: the battery is low. Tell maintenance."]})
+    fake_brain("CO SMOKE TEST", "CO SMOKE TEST",
+               '{"answer":"The battery is low. Tell maintenance.",'
+               '"quote":"One short chirp every 30 to 60 seconds: the battery is low.","page":1}')
+    ev = list(homefix.run(img_req(tmp_path, "My smoke alarm keeps chirping. What should I do?", "manual_lookup", "alarm"),
+                          ctx_full))
+    assert next(e for e in ev if isinstance(e, Citation)).page == 1
+    assert ev[-1].modality == "homefix" and ev[-1].answer == "The battery is low. Tell maintenance."
+    assert "chirping" in fake_brain.calls[-1]["messages"][-1]["content"]  # the person's question, not "error code"
+
+
+def test_no_code_and_the_manual_doesnt_say_falls_back_to_the_photo(ctx_full, fake_brain, tmp_path, monkeypatch):
+    shelf(tmp_path, monkeypatch, {"alarm": ["Test the alarm monthly with the test button."]})
+    fake_brain("I can't tell.", "I can't tell.", '{"answer":null,"quote":null,"page":null}',
+               "Water is dripping from a joint in the pipe.")
+    ev = list(homefix.run(img_req(tmp_path, "This pipe is leaking. What should I do?", "manual_lookup", "alarm"),
+                          ctx_full))
+    assert not any(isinstance(e, Citation) for e in ev)
+    assert ev[-1].answer == "Water is dripping from a joint in the pipe."
+
+
+def test_no_code_with_auto_uses_the_one_manual_that_fits(ctx_full, fake_brain, tmp_path, monkeypatch):
+    shelf(tmp_path, monkeypatch, {"alarm_guide": ["One short chirp every 30 to 60 seconds: the battery is low."],
+                                  "dishwasher_guide": ["E24 means the dishwasher cannot drain."]})
+    fake_brain("SMOKE", "SMOKE", '{"answer":"The battery is low.",'
+               '"quote":"One short chirp every 30 to 60 seconds: the battery is low.","page":1}')
+    ev = list(homefix.run(img_req(tmp_path, "My alarm keeps chirping every minute. Help me fix it.", "manual_lookup",
+                                  "auto"), ctx_full))
+    assert next(e for e in ev if isinstance(e, Citation)).source == "alarm_guide.pdf"
+    assert any(isinstance(e, Status) and (e.detail or "").startswith("Using the manual") for e in ev)

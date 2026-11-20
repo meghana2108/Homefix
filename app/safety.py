@@ -64,7 +64,10 @@ def message_for(category: str) -> str:
 
 
 def check_observation(text: str) -> SafetyHit | None:
-    """Danger the vision model says it sees ("burn marks", "exposed wiring", "water near the outlet")."""
+    """Danger the vision model says it sees ("burn marks", "exposed wiring", "water near the outlet").
+    Device names ("smoke detector") are blanked first, as in check(), so a photo of one isn't "smoke"."""
+    for rx in _DEVICE_NAMES:
+        text = rx.sub(" device ", text)
     for cat, pats in _OBSERVED:
         for raw, rx in pats:
             if rx.search(text):

@@ -87,3 +87,11 @@ def test_no_gallery_question_stops_except_the_danger_examples():
     qs = re.findall(r'question: "((?:[^"\\]|\\.)*)"', src)
     assert [q for q in qs if check_all(q)] == ["I smell gas in the kitchen",
                                                "Sparks came out of the outlet when I plugged in the heater"]
+
+
+@pytest.mark.model
+def test_plain_plumbing_leaks_are_repairs_not_danger():
+    """Found 2026-11-20 making problem->fix gallery examples: "This pipe is leaking" stopped like a hazard."""
+    for q in ["This pipe is leaking. What should I do?", "Water keeps dripping from this pipe. Which way is it going?",
+              "The pipe under the sink is leaking", "My faucet won't stop dripping"]:
+        assert check_all(q) is None, q
