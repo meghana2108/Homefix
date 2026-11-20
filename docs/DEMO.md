@@ -51,5 +51,28 @@ Phone (only if the venue allows a local network): `bash scripts/https_dev.sh` pr
 `https://<laptop-ip>:5173`. The phone must trust the laptop's mkcert certificate once (the script prints
 the steps). With Wi-Fi off there is no local network, so show the recorded phone clip instead (RISKS.md #10).
 
+## Pitch demo (#/demo)
+A page you step through in front of the room. Each press shows one more piece of a real answer that we
+recorded on the M4. It never calls a model, so it works with Wi-Fi off.
+
+Set up once per Mac:
+1. `uv run python scripts/make_samples.py`
+2. `uv run python scripts/fetch_real_samples.py` (needs the network once). On the M2, copy a samples folder
+   from the M4 and run `uv run python scripts/fetch_real_samples.py --from <copied folder>` instead.
+
+Run it:
+1. Start the backend, then `cd frontend && npm run dev`.
+2. Open http://localhost:5173/#/demo and press `F` for full screen.
+3. Step with `→`, Space or PageDown, or a clicker. Go back with `←` or PageUp. `1`-`6` jump to a scene.
+4. `Esc` opens the live app. In full screen the first `Esc` only leaves full screen; press it again.
+
+The address shows your place (`#/demo/7` is beat 7). A reload, or a clicker's F5, comes back to the same beat.
+Do not press the clicker's slideshow button: it sends F5 then Esc, and the Esc leaves the demo. F5 alone
+is safe.
+
+Re-record a scene (backend running on `full`):
+`uv run python scripts/record_demo.py --scene <id>`
+Scene ids: `photo`, `sound`, `honesty`, `danger`. Never edit a file in `frontend/src/demo/recordings/` by hand.
+
 ## Backup
 - `docs/demo_backup.mp4` is *not* committed (media). Stored on both laptops + a USB stick.
