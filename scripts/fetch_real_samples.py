@@ -50,6 +50,7 @@ class Commons:
     license: str
     start: float = 0.0  # sound/video: where the clip starts (s)
     seconds: float = 10.0
+    gain_db: float = 0.0  # sound only: raise a very quiet recording (0 = leave as is)
 
 
 COMMONS = [
@@ -65,8 +66,9 @@ COMMONS = [
     Commons("real_leaking_pipe.jpg", "Leaking pipe by Saltash Field - geograph.org.uk - 7324720.jpg", "photo",
             "Mr Ignavy", "CC BY-SA 2.0"),
     Commons("real_smoke_detector.jpg", "Smoke detector (1).JPG", "photo", "Georg Pik", "Public domain"),
+    # Source is very quiet; the chirps in this window are at about 3 s and 8.6 s.
     Commons("real_smoke_alarm_chirp.wav", "Smoke detector alarm battery beep.webm", "sound", "JoBrodie",
-            "CC BY-SA 4.0", start=0.0, seconds=10.0),
+            "CC BY-SA 4.0", start=38.0, seconds=9.0, gain_db=20.0),
 ]
 
 ALLOWED_LICENSES = ("CC0", "Public domain", "CC BY ", "CC BY-SA ")
@@ -169,7 +171,9 @@ def fetch_commons(a: Commons, dest: Path) -> None:
             im.thumbnail((1280, 1280))
             im.save(dest, quality=88)
         elif a.kind == "sound":
-            _ffmpeg("-ss", str(a.start), "-t", str(a.seconds), "-i", str(src), "-ac", "1", "-ar", "16000", str(dest))
+            gain = ["-af", f"volume={a.gain_db}dB,alimiter=limit=0.95"] if a.gain_db else []
+            _ffmpeg("-ss", str(a.start), "-t", str(a.seconds), "-i", str(src), *gain, "-ac", "1", "-ar", "16000",
+                    str(dest))
         else:
             _ffmpeg("-ss", str(a.start), "-t", str(a.seconds), "-i", str(src), "-an", "-vf", "scale=640:-2",
                     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(dest))

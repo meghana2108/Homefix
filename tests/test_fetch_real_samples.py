@@ -22,6 +22,7 @@ def test_chirp_is_a_sound():
     c = next(x for x in f.COMMONS if x.out == "real_smoke_alarm_chirp.wav")
     assert c.kind == "sound"
     assert c.seconds <= 10
+    assert (c.start, c.seconds, c.gain_db) == (38.0, 9.0, 20.0)  # the window HomeFix hears as a smoke-alarm chirp
 
 
 def test_pinned_list_is_clean():
