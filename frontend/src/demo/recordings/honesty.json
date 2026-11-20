@@ -1,6 +1,6 @@
 {
  "scene": "honesty",
- "recorded_at": "2026-11-20T11:28:19",
+ "recorded_at": "2026-11-20T14:15:47",
  "profile": "full",
  "request": {
   "message": "Is there a warranty on the washer?",
@@ -43,7 +43,7 @@
    "answer": "",
    "modality": "text",
    "question_type": "doc_qa",
-   "latency_ms": 1379,
+   "latency_ms": 2157,
    "profile": "full",
    "model": null,
    "intent": "question"

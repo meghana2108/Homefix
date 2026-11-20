@@ -1,6 +1,6 @@
 {
  "scene": "code",
- "recorded_at": "2026-11-20T12:38:32",
+ "recorded_at": "2026-11-20T14:15:58",
  "profile": "full",
  "request": {
   "message": "Write a function that converts a thermostat temperature from Fahrenheit to Celsius.",
@@ -28,6 +28,12 @@
   },
   {
    "type": "status",
+   "stage": "loading_model",
+   "detail": "loading qwen2.5-coder:7b",
+   "ms": 5653
+  },
+  {
+   "type": "status",
    "stage": "generating",
    "detail": "qwen2.5-coder:7b",
    "ms": null
@@ -52,7 +58,7 @@
    "answer": "Converts a temperature from Fahrenheit to Celsius.",
    "modality": "code",
    "question_type": "code_gen",
-   "latency_ms": 4528,
+   "latency_ms": 11150,
    "profile": "full",
    "model": "qwen2.5-coder:7b",
    "intent": "question"
