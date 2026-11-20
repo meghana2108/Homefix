@@ -14,9 +14,12 @@ from pathlib import Path
 from app.clarify import (
     cant_tell_clarify,
     clean_reading,
+    given_reading,
     is_vague,
     looks_like_display,
     photo_clarify,
+    reading_clarify,
+    reads_agree,
 )
 from app.contracts import (
     MESSAGES,
@@ -33,6 +36,7 @@ from app.pipelines.common import collect, stream_brain
 from app.prompts import (
     DESCRIBE_PROMPT,
     READ_PROMPT,
+    READ_PROMPT_2,
     count_prompt,
     display_prompt,
     force_number_first,
@@ -58,9 +62,9 @@ def images_of(req: PipelineRequest) -> list[Path]:
     return [a.path for a in req.attachments if a.kind == "image" and a.path][:MAX_IMAGES]
 
 
-def read_quietly(ctx: Ctx, images: list[Path], sink: list[str]) -> Iterator[Event]:
+def read_quietly(ctx: Ctx, images: list[Path], sink: list[str], prompt: str = READ_PROMPT) -> Iterator[Event]:
     """Read the display without streaming it as the answer. Passes status and refusal events through."""
-    for ev in collect(stream_brain(ctx, [{"role": "user", "content": READ_PROMPT}], images), sink):
+    for ev in collect(stream_brain(ctx, [{"role": "user", "content": prompt}], images), sink):
         if not isinstance(ev, Token):
             yield ev
 
@@ -145,7 +149,10 @@ def answer_question(req: PipelineRequest, ctx: Ctx, reading: str | None = None) 
     """A specific question about a photo. A display (words with numbers) is answered from its words alone;
     anything else from the photo. "I can't tell" anywhere in the answer becomes a question back."""
     images = images_of(req)
-    if reading is None:
+    question, given = given_reading(req.message)
+    if given:  # the person told us what the display shows: use it, don't read the photo again
+        reading = given
+    elif reading is None:
         parts: list[str] = []
         for ev in read_quietly(ctx, images, parts):
             yield ev
@@ -153,8 +160,18 @@ def answer_question(req: PipelineRequest, ctx: Ctx, reading: str | None = None) 
                 yield final_for(ctx, "image", "qa")
                 return
         reading = "".join(parts)
+        if looks_like_display(reading):  # read it again, worded differently; different numbers -> ask
+            again: list[str] = []
+            for ev in read_quietly(ctx, images, again, READ_PROMPT_2):
+                yield ev
+                if isinstance(ev, Refusal):
+                    yield final_for(ctx, "image", "qa")
+                    return
+            if not reads_agree(reading, "".join(again)):
+                yield from ask_back(ctx, req, reading_clarify(question, reading, "".join(again)))
+                return
     display = looks_like_display(reading)
-    prompt = display_prompt(reading, req.message) if display else qa_prompt(req.message)
+    prompt = display_prompt(reading, question) if display else qa_prompt(question)
     parts = []
     for ev in collect(stream_brain(ctx, [{"role": "user", "content": prompt}], None if display else images), parts):
         yield ev

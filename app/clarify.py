@@ -129,3 +129,58 @@ def manual_clarify(message: str, manuals: list[dict], code: str | None = None) -
         seen=code,
         options=[ClarifyOption(label=m["title"], message=message, manual_id=m["id"]) for m in manuals],
     )
+
+
+# ---- self-consistency: two reads of the same display ----
+
+GIVEN = "\nThe display shows: "   # a reply that tells HomeFix what the display shows
+
+
+def numbers(reading: str) -> set[str]:
+    """The numbers on a display (80, 8:32, 362.5, the 24 in E24): what two reads must agree on."""
+    return set(re.findall(r"\d+(?:[:.]\d+)?", clean_reading(reading)))
+
+
+def reads_agree(first: str, second: str) -> bool:
+    """Two reads agree unless each has a number the other lacks (80 vs 60). One listing more is fine."""
+    a, b = numbers(first), numbers(second)
+    return a <= b or b <= a
+
+
+def _flat(reading: str) -> str:
+    return " ".join(ln.strip() for ln in clean_reading(reading).splitlines() if ln.strip())
+
+
+def given_reading(message: str) -> tuple[str, str | None]:
+    """("question", "what the person says the display shows") from a reply, else (message, None)."""
+    if GIVEN in message:
+        q, r = message.split(GIVEN, 1)
+        return q.strip(), r.strip() or None
+    return message, None
+
+
+def reading_clarify(question: str, first: str, second: str) -> Clarify:
+    """Two reads disagree on the numbers: show both, let the person say which is right."""
+    options = []
+    for r in (first, second):
+        nums = [m for m in re.findall(r"\d+(?:[:.]\d+)?", clean_reading(r))]
+        label = f"It shows {' '.join(dict.fromkeys(nums))}" if nums else f"It shows {_flat(r)[:40]}"
+        if label not in [o.label for o in options]:
+            options.append(ClarifyOption(label=label, message=f"{question}{GIVEN}{_flat(r)}"))
+    return Clarify(
+        question=("I read this display two different ways, so I won't guess. Which is right? "
+                  "You can also type what it shows, or send a sharper photo."),
+        seen=f"First look: {_flat(first)}\nSecond look: {_flat(second)}",
+        options=options,
+    )
+
+
+def two_codes_clarify(question: str, first: str, second: str, codes: list[str]) -> Clarify:
+    """Two reads found different error codes (or one found none): ask which code it is."""
+    return Clarify(
+        question=("I read this display two different ways, so I won't guess the code. Which code does it show? "
+                  "Type it if it's none of these."),
+        seen=f"First look: {_flat(first)}\nSecond look: {_flat(second)}",
+        options=[ClarifyOption(label=f"It shows {c}", message=f"{question}\nIt shows {c}") for c in codes],
+    )
+

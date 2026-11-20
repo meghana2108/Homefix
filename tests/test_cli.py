@@ -1,6 +1,7 @@
 """python -m app.cli runs the same handle() as the API and eval."""
 
 import json
+import os
 import subprocess
 import sys
 
@@ -8,8 +9,10 @@ from app.settings import ROOT
 
 
 def cli(*args: str) -> subprocess.CompletedProcess:
+    # These test the CLI's protocol; the meaning-based danger net (a ~9 s model load) has its own tests.
+    env = {**os.environ, "HOMEFIX_SAFETY_MEANING": "off"}
     return subprocess.run([sys.executable, "-m", "app.cli", *args], capture_output=True, text=True, check=False,
-                          cwd=ROOT, timeout=60)
+                          cwd=ROOT, timeout=60, env=env)
 
 
 def test_cli_empty():

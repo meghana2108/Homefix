@@ -13,6 +13,7 @@ which is still on).
 from __future__ import annotations
 
 import logging
+import os
 from functools import lru_cache
 
 import numpy as np
@@ -56,7 +57,7 @@ def scores(text: str) -> tuple[float, float, str]:
 
 def check_meaning(text: str, margin: float | None = None, min_hazard: float | None = None) -> SafetyHit | None:
     """A SafetyHit when the text means something dangerous, else None. Empty text is never a hit."""
-    if not text.strip():
+    if not text.strip() or os.environ.get("HOMEFIX_SAFETY_MEANING") == "off":  # off: subprocess tests only
         return None
     cfg = _config()
     margin = cfg["margin"] if margin is None else margin

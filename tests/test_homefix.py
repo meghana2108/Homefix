@@ -39,7 +39,7 @@ def test_read_display_code():
 
 def test_code_then_manual_citation(fake_brain, ctx_full, tmp_path, monkeypatch):
     make(tmp_path, monkeypatch)
-    fake_brain("None", "None", "E21", '{"answer":"The water did not drain.",'
+    fake_brain("None", "None", "E21", "E21", '{"answer":"The water did not drain.",'
                '"quote":"Error E21 means the water did not drain","page":1}')
     ev = list(homefix.run(req(tmp_path), ctx_full))
     assert any(isinstance(e, Status) and e.detail == "found E21" for e in ev)
@@ -50,7 +50,7 @@ def test_code_then_manual_citation(fake_brain, ctx_full, tmp_path, monkeypatch):
 
 def test_cant_read_code_asks_instead_of_blaming_the_photo(fake_brain, ctx_full, tmp_path, monkeypatch):
     make(tmp_path, monkeypatch)
-    fake_brain("None", "None", "I can't tell.")
+    fake_brain("None", "None", "I can't tell.", "I can't tell.")
     ev = list(homefix.run(req(tmp_path), ctx_full))
     c = next(e for e in ev if isinstance(e, Clarify))
     assert c.seen is None and "couldn't read" in c.question
@@ -59,7 +59,7 @@ def test_cant_read_code_asks_instead_of_blaming_the_photo(fake_brain, ctx_full, 
 
 def test_no_tokens_from_display_read(fake_brain, ctx_full, tmp_path, monkeypatch):
     make(tmp_path, monkeypatch)
-    fake_brain("None", "None", "The display shows E21.", '{"answer":"Clean the drain pump filter.",'
+    fake_brain("None", "None", "The display shows E21.", "E21", '{"answer":"Clean the drain pump filter.",'
                '"quote":"Clean the drain pump filter every month","page":1}')
     ev = list(homefix.run(req(tmp_path), ctx_full))
     assert not any(isinstance(e, Token) for e in ev)
@@ -67,7 +67,7 @@ def test_no_tokens_from_display_read(fake_brain, ctx_full, tmp_path, monkeypatch
 
 def test_refused_lookup_has_no_tokens(fake_brain, ctx_full, tmp_path, monkeypatch):
     make(tmp_path, monkeypatch)
-    fake_brain("None", "None", "The display shows E21.", '{"answer":null,"quote":null,"page":null}')
+    fake_brain("None", "None", "The display shows E21.", "E21", '{"answer":null,"quote":null,"page":null}')
     ev = list(homefix.run(req(tmp_path), ctx_full))
     assert not any(isinstance(e, Token) for e in ev)
     assert isinstance(ev[-2], Refusal) and ev[-2].reason == "not_in_document"
