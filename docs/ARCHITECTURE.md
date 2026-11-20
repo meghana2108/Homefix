@@ -39,7 +39,7 @@ flowchart LR
 | Whisper | large-v3-turbo 1.6 GB + small.en 0.5 GB (live mic) | small.en 0.5 GB (file and live) |
 | CLAP | 0.6 GB | 0.6 GB |
 | bge-small | 0.13 GB weights (0.4 GB repo) | 0.13 GB |
-| **Models total** | **≈ 10.5–11 GB** (target ≤ 11) | **≈ 4 GB peak** (one LLM at a time) |
+| **Models total** | **≈ 10 GB** with the 7b coder swapped in, not resident (target ≤ 11) | **≈ 4 GB peak** (one LLM at a time) |
 | OS + browser + Python | ~4–5 GB | ~3–4 GB |
 
 Measured peak: 7.2 GB on `full`, 3.0 GB on `lite` (eval runs, see [MODELS.md](MODELS.md)).

@@ -34,14 +34,20 @@ bash scripts/pull_models.sh full     # or: lite   (~23 GB / ~10 GB incl. bake-of
 uv run python scripts/go_no_go.py    # GO / NO-GO table
 uv run pytest                        # unit + hard-rule tests
 ```
-Run the app (two terminals, Ollama open):
+Once per Mac, make the example files and sample manuals:
 ```bash
-uv run uvicorn app.api.main:app --port 8000      # backend; PROFILE comes from .env
-cd frontend && npm install && npm run dev        # UI at http://localhost:5173
-uv run python scripts/make_samples.py            # example files and sample manuals (once per Mac)
-uv run python scripts/fetch_real_samples.py      # real photos and guides from Wikimedia Commons, EPA, CPSC (once, slow)
-bash scripts/offline_check.sh full               # with Wi-Fi off: checks nothing reaches the network
+uv run python scripts/make_samples.py            # our drawn photos, sounds, voice notes, clips and guides
+uv run python scripts/fetch_real_samples.py      # real photos, a chirp and guides (Wikimedia Commons, EPA, CPSC); slow
 ```
+Run the app with Ollama open. Terminal 1 (backend; `PROFILE` comes from `.env`):
+```bash
+uv run uvicorn app.api.main:app --port 8000
+```
+Terminal 2 (UI at http://localhost:5173):
+```bash
+cd frontend && npm install && npm run dev
+```
+Then turn Wi-Fi off and check nothing reaches the network: `bash scripts/offline_check.sh full`.
 Run the eval: `uv run python -m eval.run --profile full --modality all`, then
 `uv run python -m eval.report --run <run_id>`. Phone use: see [docs/DEMO.md](docs/DEMO.md).
 
@@ -70,7 +76,7 @@ Speed (median, request to final answer, first model load included) and memory:
 | `lite` | 14.9 s | 22.7 s | 5.1 s | 24.3 s | 22.5 s | 3.0 GB |
 
 Missed our own targets: image on `full` (9.2 s vs 8 s), video on `full` (38.8 s vs 25 s), audio on `lite`
-(22.7 s vs 4 s for sounds and 15 s for speech). `lite` video uses 8 frames instead of 16, which is why it is
+(22.7 s vs 4 s for sounds and 15 s for speech). `lite` video uses 8 frames instead of 16 and the 2b model, so it is
 faster and less accurate.
 
 ## Docs

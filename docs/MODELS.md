@@ -35,7 +35,7 @@ bake-off rows below are what we measured or ruled out, and why.
 | Video (count / direction / qa) | qwen3-vl:8b-instruct, 16 frames | full | 2/4 · 2/2 · 7/9 | 38.8 | 54.8 | over the 25 s target |
 | | qwen3-vl:2b-instruct, 8 frames | lite | 1/4 · 2/2 · 2/9 | 22.5 | 50.5 | |
 | Speech (transcript fuzzy) | whisper-large-v3-turbo | full | 8/10 | 2.9* | 6.1* | *audio p50 covers speech and sounds |
-| | whisper-small.en | lite | 6/10 | 22.7* | 33.7* | lite swaps memory; over target |
+| | whisper-small.en | lite | 6/10 | 22.7* | 33.7* | over target; cause not measured |
 | Sounds (top-1 / top-3) | CLAP htsat-unfused | both | 8/10 · 9/10 | (above) | (above) | same model on both |
 | Text (answer / refusal recall) | qwen3-vl:8b-instruct + verifier | full | 15/15 · 3/5 | 3.6 | 10.2 | refusal precision 1.00 |
 | | qwen3-vl:2b-instruct + verifier | lite | 14/15 · 2/5 | 5.1 | 8.5 | refusal precision 1.00 |
@@ -56,7 +56,7 @@ Peak memory: 7.2 GB on `full`, 3.0 GB on `lite` (Ollama's loaded models plus the
 The text verifier threshold stays at 92 (`partial_ratio`, quotes of 8+ words). We did not sweep other values.
 
 ## Final choices (one line each)
-- **Brain (full):** `qwen3-vl:8b-instruct`. Best OCR and counting we could fit with Whisper and CLAP under 11 GB, without the thinking delay.
+- **Brain (full):** `qwen3-vl:8b-instruct`. The largest qwen3-vl that fits under 11 GB with Whisper and CLAP, without the thinking delay (D14); 87/100 on the pack. Other brains not benchmarked.
 - **Brain (lite):** `qwen3-vl:2b-instruct`. Fits 8 GB next to Whisper small and CLAP; 75/100 overall on the pack.
 - **Coder:** `qwen2.5-coder:7b` on `full`, `qwen2.5-coder:3b` on `lite`, each swapped in with the brain unloaded.
 - **ASR:** `whisper-large-v3-turbo` for files on `full`, `whisper-small.en` for live mic and everything on `lite`.
